@@ -362,6 +362,48 @@
             width: 100%;
         }
 
+        /* 氨基酸周期表样式 */
+        .amino-acid-content {
+            padding: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .amino-acid-chart {
+            margin-bottom: 30px;
+            text-align: center;
+        }
+
+        .amino-acid-table-container {
+            margin-top: 30px;
+        }
+
+        #amino-acid-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        #amino-acid-table th {
+            font-weight: 600;
+            padding: 12px;
+            text-align: left;
+            background-color: var(--secondary-color);
+            color: white;
+        }
+
+        #amino-acid-table td {
+            padding: 10px;
+            border-bottom: 1px solid #eee;
+        }
+
+        #amino-acid-table tr:hover {
+            background-color: rgba(52, 152, 219, 0.05) !important;
+        }
+
         @media (max-width: 768px) {
             .main-content {
                 flex-direction: column;
@@ -377,6 +419,19 @@
             
             .tool-card-body p {
                 font-size: 0.9rem;
+            }
+            
+            .amino-acid-content {
+                padding: 15px;
+            }
+            
+            #amino-acid-table {
+                font-size: 0.85rem;
+            }
+            
+            #amino-acid-table th, 
+            #amino-acid-table td {
+                padding: 8px 6px;
             }
         }
     </style>
@@ -400,12 +455,12 @@
                     <div class="tool-card-footer">点击进入</div>
                 </div>
 
-                <div class="tool-card coming-soon">
-                    <div class="tool-card-header">开发中</div>
+                <div class="tool-card" data-tool="amino-acid-table">
+                    <div class="tool-card-header">氨基酸周期表</div>
                     <div class="tool-card-body">
-                        <p>开发中</p>
+                        <p>查看氨基酸的中英文名称对照、缩写和特性信息。</p>
                     </div>
-                    <div class="tool-card-footer">开发中</div>
+                    <div class="tool-card-footer">点击进入</div>
                 </div>
 
                 <div class="tool-card coming-soon">
@@ -462,75 +517,121 @@
 
     <!-- 工具界面 - 初始隐藏 -->
     <div id="tool-screen">
-        <div class="tool-header">
-            <h2 id="current-tool-name">模拟突变工具</h2>
-            <button class="back-button" id="back-button">返回主界面</button>
-        </div>
+        <!-- 模拟突变工具 -->
+        <div id="mutant-tool-screen">
+            <div class="tool-header">
+                <h2 id="current-tool-name">模拟突变工具</h2>
+                <button class="back-button" id="back-button">返回主界面</button>
+            </div>
 
-        <!-- 基因突变工具内容 -->
-        <div class="main-content">
-            <div class="left-panel">
-                <div class="section">
-                    <div class="section-title-small">文件选择</div>
-                    <div class="form-group">
-                        <label for="fasta-file">选择FASTA文件（请确保上传的是氨基酸而非核苷酸序列！）:</label>
-                        <input type="file" id="fasta-file" accept=".fasta,.fa,.fna" multiple>
+            <!-- 基因突变工具内容 -->
+            <div class="main-content">
+                <div class="left-panel">
+                    <div class="section">
+                        <div class="section-title-small">文件选择</div>
+                        <div class="form-group">
+                            <label for="fasta-file">选择FASTA文件（请确保上传的是氨基酸而非核苷酸序列！）:</label>
+                            <input type="file" id="fasta-file" accept=".fasta,.fa,.fna" multiple>
+                        </div>
+                    </div>
+
+                    <div class="section">
+                        <div class="section-title-small">基因选择</div>
+                        <div class="form-group">
+                            <label for="gene-list">选择基因:</label>
+                            <div id="gene-list" class="gene-list">
+                                <div class="gene-item">请先上传FASTA文件</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="section">
+                        <div class="section-title-small">突变设置</div>
+                        <div class="form-group">
+                            <label>突变位点:</label>
+                            <div id="mutant-container" class="mutant-container">
+                                <div class="mutant-input">
+                                    <input type="text" placeholder="例如: A1S；若为组合突变体，不同突变体间请用空格分隔" class="mutation-input">
+                                    <button class="delete-btn">删除</button>
+                                </div>
+                            </div>
+                            <button id="add-mutant-btn" class="add-mutant-btn">添加突变体</button>
+                        </div>
+
+                        <div class="form-group">
+                            <label>输出方式:</label>
+                            <div class="output-options">
+                                <div class="output-option">
+                                    <input type="radio" id="output-separate" name="output-type" value="separate" checked>
+                                    <label for="output-separate">分隔成不同突变体文件</label>
+                                </div>
+                                <div class="output-option">
+                                    <input type="radio" id="output-combined" name="output-type" value="combined">
+                                    <label for="output-combined">将所有突变体合并成一个文件</label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <button id="export-btn" class="export-btn">导出突变</button>
                     </div>
                 </div>
 
-                <div class="section">
-                    <div class="section-title-small">基因选择</div>
-                    <div class="form-group">
-                        <label for="gene-list">选择基因:</label>
-                        <div id="gene-list" class="gene-list">
-                            <div class="gene-item">请先上传FASTA文件</div>
+                <div class="right-panel">
+                    <div class="section">
+                        <div class="section-title-small">日志</div>
+                        <div id="info-box" class="info-box">
+                            <div class="log-entry">欢迎使用基因模拟突变工具！请上传FASTA文件开始操作。</div>
                         </div>
                     </div>
-                </div>
-
-                <div class="section">
-                    <div class="section-title-small">突变设置</div>
-                    <div class="form-group">
-                        <label>突变位点:</label>
-                        <div id="mutant-container" class="mutant-container">
-                            <div class="mutant-input">
-                                <input type="text" placeholder="例如: A1S；若为组合突变体，不同突变体间请用空格分隔" class="mutation-input">
-                                <button class="delete-btn">删除</button>
-                            </div>
-                        </div>
-                        <button id="add-mutant-btn" class="add-mutant-btn">添加突变体</button>
-                    </div>
-
-                    <div class="form-group">
-                        <label>输出方式:</label>
-                        <div class="output-options">
-                            <div class="output-option">
-                                <input type="radio" id="output-separate" name="output-type" value="separate" checked>
-                                <label for="output-separate">分隔成不同突变体文件</label>
-                            </div>
-                            <div class="output-option">
-                                <input type="radio" id="output-combined" name="output-type" value="combined">
-                                <label for="output-combined">将所有突变体合并成一个文件</label>
-                            </div>
-                        </div>
-                    </div>
-
-                    <button id="export-btn" class="export-btn">导出突变</button>
                 </div>
             </div>
 
-            <div class="right-panel">
-                <div class="section">
-                    <div class="section-title-small">日志</div>
-                    <div id="info-box" class="info-box">
-                        <div class="log-entry">欢迎使用基因模拟突变工具！请上传FASTA文件开始操作。</div>
-                    </div>
-                </div>
+            <div class="status-bar" id="status-bar">
+                江南大学 粮食发酵工艺与技术国家工程实验室
             </div>
         </div>
 
-        <div class="status-bar" id="status-bar">
-            江南大学 粮食发酵工艺与技术国家工程实验室
+        <!-- 氨基酸周期表工具 -->
+        <div id="amino-acid-tool-screen" style="display: none;">
+            <div class="tool-header">
+                <h2>氨基酸周期表</h2>
+                <button class="back-button">返回主界面</button>
+            </div>
+            
+            <div class="amino-acid-content">
+                <!-- 氨基酸图表 -->
+                <div class="amino-acid-chart">
+                    <h3 style="margin-bottom: 15px; color: var(--primary-color);">氨基酸周期表</h3>
+                    <img id="amino-acid-image" src="" alt="氨基酸周期表" style="max-width: 100%; height: auto; border: 1px solid #ddd; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+                </div>
+                
+                <!-- 氨基酸信息表格 -->
+                <div class="amino-acid-table-container">
+                    <h3 style="margin-bottom: 15px; color: var(--primary-color);text-align: center;">氨基酸详细信息表</h3>
+                        <table id="amino-acid-table">
+                            <thead>
+                                <tr>
+                                    <th>中文名称</th>
+                                    <th>英文名称</th>
+                                    <th>单字母缩写</th>
+                                    <th>三字母缩写</th>
+                                    <th>分类</th>
+                                    <th>极性</th>
+                                    <th>pH=7时的电荷</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- 表格内容将由JavaScript动态生成 -->
+                            </tbody>
+                        </table>
+                    </div>
+                    <p style="margin-top: 10px; font-size: 0.85rem; color: #666;">* 表示特殊氨基酸</p>
+                </div>
+            </div>
+            
+            <div class="status-bar">
+                江南大学 粮食发酵工艺与技术国家工程实验室
+            </div>
         </div>
     </div>
 
@@ -554,12 +655,32 @@
                         // 更新当前工具名称
                         const toolName = this.querySelector('.tool-card-header').textContent;
                         document.getElementById('current-tool-name').textContent = toolName;
+                        
+                        // 隐藏所有工具界面
+                        document.querySelectorAll('#tool-screen > div[id$="-tool-screen"]').forEach(screen => {
+                            screen.style.display = 'none';
+                        });
+                        
+                        // 显示对应的工具界面
+                        if (toolId === 'mutant-tool') {
+                            document.getElementById('mutant-tool-screen').style.display = 'block';
+                        } else if (toolId === 'amino-acid-table') {
+                            document.getElementById('amino-acid-tool-screen').style.display = 'block';
+                            document.getElementById('current-tool-name').textContent = '氨基酸周期表';
+                            initAminoAcidTable();
+                        }
                     }
                 });
             });
             
             // 返回按钮事件
             backButton.addEventListener('click', function() {
+                toolScreen.style.display = 'none';
+                loginScreen.style.display = 'block';
+            });
+            
+            // 为氨基酸周期表工具添加返回按钮事件
+            document.querySelector('#amino-acid-tool-screen .back-button').addEventListener('click', function() {
                 toolScreen.style.display = 'none';
                 loginScreen.style.display = 'block';
             });
@@ -870,6 +991,80 @@
             // 更新状态栏
             function updateStatus(message) {
                 statusBar.textContent = message;
+            }
+
+            // 氨基酸数据
+            const aminoAcids = [
+                { chinese: "丙氨酸", english: "Alanine", short: "A", abbrev: "Ala", type: "非极性", polarity: "疏水性", charge: "中性" },
+                { chinese: "苯丙氨酸", english: "Phenylalanine", short: "F", abbrev: "Phe", type: "非极性", polarity: "疏水性", charge: "中性" },
+                { chinese: "半胱氨酸", english: "Cysteine", short: "C", abbrev: "Cys", type: "极性", polarity: "亲水性", charge: "中性" },
+                { chinese: "硒半胱氨酸", english: "Selenocysteine", short: "U", abbrev: "Sec", type: "特殊", polarity: "亲水性", charge: "中性", special: true },
+                { chinese: "天冬氨酸", english: "Aspartic acid", short: "D", abbrev: "Asp", type: "酸性", polarity: "亲水性", charge: "负" },
+                { chinese: "天冬酰胺", english: "Asparagine", short: "N", abbrev: "Asn", type: "极性", polarity: "亲水性", charge: "中性" },
+                { chinese: "谷氨酸", english: "Glutamic acid", short: "E", abbrev: "Glu", type: "酸性", polarity: "亲水性", charge: "负" },
+                { chinese: "谷氨酰胺", english: "Glutamine", short: "Q", abbrev: "Gln", type: "极性", polarity: "亲水性", charge: "中性" },
+                { chinese: "甘氨酸", english: "Glycine", short: "G", abbrev: "Gly", type: "非极性", polarity: "疏水性", charge: "中性" },
+                { chinese: "组氨酸", english: "Histidine", short: "H", abbrev: "His", type: "碱性", polarity: "亲水性", charge: "正(弱)" },
+                { chinese: "亮氨酸", english: "Leucine", short: "L", abbrev: "Leu", type: "非极性", polarity: "疏水性", charge: "中性" },
+                { chinese: "异亮氨酸", english: "Isoleucine", short: "I", abbrev: "Ile", type: "非极性", polarity: "疏水性", charge: "中性" },
+                { chinese: "离氨酸", english: "Lysine", short: "K", abbrev: "Lys", type: "碱性", polarity: "亲水性", charge: "正" },
+                { chinese: "吡咯赖氨酸", english: "Pyrrolysine", short: "O", abbrev: "Pyl", type: "特殊", polarity: "亲水性", charge: "正", special: true },
+                { chinese: "蛋氨酸", english: "Methionine", short: "M", abbrev: "Met", type: "非极性", polarity: "疏水性", charge: "中性" },
+                { chinese: "脯氨酸", english: "Proline", short: "P", abbrev: "Pro", type: "非极性", polarity: "疏水性", charge: "中性" },
+                { chinese: "精氨酸", english: "Arginine", short: "R", abbrev: "Arg", type: "碱性", polarity: "亲水性", charge: "正" },
+                { chinese: "丝氨酸", english: "Serine", short: "S", abbrev: "Ser", type: "极性", polarity: "亲水性", charge: "中性" },
+                { chinese: "苏氨酸", english: "Threonine", short: "T", abbrev: "Thr", type: "极性", polarity: "亲水性", charge: "中性" },
+                { chinese: "缬氨酸", english: "Valine", short: "V", abbrev: "Val", type: "非极性", polarity: "疏水性", charge: "中性" },
+                { chinese: "色氨酸", english: "Tryptophan", short: "W", abbrev: "Trp", type: "非极性", polarity: "疏水性", charge: "中性" },
+                { chinese: "酪氨酸", english: "Tyrosine", short: "Y", abbrev: "Tyr", type: "极性", polarity: "亲水性", charge: "中性" }
+            ];
+
+            // 初始化氨基酸表格
+            function initAminoAcidTable() {
+                const tableBody = document.querySelector('#amino-acid-table tbody');
+                tableBody.innerHTML = ''; // 清空现有内容
+                
+                aminoAcids.forEach(acid => {
+                    const row = document.createElement('tr');
+                    
+                    // 为特殊氨基酸添加标记
+                    const chineseName = acid.special ? `${acid.chinese}*` : acid.chinese;
+                    
+                    row.innerHTML = `
+                        <td>${chineseName}</td>
+                        <td>${acid.english}</td>
+                        <td style="font-weight: bold;">${acid.short}</td>
+                        <td>${acid.abbrev}</td>
+                        <td>${acid.type}</td>
+                        <td>${acid.polarity}</td>
+                        <td>${acid.charge}</td>
+                    `;
+                    
+                    // 根据氨基酸类型添加背景色
+                    switch(acid.type) {
+                        case "酸性":
+                            row.style.backgroundColor = "#ffebee"; // 浅红色
+                            break;
+                        case "碱性":
+                            row.style.backgroundColor = "#e3f2fd"; // 浅蓝色
+                            break;
+                        case "极性":
+                            row.style.backgroundColor = "#f1f8e9"; // 浅绿色
+                            break;
+                        case "非极性":
+                            row.style.backgroundColor = "#f5f5f5"; // 浅灰色
+                            break;
+                        case "特殊":
+                            row.style.backgroundColor = "#fff8e1"; // 浅黄色
+                            break;
+                    }
+                    
+                    tableBody.appendChild(row);
+                });
+                
+                // 设置氨基酸图片 - 替换为你的GitHub图片URL
+                const imageUrl = "https://raw.githubusercontent.com/PeichenDuan/PeichenDuan.github.io/main/%E6%B0%A8%E5%9F%BA%E9%85%B8%E5%91%A8%E6%9C%9F%E8%A1%A8.png";
+                document.getElementById('amino-acid-image').src = imageUrl;
             }
 
             // 初始化
