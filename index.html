@@ -160,11 +160,11 @@
 
         .tool-header {
             display: flex;
-            justify-content: space-between;
-            align-items: center;
+            flex-direction: column; /* 纵向排列 */
+            align-items: flex-start; /* 左对齐 */
             background-color: var(--primary-color);
             color: white;
-            padding: 12px 5%;
+            padding: 15px 20px; /* 优化内边距 */
             width: 100%;
         }
 
@@ -178,6 +178,7 @@
             transition: var(--transition);
             font-size: 0.9rem;
             white-space: nowrap;
+            margin-top: 8px; /* 与标题拉开间距 */
         }
 
         .back-button:hover {
@@ -335,7 +336,7 @@
         }
 
         .info-box {
-            height: 500px;
+            height: 715px;
             overflow-y: auto;
             border: 1px solid #ddd;
             border-radius: var(--border-radius);
