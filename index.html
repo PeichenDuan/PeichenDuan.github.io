@@ -1,0 +1,610 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>基因模拟突变工具</title>
+    <style>
+        :root {
+            --primary-color: #3498db;
+            --secondary-color: #2980b9;
+            --accent-color: #e74c3c;
+            --light-color: #ecf0f1;
+            --dark-color: #2c3e50;
+            --success-color: #27ae60;
+            --warning-color: #f39c12;
+            --border-radius: 5px;
+            --box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background-color: #f5f5f5;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: var(--border-radius);
+            box-shadow: var(--box-shadow);
+            overflow: hidden;
+        }
+
+        header {
+            background-color: var(--primary-color);
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+
+        h1 {
+            margin-bottom: 10px;
+        }
+
+        .main-content {
+            display: flex;
+            min-height: 600px;
+        }
+
+        .left-panel {
+            flex: 3;
+            padding: 20px;
+            border-right: 1px solid #ddd;
+        }
+
+        .right-panel {
+            flex: 1;
+            padding: 20px;
+            background-color: #f9f9f9;
+        }
+
+        .section {
+            margin-bottom: 20px;
+        }
+
+        .section-title {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            padding-bottom: 5px;
+            border-bottom: 2px solid var(--primary-color);
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+
+        select, input, textarea, button {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: var(--border-radius);
+            font-size: 14px;
+        }
+
+        select {
+            background-color: white;
+        }
+
+        button {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        button:hover {
+            background-color: var(--secondary-color);
+        }
+
+        button.delete-btn {
+            background-color: var(--accent-color);
+            width: auto;
+            padding: 5px 10px;
+        }
+
+        button.delete-btn:hover {
+            background-color: #c0392b;
+        }
+
+        .gene-list {
+            height: 200px;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            border-radius: var(--border-radius);
+            padding: 5px;
+        }
+
+        .gene-item {
+            padding: 8px;
+            cursor: pointer;
+            border-bottom: 1px solid #eee;
+        }
+
+        .gene-item:hover {
+            background-color: #f0f0f0;
+        }
+
+        .gene-item.selected {
+            background-color: var(--primary-color);
+            color: white;
+        }
+
+        .mutant-container {
+            max-height: 200px;
+            overflow-y: auto;
+            margin-bottom: 15px;
+            border: 1px solid #ddd;
+            border-radius: var(--border-radius);
+            padding: 10px;
+        }
+
+        .mutant-input {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .mutant-input input {
+            flex: 1;
+            margin-right: 10px;
+        }
+
+        .add-mutant-btn {
+            display: block;
+            margin: 0 auto 15px;
+            width: auto;
+            padding: 8px 20px;
+        }
+
+        .output-options {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        .output-option {
+            display: flex;
+            align-items: center;
+        }
+
+        .output-option input {
+            width: auto;
+            margin-right: 5px;
+        }
+
+        .export-btn {
+            background-color: var(--success-color);
+            padding: 10px;
+            font-weight: bold;
+        }
+
+        .export-btn:hover {
+            background-color: #219653;
+        }
+
+        .info-box {
+            height: 500px;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            border-radius: var(--border-radius);
+            padding: 10px;
+            background-color: white;
+            font-family: monospace;
+            font-size: 14px;
+        }
+
+        .log-entry {
+            margin-bottom: 5px;
+            padding-bottom: 5px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .status-bar {
+            padding: 10px;
+            background-color: #f0f0f0;
+            text-align: center;
+            font-weight: bold;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        @media (max-width: 768px) {
+            .main-content {
+                flex-direction: column;
+            }
+            
+            .left-panel, .right-panel {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>基因模拟突变工具</h1>
+            <p>上传FASTA文件，选择基因并指定突变位点</p>
+        </header>
+
+        <div class="main-content">
+            <div class="left-panel">
+                <div class="section">
+                    <div class="section-title">文件选择</div>
+                    <div class="form-group">
+                        <label for="fasta-file">选择FASTA文件:</label>
+                        <input type="file" id="fasta-file" accept=".fasta,.fa,.fna" multiple>
+                    </div>
+                </div>
+
+                <div class="section">
+                    <div class="section-title">基因选择</div>
+                    <div class="form-group">
+                        <label for="gene-list">选择基因:</label>
+                        <div id="gene-list" class="gene-list">
+                            <div class="gene-item">请先上传FASTA文件</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="section">
+                    <div class="section-title">突变设置</div>
+                    <div class="form-group">
+                        <label>突变位点:</label>
+                        <div id="mutant-container" class="mutant-container">
+                            <div class="mutant-input">
+                                <input type="text" placeholder="例如: A1S；若为组合突变体，不同突变体间请用空格分隔" class="mutation-input">
+                                <button class="delete-btn">删除</button>
+                            </div>
+                        </div>
+                        <button id="add-mutant-btn" class="add-mutant-btn">添加突变体</button>
+                    </div>
+
+                    <div class="form-group">
+                        <label>输出方式:</label>
+                        <div class="output-options">
+                            <div class="output-option">
+                                <input type="radio" id="output-separate" name="output-type" value="separate" checked>
+                                <label for="output-separate">分隔成不同突变体文件</label>
+                            </div>
+                            <div class="output-option">
+                                <input type="radio" id="output-combined" name="output-type" value="combined">
+                                <label for="output-combined">将所有突变体合并成一个文件</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <button id="export-btn" class="export-btn">导出突变</button>
+                </div>
+            </div>
+
+            <div class="right-panel">
+                <div class="section">
+                    <div class="section-title">信息</div>
+                    <div id="info-box" class="info-box">
+                        <div class="log-entry">欢迎使用基因模拟突变工具！请上传FASTA文件开始操作。</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="status-bar" id="status-bar">
+            江南大学 粮食发酵工艺与技术国家工程实验室
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // 全局变量
+            let genes = {};
+            let selectedGene = null;
+            let mutantCount = 0;
+
+            // DOM元素
+            const fastaFileInput = document.getElementById('fasta-file');
+            const geneList = document.getElementById('gene-list');
+            const mutantContainer = document.getElementById('mutant-container');
+            const addMutantBtn = document.getElementById('add-mutant-btn');
+            const exportBtn = document.getElementById('export-btn');
+            const infoBox = document.getElementById('info-box');
+            const statusBar = document.getElementById('status-bar');
+
+            // 事件监听
+            fastaFileInput.addEventListener('change', handleFileUpload);
+            addMutantBtn.addEventListener('click', addMutantInput);
+            exportBtn.addEventListener('click', exportMutations);
+
+            // 文件上传处理
+            function handleFileUpload(event) {
+                const files = event.target.files;
+                if (!files || files.length === 0) return;
+
+                genes = {};
+                geneList.innerHTML = '';
+                logMessage(`已选择 ${files.length} 个文件`);
+
+                // 读取所有FASTA文件
+                Array.from(files).forEach(file => {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        parseFasta(e.target.result, file.name);
+                    };
+                    reader.readAsText(file);
+                });
+            }
+
+            // 解析FASTA内容
+            function parseFasta(content, filename) {
+                const lines = content.split('\n');
+                let currentId = '';
+                let currentSeq = '';
+
+                for (let line of lines) {
+                    line = line.trim();
+                    if (line.startsWith('>')) {
+                        // 保存上一个基因
+                        if (currentId && currentSeq) {
+                            genes[currentId] = currentSeq;
+                            addGeneToList(currentId);
+                        }
+
+                        // 开始新基因
+                        currentId = line.substring(1).split(/\s+/)[0]; // 获取ID部分
+                        currentSeq = '';
+                    } else if (line) {
+                        currentSeq += line;
+                    }
+                }
+
+                // 保存最后一个基因
+                if (currentId && currentSeq) {
+                    genes[currentId] = currentSeq;
+                    addGeneToList(currentId);
+                }
+
+                logMessage(`已解析文件: ${filename}, 包含 ${Object.keys(genes).length} 个基因`);
+                updateStatus(`已加载 ${Object.keys(genes).length} 个基因`);
+            }
+
+            // 添加基因到列表
+            function addGeneToList(geneId) {
+                const geneItem = document.createElement('div');
+                geneItem.className = 'gene-item';
+                geneItem.textContent = geneId;
+                geneItem.addEventListener('click', function() {
+                    // 移除之前的选择
+                    document.querySelectorAll('.gene-item.selected').forEach(item => {
+                        item.classList.remove('selected');
+                    });
+                    
+                    // 添加新选择
+                    this.classList.add('selected');
+                    selectedGene = geneId;
+                    
+                    // 显示基因信息
+                    const geneSeq = genes[geneId];
+                    logMessage(`选中基因: ${geneId}`);
+                    logMessage(`序列长度: ${geneSeq.length}`);
+                    logMessage(`前50个氨基酸: ${geneSeq.substring(0, 50)}...`);
+                });
+                
+                geneList.appendChild(geneItem);
+            }
+
+            // 添加突变体输入框
+            function addMutantInput() {
+                const mutantInput = document.createElement('div');
+                mutantInput.className = 'mutant-input';
+                mutantInput.innerHTML = `
+                    <input type="text" placeholder="例如: A1S" class="mutation-input">
+                    <button class="delete-btn">删除</button>
+                `;
+                
+                // 添加删除按钮事件
+                const deleteBtn = mutantInput.querySelector('.delete-btn');
+                deleteBtn.addEventListener('click', function() {
+                    mutantContainer.removeChild(mutantInput);
+                });
+                
+                mutantContainer.appendChild(mutantInput);
+                mutantCount++;
+            }
+
+            // 导出突变体
+            function exportMutations() {
+                if (!selectedGene) {
+                    alert('请先选择一个基因!');
+                    return;
+                }
+
+                const originalSeq = genes[selectedGene];
+                const outputType = document.querySelector('input[name="output-type"]:checked').value;
+                
+                // 收集突变信息
+                const mutationsToApply = [];
+                const mutantInputs = mutantContainer.querySelectorAll('.mutation-input');
+                
+                for (let input of mutantInputs) {
+                    const mutationStr = input.value.trim();
+                    if (!mutationStr) continue;
+                    
+                    // 验证突变格式
+                    const valid = validateMutations(mutationStr, originalSeq.length);
+                    if (!valid) {
+                        alert(`突变格式错误: ${mutationStr}。应类似 A1S`);
+                        return;
+                    }
+                    
+                    // 使用突变位点作为突变体名称，用"-"连接
+                    const mutantName = mutationStr.replace(/\s+/g, '-');
+                    mutationsToApply.push({
+                        name: mutantName,
+                        mutations: mutationStr
+                    });
+                }
+                
+                if (mutationsToApply.length === 0) {
+                    alert('请输入至少一个有效的突变!');
+                    return;
+                }
+                
+                // 应用突变
+                if (outputType === 'separate') {
+                    // 分隔生成
+                    mutationsToApply.forEach(mutant => {
+                        try {
+                            const mutatedSeq = applyMutation(originalSeq, mutant.mutations);
+                            downloadFasta(
+                                `${selectedGene}_${mutant.name}`, 
+                                mutatedSeq, 
+                                `${selectedGene}_${mutant.name}.fasta`
+                            );
+                            logMessage(`已生成: ${selectedGene}_${mutant.name}.fasta`);
+                        } catch (e) {
+                            alert(`应用突变时出错: ${e.message}`);
+                            return;
+                        }
+                    });
+                } else {
+                    // 合并生成
+                    const records = [];
+                    mutationsToApply.forEach(mutant => {
+                        try {
+                            const mutatedSeq = applyMutation(originalSeq, mutant.mutations);
+                            records.push({
+                                id: `${selectedGene}_${mutant.name}`,
+                                seq: mutatedSeq
+                            });
+                        } catch (e) {
+                            alert(`应用突变时出错: ${e.message}`);
+                            return;
+                        }
+                    });
+                    
+                    // 合并所有记录到一个文件
+                    let combinedContent = '';
+                    records.forEach(record => {
+                        combinedContent += `>${record.id}\n${formatSequence(record.seq)}\n`;
+                    });
+                    
+                    downloadBlob(
+                        new Blob([combinedContent], { type: 'text/plain' }),
+                        `${selectedGene}_mutants.fasta`
+                    );
+                    logMessage(`已生成合并文件: ${selectedGene}_mutants.fasta`);
+                }
+                
+                updateStatus('突变已成功导出!');
+            }
+
+            // 验证突变格式
+            function validateMutations(mutationStr, seqLength) {
+                const mutations = mutationStr.split(/\s+/);
+                const mutationPattern = /^[A-Za-z]\d+[A-Za-z]$/;
+                
+                for (let mut of mutations) {
+                    if (!mutationPattern.test(mut)) {
+                        return false;
+                    }
+                    
+                    // 检查位置是否有效
+                    const pos = parseInt(mut.slice(1, -1));
+                    if (pos < 1 || pos > seqLength) {
+                        return false;
+                    }
+                }
+                
+                return true;
+            }
+
+            // 应用突变到序列
+            function applyMutation(sequence, mutationStr) {
+                const mutations = mutationStr.split(/\s+/);
+                const seqArray = sequence.split('');
+                
+                for (let mut of mutations) {
+                    const originalAA = mut[0].toUpperCase();
+                    const pos = parseInt(mut.slice(1, -1)) - 1; // 转换为0-based索引
+                    const newAA = mut[mut.length - 1].toUpperCase();
+                    
+                    // 验证原始氨基酸是否匹配
+                    if (seqArray[pos] !== originalAA) {
+                        throw new Error(`位置 ${pos + 1} 的氨基酸是 ${seqArray[pos]}, 不是 ${originalAA}`);
+                    }
+                    
+                    // 应用突变
+                    seqArray[pos] = newAA;
+                }
+                
+                return seqArray.join('');
+            }
+
+            // 格式化序列（每60个字符换行）
+            function formatSequence(seq) {
+                const chunkSize = 60;
+                let result = '';
+                
+                for (let i = 0; i < seq.length; i += chunkSize) {
+                    result += seq.slice(i, i + chunkSize) + '\n';
+                }
+                
+                return result;
+            }
+
+            // 下载FASTA文件
+            function downloadFasta(id, sequence, filename) {
+                const content = `>${id}\n${formatSequence(sequence)}`;
+                downloadBlob(new Blob([content], { type: 'text/plain' }), filename);
+            }
+
+            // 下载Blob对象
+            function downloadBlob(blob, filename) {
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            }
+
+            // 记录信息
+            function logMessage(message) {
+                const logEntry = document.createElement('div');
+                logEntry.className = 'log-entry';
+                logEntry.textContent = message;
+                infoBox.appendChild(logEntry);
+                infoBox.scrollTop = infoBox.scrollHeight;
+            }
+
+            // 更新状态栏
+            function updateStatus(message) {
+                statusBar.textContent = message;
+            }
+
+            // 初始化
+            logMessage('准备就绪。请上传FASTA文件开始操作。');
+        });
+    </script>
+</body>
+</html>
