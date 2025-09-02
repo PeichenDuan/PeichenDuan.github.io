@@ -3,18 +3,19 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>基因模拟突变工具</title>
+    <title>生物信息学分析工具集</title>
     <style>
         :root {
-            --primary-color: #3498db;
-            --secondary-color: #2980b9;
+            --primary-color: #2c3e50;
+            --secondary-color: #3498db;
             --accent-color: #e74c3c;
             --light-color: #ecf0f1;
             --dark-color: #2c3e50;
             --success-color: #27ae60;
             --warning-color: #f39c12;
-            --border-radius: 5px;
-            --box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            --border-radius: 8px;
+            --box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            --transition: all 0.3s ease;
         }
 
         * {
@@ -27,17 +28,22 @@
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             line-height: 1.6;
             color: #333;
-            background-color: #f5f5f5;
-            padding: 20px;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            min-height: 100vh;
+            padding: 0;
         }
 
         .container {
             max-width: 1200px;
             margin: 0 auto;
-            background: white;
-            border-radius: var(--border-radius);
-            box-shadow: var(--box-shadow);
-            overflow: hidden;
+            padding: 20px;
+        }
+
+        /* 登录界面样式 */
+        #login-screen {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
         }
 
         header {
@@ -45,12 +51,121 @@
             color: white;
             padding: 20px;
             text-align: center;
+            border-radius: var(--border-radius) var(--border-radius) 0 0;
+            margin-bottom: 30px;
         }
 
         h1 {
             margin-bottom: 10px;
+            font-size: 2.5rem;
         }
 
+        .subtitle {
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
+
+        .tools-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 25px;
+            margin-bottom: 40px;
+        }
+
+        .tool-card {
+            background: white;
+            border-radius: var(--border-radius);
+            overflow: hidden;
+            box-shadow: var(--box-shadow);
+            transition: var(--transition);
+            cursor: pointer;
+        }
+
+        .tool-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 12px 20px rgba(0, 0, 0, 0.15);
+        }
+
+        .tool-card-header {
+            background-color: var(--secondary-color);
+            color: white;
+            padding: 15px;
+            text-align: center;
+            font-weight: bold;
+            font-size: 1.2rem;
+        }
+
+        .tool-card-body {
+            padding: 20px;
+            min-height: 150px;
+        }
+
+        .tool-card-footer {
+            padding: 15px;
+            background-color: #f8f9fa;
+            text-align: center;
+            color: #6c757d;
+            font-size: 0.9rem;
+        }
+
+        .coming-soon {
+            position: relative;
+            opacity: 0.7;
+        }
+
+        .coming-soon::after {
+            content: "即将推出";
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: var(--warning-color);
+            color: white;
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-size: 0.8rem;
+        }
+
+        .footer {
+            text-align: center;
+            margin-top: auto;
+            padding: 20px;
+            color: var(--dark-color);
+            font-weight: bold;
+        }
+
+        /* 工具界面样式 - 隐藏初始状态 */
+        #tool-screen {
+            display: none;
+            background: white;
+            border-radius: var(--border-radius);
+            box-shadow: var(--box-shadow);
+            overflow: hidden;
+        }
+
+        .tool-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background-color: var(--primary-color);
+            color: white;
+            padding: 15px 20px;
+        }
+
+        .back-button {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            padding: 8px 15px;
+            border-radius: var(--border-radius);
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .back-button:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        /* 基因突变工具原有样式 */
         .main-content {
             display: flex;
             min-height: 600px;
@@ -103,7 +218,7 @@
         }
 
         button {
-            background-color: var(--primary-color);
+            background-color: var(--secondary-color);
             color: white;
             border: none;
             cursor: pointer;
@@ -111,7 +226,7 @@
         }
 
         button:hover {
-            background-color: var(--secondary-color);
+            background-color: #2980b9;
         }
 
         button.delete-btn {
@@ -143,7 +258,7 @@
         }
 
         .gene-item.selected {
-            background-color: var(--primary-color);
+            background-color: var(--secondary-color);
             color: white;
         }
 
@@ -224,10 +339,6 @@
             font-weight: bold;
         }
 
-        .hidden {
-            display: none;
-        }
-
         @media (max-width: 768px) {
             .main-content {
                 flex-direction: column;
@@ -236,16 +347,71 @@
             .left-panel, .right-panel {
                 width: 100%;
             }
+            
+            .tools-grid {
+                grid-template-columns: 1fr;
+            }
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <header>
-            <h1>基因模拟突变工具</h1>
-            <p>上传FASTA文件，选择基因并指定突变位点</p>
-        </header>
+    <!-- 登录界面 -->
+    <div id="login-screen">
+        <div class="container">
+            <header>
+                <h1>生物信息学分析工具集</h1>
+                <p class="subtitle">高效、准确的生物信息学分析解决方案</p>
+            </header>
 
+            <div class="tools-grid">
+                <div class="tool-card" data-tool="mutant-tool">
+                    <div class="tool-card-header">模拟突变</div>
+                    <div class="tool-card-body">
+                        <p>上传FASTA文件，选择基因并指定突变位点，生成模拟突变体序列。</p>
+                        <p>支持多种输出格式和批量处理功能。</p>
+                    </div>
+                    <div class="tool-card-footer">点击进入</div>
+                </div>
+
+                <div class="tool-card coming-soon">
+                    <div class="tool-card-header">序列比对</div>
+                    <div class="tool-card-body">
+                        <p>多序列比对与分析工具，支持多种比对算法和可视化结果。</p>
+                    </div>
+                    <div class="tool-card-footer">开发中</div>
+                </div>
+
+                <div class="tool-card coming-soon">
+                    <div class="tool-card-header">引物设计</div>
+                    <div class="tool-card-body">
+                        <p>PCR引物设计与评估工具，自动检测引物二聚体和发夹结构。</p>
+                    </div>
+                    <div class="tool-card-footer">开发中</div>
+                </div>
+
+                <div class="tool-card coming-soon">
+                    <div class="tool-card-header">结构预测</div>
+                    <div class="tool-card-body">
+                        <p>蛋白质结构预测与分析，提供三级结构模拟和功能域识别。</p>
+                    </div>
+                    <div class="tool-card-footer">开发中</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="footer">
+            江南大学 粮食发酵工艺与技术国家工程实验室
+        </div>
+    </div>
+
+    <!-- 工具界面 - 初始隐藏 -->
+    <div id="tool-screen">
+        <div class="tool-header">
+            <h2 id="current-tool-name">模拟突变工具</h2>
+            <button class="back-button" id="back-button">返回主界面</button>
+        </div>
+
+        <!-- 基因突变工具内容 -->
         <div class="main-content">
             <div class="left-panel">
                 <div class="section">
@@ -314,6 +480,35 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {
+            // 界面切换逻辑
+            const loginScreen = document.getElementById('login-screen');
+            const toolScreen = document.getElementById('tool-screen');
+            const backButton = document.getElementById('back-button');
+            const toolCards = document.querySelectorAll('.tool-card');
+            
+            // 工具点击事件
+            toolCards.forEach(card => {
+                card.addEventListener('click', function() {
+                    const toolId = this.getAttribute('data-tool');
+                    if (toolId) {
+                        // 隐藏登录界面，显示工具界面
+                        loginScreen.style.display = 'none';
+                        toolScreen.style.display = 'block';
+                        
+                        // 更新当前工具名称
+                        const toolName = this.querySelector('.tool-card-header').textContent;
+                        document.getElementById('current-tool-name').textContent = toolName;
+                    }
+                });
+            });
+            
+            // 返回按钮事件
+            backButton.addEventListener('click', function() {
+                toolScreen.style.display = 'none';
+                loginScreen.style.display = 'flex';
+            });
+            
+            // 基因突变工具原有功能
             // 全局变量
             let genes = {};
             let selectedGene = null;
