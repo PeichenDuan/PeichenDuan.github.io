@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>生物信息分析工具包</title>
+    <!-- 引入JSZip库 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <style>
         :root {
             --primary-color: #2c3e50;
@@ -504,11 +506,11 @@
                         <div class="output-options">
                             <div class="output-option">
                                 <input type="radio" id="output-separate" name="output-type" value="separate" checked>
-                                <label for="output-separate">将不同突变体导出为不同fasta文件</label>
+                                <label for="output-separate">分隔成不同突变体文件</label>
                             </div>
                             <div class="output-option">
                                 <input type="radio" id="output-combined" name="output-type" value="combined">
-                                <label for="output-combined">将所有突变体合并到一个fasta文件</label>
+                                <label for="output-combined">将所有突变体合并成一个文件</label>
                             </div>
                         </div>
                     </div>
@@ -678,8 +680,8 @@
                 mutantCount++;
             }
 
-            // 导出突变体
-            function exportMutations() {
+            // 导出突变体 - 修改为异步函数
+            async function exportMutations() {
                 if (!selectedGene) {
                     alert('请先选择一个基因!');
                     return;
@@ -716,27 +718,47 @@
                     return;
                 }
                 
+                // 显示处理中状态
+                updateStatus('正在生成突变体文件...');
+                
                 // 应用突变
                 if (outputType === 'separate') {
-                    // 分隔生成
-                    mutationsToApply.forEach(mutant => {
-                        try {
-                            const mutatedSeq = applyMutation(originalSeq, mutant.mutations);
-                            downloadFasta(
-                                `${selectedGene}_${mutant.name}`, 
-                                mutatedSeq, 
-                                `${selectedGene}_${mutant.name}.fasta`
-                            );
-                            logMessage(`已生成: ${selectedGene}_${mutant.name}.fasta`);
-                        } catch (e) {
-                            alert(`应用突变时出错: ${e.message}`);
-                            return;
+                    try {
+                        // 创建ZIP文件
+                        const zip = new JSZip();
+                        
+                        // 为每个突变体创建文件并添加到ZIP
+                        for (let mutant of mutationsToApply) {
+                            try {
+                                const mutatedSeq = applyMutation(originalSeq, mutant.mutations);
+                                const fileName = `${selectedGene}_${mutant.name}.fasta`;
+                                const fileContent = `>${selectedGene}_${mutant.name}\n${formatSequence(mutatedSeq)}`;
+                                
+                                // 添加到ZIP
+                                zip.file(fileName, fileContent);
+                                logMessage(`已添加: ${fileName}`);
+                            } catch (e) {
+                                alert(`应用突变时出错: ${e.message}`);
+                                return;
+                            }
                         }
-                    });
+                        
+                        // 生成ZIP文件并下载
+                        zip.generateAsync({type: "blob"})
+                            .then(function(content) {
+                                // 下载ZIP文件
+                                downloadBlob(content, `${selectedGene}_mutations.zip`);
+                                logMessage(`已生成压缩包: ${selectedGene}_mutations.zip`);
+                                updateStatus('突变已成功导出为ZIP文件!');
+                            });
+                    } catch (e) {
+                        alert(`创建ZIP文件时出错: ${e.message}`);
+                        return;
+                    }
                 } else {
                     // 合并生成
                     const records = [];
-                    mutationsToApply.forEach(mutant => {
+                    for (let mutant of mutationsToApply) {
                         try {
                             const mutatedSeq = applyMutation(originalSeq, mutant.mutations);
                             records.push({
@@ -747,7 +769,7 @@
                             alert(`应用突变时出错: ${e.message}`);
                             return;
                         }
-                    });
+                    }
                     
                     // 合并所有记录到一个文件
                     let combinedContent = '';
@@ -760,9 +782,8 @@
                         `${selectedGene}_mutants.fasta`
                     );
                     logMessage(`已生成合并文件: ${selectedGene}_mutants.fasta`);
+                    updateStatus('突变已成功导出为合并文件!');
                 }
-                
-                updateStatus('突变已成功导出!');
             }
 
             // 验证突变格式
