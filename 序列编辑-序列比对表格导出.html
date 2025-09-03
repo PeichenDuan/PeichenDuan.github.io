@@ -560,4 +560,48 @@
                 }
                 
                 try {
- 
+                    // 创建工作簿和工作表
+                    const wb = XLSX.utils.book_new();
+                    const ws = XLSX.utils.aoa_to_sheet(tableData);
+                    
+                    // 将工作表添加到工作簿
+                    XLSX.utils.book_append_sheet(wb, ws, "比对结果");
+                    
+                    // 生成Excel文件并下载
+                    const fileName = fileInput.files[0]?.name.replace(/\.[^/.]+$/, "") || "sequence_alignment";
+                    XLSX.writeFile(wb, `${fileName}_table.xlsx`);
+                    
+                    showStatus('Excel文件已生成并开始下载', 'success');
+                } catch (error) {
+                    showStatus(`生成Excel文件时发生错误：${error.message}`, 'error');
+                    console.error(error);
+                }
+            });
+            
+            // 重置按钮
+            resetBtn.addEventListener('click', function() {
+                fileInput.value = '';
+                maxPerLineInput.value = '50';
+                statusMessage.style.display = 'none';
+                resultArea.style.display = 'none';
+                previewTable.innerHTML = '';
+                tableData = [];
+            });
+            
+            // 显示状态消息
+            function showStatus(message, type) {
+                statusMessage.textContent = message;
+                statusMessage.style.display = 'block';
+                
+                if (type === 'success') {
+                    statusMessage.className = 'status-message status-success';
+                } else if (type === 'error') {
+                    statusMessage.className = 'status-message status-error';
+                } else {
+                    statusMessage.className = 'status-message';
+                }
+            }
+        });
+    </script>
+</body>
+</html>
