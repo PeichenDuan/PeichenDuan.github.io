@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>密码子翻译 - 生物信息分析工具包</title>
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --secondary-color: #3498db;
+            --accent-color: #e74c3c;
+            --light-color: #ecf0f1;
+            --dark-color: #2c3e50;
+            --success-color: #27ae60;
+            --warning-color: #f39c12;
+            --border-radius: 8px;
+            --box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            --transition: all 0.3s ease;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            min-height: 100vh;
+        }
+
+        /* 顶部标题栏 */
+        .tool-header {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background-color: var(--primary-color);
+            color: white;
+            padding: 20px;
+            width: 100%;
+            text-align: center;
+        }
+
+        .back-button {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            padding: 8px 16px;
+            border-radius: var(--border-radius);
+            cursor: pointer;
+            transition: var(--transition);
+            font-size: 0.9rem;
+            margin-top: 15px;
+            text-decoration: none;
+        }
+
+        .back-button:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        /* 内容区域样式 */
+        .content {
+            padding: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .section {
+            background: white;
+            border-radius: var(--border-radius);
+            padding: 20px;
+            margin-bottom: 30px;
+            box-shadow: var(--box-shadow);
+        }
+
+        h2 {
+            color: var(--primary-color);
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        h3 {
+            color: var(--secondary-color);
+            margin-bottom: 15px;
+            text-align: center;
+        }
+
+        /* 表单样式 */
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+        }
+
+        input[type="text"], textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: var(--border-radius);
+            font-size: 14px;
+        }
+
+        textarea {
+            min-height: 100px;
+            resize: vertical;
+        }
+
+        /* 搜索栏样式 */
+        .search-container {
+            display: flex;
+            margin-bottom: 20px;
+            gap: 10px;
+        }
+
+        .search-input {
+            flex: 70%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: var(--border-radius);
+            font-size: 14px;
+        }
+
+        .search-button, .reset-button {
+            flex: 15%;
+            padding: 10px;
+            font-weight: bold;
+            border: none;
+            border-radius: var(--border-radius);
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .search-button {
+            background-color: var(--secondary-color);
+            color: white;
+        }
+
+        .search-button:hover {
+            background-color: #2980b9;
+        }
+
+        .reset-button {
+            background-color: var(--accent-color);
+            color: white;
+        }
+
+        .reset-button:hover {
+            background-color: #c0392b;
+        }
+
+        /* 特定位置搜索栏 */
+        .position-search-container {
+            display: flex;
+            margin-top: 15px;
+            gap: 10px;
+        }
+
+        .position-input {
+            flex: 85%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: var(--border-radius);
+            font-size: 14px;
+        }
+
+        .position-button {
+            flex: 15%;
+            padding: 10px;
+            background-color: var(--secondary-color);
+            color: white;
+            font-weight: bold;
+            border: none;
+            border-radius: var(--border-radius);
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .position-button:hover {
+            background-color: #2980b9;
+        }
+
+        /* 结果区域样式 */
+        .result-box {
+            padding: 15px;
+            background-color: #f9f9f9;
+            border-radius: var(--border-radius);
+            margin-top: 15px;
+            border-left: 4px solid var(--secondary-color);
+        }
+
+        /* 密码子表格样式 */
+        .codon-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        .codon-table th, .codon-table td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: center;
+        }
+
+        .codon-table th {
+            background-color: var(--secondary-color);
+            color: white;
+            font-weight: 600;
+        }
+
+        .codon-table tr:nth-child(even) {
+            background-color: #f2f2f2;
+        }
+
+        .codon-table tr:hover {
+            background-color: #e9f7fe;
+        }
+
+        .second-base {
+            background-color: var(--primary-color);
+            color: white;
+        }
+
+        .third-base {
+            background-color: var(--secondary-color);
+            color: white;
+        }
+
+        /* 状态栏样式 */
+        .status-bar {
+            padding: 10px;
+            background-color: var(--primary-color);
+            color: white;
+            text-align: center;
+            font-weight: bold;
+            width: 100%;
+            margin-top: 20px;
+        }
+
+        @media (max-width: 768px) {
+            .content {
+                padding: 15px;
+            }
+            
+            .codon-table {
+                font-size: 0.8rem;
+            }
+            
+            .codon-table th, 
+            .codon-table td {
+                padding: 5px 3px;
+            }
+            
+            .search-container, .position-search-container {
+                flex-direction: column;
+            }
+            
+            .search-input, .search-button, .reset-button,
+            .position-input, .position-button {
+                flex: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="tool-header">
+        <h2 style="color: white;">氨基酸翻译</h2>
+        <a href="index.html" class="back-button">返回主界面</a>
+    </div>
+    
+    <div class="content">
+        <!-- 单一密码子查询部分 -->
+        <div class="section">
+            <h2>单一密码子查询</h2>
+            
+            <div class="search-container">
+                <input type="text" id="codon-input" class="search-input" placeholder="输入密码子（如AUG）">
+                <button id="search-codon" class="search-button">查询</button>
+                <button id="reset-codon" class="reset-button">重置</button>
+            </div>
+            
+            <div id="codon-result" class="result-box" style="display: none;">
+                <!-- 查询结果将在这里显示 -->
+            </div>
+            
+            <h3>密码子表</h3>
+            <div id="codon-table-container">
+                <!-- 密码子表格将在这里生成 -->
+            </div>
+        </div>
+        
+        <!-- 长序列翻译部分 -->
+        <div class="section">
+            <h2>长序列翻译</h2>
+            
+            <div class="form-group">
+                <label for="sequence-input">输入碱基序列:</label>
+                <textarea id="sequence-input" placeholder="输入碱基序列（如AUGCCU...）"></textarea>
+            </div>
+            
+            <div class="position-search-container">
+                <input type="text" id="position-input" class="position-input" placeholder="同时查找序列中特定位置的氨基酸（可选，请输入氨基酸序号）">
+                <button id="translate-button" class="position-button">翻译序列</button>
+            </div>
+            
+            <div id="translation-result" class="result-box" style="display: none;">
+                <!-- 翻译结果将在这里显示 -->
+            </div>
+            
+            <div id="amino-acid-result" class="result-box" style="display: none;">
+                <!-- 特定位置氨基酸信息将在这里显示 -->
+            </div>
+        </div>
+    </div>
+    
+    <div class="status-bar">
+        江南大学 粮食发酵工艺与技术国家工程实验室
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // 密码子到氨基酸的映射数据
+            const codonToAminoAcid = {
+                "GCU": {name: "丙氨酸", abbrev: "Ala", short: "A"},
+                "GCC": {name: "丙氨酸", abbrev: "Ala", short: "A"},
+                "GCA": {name: "丙氨酸", abbrev: "Ala", short: "A"},
+                "GCG": {name: "丙氨酸", abbrev: "Ala", short: "A"},
+                "CGU": {name: "精氨酸", abbrev: "Arg", short: "R"},
+                "CGC": {name: "精氨酸", abbrev: "Arg", short: "R"},
+                "CGA": {name: "精氨酸", abbrev: "Arg", short: "R"},
+                "CGG": {name: "精氨酸", abbrev: "Arg", short: "R"},
+                "AGA": {name: "精氨酸", abbrev: "Arg", short: "R"},
+                "AGG": {name: "精氨酸", abbrev: "Arg", short: "R"},
+                "AAU": {name: "天冬酰胺", abbrev: "Asn", short: "N"},
+                "AAC": {name: "天冬酰胺", abbrev: "Asn", short: "N"},
+                "GAU": {name: "天冬氨酸", abbrev: "Asp", short: "D"},
+                "GAC": {name: "天冬氨酸", abbrev: "Asp", short: "D"},
+                "UGU": {name: "半胱氨酸", abbrev: "Cys", short: "C"},
+                "UGC": {name: "半胱氨酸", abbrev: "Cys", short: "C"},
+                "GAA": {name: "谷氨酸", abbrev: "Glu", short: "E"},
+                "GAG": {name: "谷氨酸", abbrev: "Glu", short: "E"},
+                "CAA": {name: "谷氨酰胺", abbrev: "Gln", short: "Q"},
+                "CAG": {name: "谷氨酰胺", abbrev: "Gln", short: "Q"},
+                "GGU": {name: "甘氨酸", abbrev: "Gly", short: "G"},
+                "GGC": {name: "甘氨酸", abbrev: "Gly", short: "G"},
+                "GGA": {name: "甘氨酸", abbrev: "Gly", short: "G"},
+                "GGG": {name: "甘氨酸", abbrev: "Gly", short: "G"},
+                "CAU": {name: "组氨酸", abbrev: "His", short: "H"},
+                "CAC": {name: "组氨酸", abbrev: "His", short: "H"},
+                "AUU": {name: "异亮氨酸", abbrev: "Ile", short: "I"},
+                "AUC": {name: "异亮氨酸", abbrev: "Ile", short: "I"},
+                "AUA": {name: "异亮氨酸", abbrev: "Ile", short: "I"},
+                "UUA": {name: "亮氨酸", abbrev: "Leu", short: "L"},
+                "UUG": {name: "亮氨酸", abbrev: "Leu", short: "L"},
+                "CUU": {name: "亮氨酸", abbrev: "Leu", short: "L"},
+                "CUC": {name: "亮氨酸", abbrev: "Leu", short: "L"},
+                "CUA": {name: "亮氨酸", abbrev: "Leu", short: "L"},
+                "CUG": {name: "亮氨酸", abbrev: "Leu", short: "L"},
+                "AAA": {name: "赖氨酸", abbrev: "Lys", short: "K"},
+                "AAG": {name: "赖氨酸", abbrev: "Lys", short: "K"},
+                "AUG": {name: "苯丙（蛋）氨酸", abbrev: "Met", short: "M"},
+                "UUU": {name: "苯丙（蛋）氨酸", abbrev: "Phe", short: "F"},
+                "UUC": {name: "苯丙（蛋）氨酸", abbrev: "Phe", short: "F"},
+                "CCU": {name: "脯氨酸", abbrev: "Pro", short: "P"},
+                "CCC": {name: "脯氨酸", abbrev: "Pro", short: "P"},
+                "CCA": {name: "脯氨酸", abbrev: "Pro", short: "P"},
+                "CCG": {name: "脯氨酸", abbrev: "Pro", short: "P"},
+                "UCU": {name: "丝氨酸", abbrev: "Ser", short: "S"},
+                "UCC": {name: "丝氨酸", abbrev: "Ser", short: "S"},
+                "UCA": {name: "丝氨酸", abbrev: "Ser", short: "S"},
+                "UCG": {name: "丝氨酸", abbrev: "Ser", short: "S"},
+                "AGU": {name: "丝氨酸", abbrev: "Ser", short: "S"},
+                "AGC": {name: "丝氨酸", abbrev: "Ser", short: "S"},
+                "ACU": {name: "苏氨酸", abbrev: "Thr", short: "T"},
+                "ACC": {name: "苏氨酸", abbrev: "Thr", short: "T"},
+                "ACA": {name: "苏氨酸", abbrev: "Thr", short: "T"},
+                "ACG": {name: "苏氨酸", abbrev: "Thr", short: "T"},
+                "UGG": {name: "色氨酸", abbrev: "Trp", short: "W"},
+                "UAU": {name: "酪氨酸", abbrev: "Tyr", short: "Y"},
+                "UAC": {name: "酪氨酸", abbrev: "Tyr", short: "Y"},
+                "GUU": {name: "缬氨酸", abbrev: "Val", short: "V"},
+                "GUC": {name: "缬氨酸", abbrev: "Val", short: "V"},
+                "GUA": {name: "缬氨酸", abbrev: "Val", short: "V"},
+                "GUG": {name: "缬氨酸", abbrev: "Val", short: "V"},
+                "UAG": {name: "终止密码子", abbrev: "Stop", short: "*"},
+                "UGA": {name: "终止密码子", abbrev: "Stop", short: "*"},
+                "UAA": {name: "终止密码子", abbrev: "Stop", short: "*"}
+            };
+
+            // 生成密码子表
+            function generateCodonTable() {
+                const container = document.getElementById('codon-table-container');
+                const table = document.createElement('table');
+                table.className = 'codon-table';
+                
+                // 表头行 - 第二个碱基
+                const headerRow = document.createElement('tr');
+                headerRow.innerHTML = '<th rowspan="2">第一个碱基</th><th colspan="16">第二个碱基</th><th rowspan="2">第三个碱基</th>';
+                table.appendChild(headerRow);
+                
+                // 第二个碱基标题行
+                const secondBaseRow = document.createElement('tr');
+                const secondBases = ['U', 'C', 'A', 'G'];
+                secondBases.forEach(base => {
+                    const th = document.createElement('th');
+                    th.className = 'second-base';
+                    th.colSpan = 4;
+                    th.textContent = base;
+                    secondBaseRow.appendChild(th);
+                });
+                table.appendChild(secondBaseRow);
+                
+                // 第三个碱基标题
+                const thirdBases = ['U', 'C', 'A', 'G'];
+                
+                // 数据行 - 第一个碱基
+                const firstBases = ['U', 'C', 'A', 'G'];
+                firstBases.forEach(firstBase => {
+                    const row = document.createElement('tr');
+                    
+                    // 第一个碱基标题
+                    const firstBaseHeader = document.createElement('th');
+                    firstBaseHeader.textContent = firstBase;
+                    row.appendChild(firstBaseHeader);
+                    
+                    // 生成每个单元格
+                    secondBases.forEach(secondBase => {
+                        thirdBases.forEach(thirdBase => {
+                            const codon = firstBase + secondBase + thirdBase;
+                            const td = document.createElement('td');
+                            
+                            if (codonToAminoAcid[codon]) {
+                                const aa = codonToAminoAcid[codon];
+                                td.innerHTML = `${aa.short} (${codon})<br><small>${aa.abbrev}</small>`;
+                                
+                                // 根据氨基酸类型添加颜色
+                                if (aa.name.includes("终止")) {
+                                    td.style.backgroundColor = "#ffcccc";
+                                } else if (aa.name === "苯丙（蛋）氨酸" && codon === "AUG") {
+                                    td.style.backgroundColor = "#ccffcc";
+                                }
+                            } else {
+                                td.textContent = codon;
+                                td.style.backgroundColor = "#eeeeee";
+                            }
+                            
+                            row.appendChild(td);
+                        });
+                    });
+                    
+                    // 第三个碱基标题
+                    const thirdBaseHeader = document.createElement('th');
+                    thirdBaseHeader.className = 'third-base';
+                    thirdBaseHeader.textContent = firstBase;
+                    row.appendChild(thirdBaseHeader);
+                    
+                    table.appendChild(row);
+                });
+                
+                container.appendChild(table);
+            }
+
+            // 单一密码子查询功能
+            document.getElementById('search-codon').addEventListener('click', function() {
+                const input = document.getElementById('codon-input').value.trim().toUpperCase();
+                
+                // 将T转换为U
+                const codon = input.replace(/T/g, 'U');
+                
+                if (codon.length !== 3) {
+                    alert('请输入3个碱基的密码子');
+                    return;
+                }
+                
+                const result = codonToAminoAcid[codon];
+                const resultDiv = document.getElementById('codon-result');
+                
+                if (result) {
+                    resultDiv.innerHTML = `
+                        <h3>查询结果: ${codon}</h3>
+                        <p><strong>中文名称:</strong> ${result.name}</p>
+                        <p><strong>三字母缩写:</strong> ${result.abbrev}</p>
+                        <p><strong>单字母缩写:</strong> ${result.short}</p>
+                    `;
+                    resultDiv.style.display = 'block';
+                } else {
+                    resultDiv.innerHTML = `<p>未找到密码子 "${codon}" 对应的氨基酸</p>`;
+                    resultDiv.style.display = 'block';
+                }
+            });
+
+            // 重置按钮功能
+            document.getElementById('reset-codon').addEventListener('click', function() {
+                document.getElementById('codon-input').value = '';
+                document.getElementById('codon-result').style.display = 'none';
+            });
+
+            // 长序列翻译功能
+            document.getElementById('translate-button').addEventListener('click', function() {
+                let sequence = document.getElementById('sequence-input').value.trim().toUpperCase();
+                const position = parseInt(document.getElementById('position-input').value);
+                
+                // 将T转换为U
+                sequence = sequence.replace(/T/g, 'U');
+                
+                // 移除所有非碱基字符
+                sequence = sequence.replace(/[^AUCG]/g, '');
+                
+                if (sequence.length < 3) {
+                    alert('请输入至少3个碱基的序列');
+                    return;
+                }
+                
+                // 翻译序列
+                let aminoAcidSequence = '';
+                let aminoAcidList = [];
+                
+                for (let i = 0; i < sequence.length; i += 3) {
+                    const codon = sequence.substr(i, 3);
+                    
+                    if (codon.length === 3) {
+                        const aa = codonToAminoAcid[codon];
+                        aminoAcidSequence += aa ? aa.short : '?';
+                        aminoAcidList.push(aa ? {codon, ...aa} : {codon, name: '未知', abbrev: 'Unknown', short: '?'});
+                    }
+                }
+                
+                // 显示翻译结果
+                const translationResult = document.getElementById('translation-result');
+                translationResult.innerHTML = `
+                    <h3>翻译结果</h3>
+                    <p><strong>氨基酸序列 (单字母缩写):</strong> ${aminoAcidSequence}</p>
+                    <p><strong>氨基酸序列 (三字母缩写):</strong> ${aminoAcidList.map(aa => aa.abbrev).join('-')}</p>
+                    <p><strong>总氨基酸数:</strong> ${aminoAcidList.length}</p>
+                `;
+                translationResult.style.display = 'block';
+                
+                // 显示特定位置的氨基酸信息
+                const aminoAcidResult = document.getElementById('amino-acid-result');
+                
+                if (!isNaN(position) && position > 0 && position <= aminoAcidList.length) {
+                    const aa = aminoAcidList[position - 1];
+                    aminoAcidResult.innerHTML = `
+                        <h3>第 ${position} 个氨基酸</h3>
+                        <p><strong>密码子:</strong> ${aa.codon}</p>
+                        <p><strong>中文名称:</strong> ${aa.name}</p>
+                        <p><strong>三字母缩写:</strong> ${aa.abbrev}</p>
+                        <p><strong>单字母缩写:</strong> ${aa.short}</p>
+                    `;
+                    aminoAcidResult.style.display = 'block';
+                } else if (!isNaN(position)) {
+                    aminoAcidResult.innerHTML = `<p>位置 ${position} 无效。序列共有 ${aminoAcidList.length} 个氨基酸。</p>`;
+                    aminoAcidResult.style.display = 'block';
+                } else {
+                    aminoAcidResult.style.display = 'none';
+                }
+            });
+
+            // 初始化密码子表
+            generateCodonTable();
+        });
+    </script>
+</body>
+</html>
