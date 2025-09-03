@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>氨基酸查询 - 生物信息分析工具包</title>
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --secondary-color: #3498db;
+            --accent-color: #e74c3c;
+            --light-color: #ecf0f1;
+            --dark-color: #2c3e50;
+            --success-color: #27ae60;
+            --warning-color: #f39c12;
+            --border-radius: 8px;
+            --box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            --transition: all 0.3s ease;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            min-height: 100vh;
+        }
+
+        /* 顶部标题栏 */
+        .tool-header {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            background-color: var(--primary-color);
+            color: white;
+            padding: 15px 20px;
+            width: 100%;
+        }
+
+        .back-button {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            padding: 6px 12px;
+            border-radius: var(--border-radius);
+            cursor: pointer;
+            transition: var(--transition);
+            font-size: 0.9rem;
+            white-space: nowrap;
+            margin-top: 8px;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .back-button:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        /* 氨基酸周期表样式 */
+        .amino-acid-content {
+            padding: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .amino-acid-chart {
+            margin-bottom: 30px;
+            text-align: center;
+        }
+
+        .amino-acid-table-container {
+            margin-top: 30px;
+        }
+
+        #amino-acid-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        #amino-acid-table th {
+            font-weight: 600;
+            padding: 12px;
+            text-align: left;
+            background-color: var(--secondary-color);
+            color: white;
+        }
+
+        #amino-acid-table td {
+            padding: 10px;
+            border-bottom: 1px solid #eee;
+        }
+
+        #amino-acid-table tr:hover {
+            background-color: rgba(52, 152, 219, 0.05) !important;
+        }
+
+        /* 搜索栏样式 */
+        .search-container {
+            display: flex;
+            margin-bottom: 20px;
+            gap: 10px;
+        }
+
+        .search-input {
+            flex: 70%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: var(--border-radius);
+            font-size: 14px;
+        }
+
+        .search-button, .reset-button {
+            flex: 15%;
+            padding: 10px;
+            font-weight: bold;
+            border: none;
+            border-radius: var(--border-radius);
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .search-button {
+            background-color: var(--secondary-color);
+            color: white;
+        }
+
+        .search-button:hover {
+            background-color: #2980b9;
+        }
+
+        .reset-button {
+            background-color: var(--accent-color);
+            color: white;
+        }
+
+        .reset-button:hover {
+            background-color: #c0392b;
+        }
+
+        .status-bar {
+            padding: 10px;
+            background-color: #f0f0f0;
+            text-align: center;
+            font-weight: bold;
+            width: 100%;
+            margin-top: 20px;
+        }
+
+        @media (max-width: 768px) {
+            .amino-acid-content {
+                padding: 15px;
+            }
+            
+            #amino-acid-table {
+                font-size: 0.85rem;
+            }
+            
+            #amino-acid-table th, 
+            #amino-acid-table td {
+                padding: 8px 6px;
+            }
+            
+            .search-container {
+                flex-direction: column;
+            }
+            
+            .search-input, .search-button, .reset-button {
+                flex: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="tool-header">
+        <h2>氨基酸查询</h2>
+        <a href="index.html" class="back-button">返回主界面</a>
+    </div>
+    
+    <div class="amino-acid-content">
+        <!-- 氨基酸图表 -->
+        <div class="amino-acid-chart">
+            <h3 style="margin-bottom: 15px; color: var(--primary-color);">蛋白质周期表</h3>
+            <img id="amino-acid-image" src="https://raw.githubusercontent.com/PeichenDuan/PeichenDuan.github.io/main/氨基酸周期表.png" alt="蛋白质周期表" style="max-width: 100%; height: auto; border: 1px solid #ddd; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+        </div>
+        
+        <!-- 氨基酸信息表格 -->
+        <div class="amino-acid-table-container">
+            <h3 style="margin-bottom: 15px; color: var(--primary-color);text-align: center;">氨基酸详细信息表</h3>
+            
+            <!-- 搜索栏 -->
+            <div class="search-container">
+                <input type="text" id="amino-acid-search" class="search-input" placeholder="输入关键字进行搜索">
+                <button id="search-button" class="search-button">检索</button>
+                <button id="reset-button" class="reset-button">重置</button>
+            </div>
+            
+            <table id="amino-acid-table">
+                <thead>
+                    <tr>
+                        <th>中文名称</th>
+                        <th>英文名称</th>
+                        <th>单字母缩写</th>
+                        <th>三字母缩写</th>
+                        <th>分类</th>
+                        <th>极性</th>
+                        <th>等电点</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- 表格内容将由JavaScript动态生成 -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+    
+    <div class="status-bar">
+        江南大学 粮食发酵工艺与技术国家工程实验室
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // 氨基酸数据
+            const aminoAcids = [
+                { chinese: "丙氨酸", english: "Alanine", short: "A", abbrev: "Ala", type: "非极性", polarity: "疏水性", charge: "6.01" },
+                { chinese: "苯丙氨酸", english: "Phenylalanine", short: "F", abbrev: "Phe", type: "非极性", polarity: "疏水性", charge: "5.48" },
+                { chinese: "半胱氨酸", english: "Cysteine", short: "C", abbrev: "Cys", type: "极性", polarity: "亲水性", charge: "5.05" },
+                { chinese: "天冬氨酸", english: "Aspartic acid", short: "D", abbrev: "Asp", type: "酸性", polarity: "亲水性", charge: "2.77" },
+                { chinese: "天冬酰胺", english: "Asparagine", short: "N", abbrev: "Asn", type: "极性", polarity: "亲水性", charge: "5.41" },
+                { chinese: "谷氨酸", english: "Glutamic acid", short: "E", abbrev: "Glu", type: "酸性", polarity: "亲水性", charge: "3.22" },
+                { chinese: "谷氨酰胺", english: "Glutamine", short: "Q", abbrev: "Gln", type: "极性", polarity: "亲水性", charge: "5.65" },
+                { chinese: "甘氨酸", english: "Glycine", short: "G", abbrev: "Gly", type: "非极性", polarity: "疏水性", charge: "5.97" },
+                { chinese: "组氨酸", english: "Histidine", short: "H", abbrev: "His", type: "碱性", polarity: "亲水性", charge: "7.59" },
+                { chinese: "亮氨酸", english: "Leucine", short: "L", abbrev: "Leu", type: "非极性", polarity: "疏水性", charge: "5.98" },
+                { chinese: "异亮氨酸", english: "Isoleucine", short: "I", abbrev: "Ile", type: "非极性", polarity: "疏水性", charge: "6.02" },
+                { chinese: "赖氨酸", english: "Lysine", short: "K", abbrev: "Lys", type: "碱性", polarity: "亲水性", charge: "9.74" },
+                { chinese: "甲硫（蛋）氨酸", english: "Methionine", short: "M", abbrev: "Met", type: "非极性", polarity: "疏水性", charge: "5.74" },
+                { chinese: "脯氨酸", english: "Proline", short: "P", abbrev: "Pro", type: "非极性", polarity: "疏水性", charge: "6.30" },
+                { chinese: "精氨酸", english: "Arginine", short: "R", abbrev: "Arg", type: "碱性", polarity: "亲水性", charge: "10.76" },
+                { chinese: "丝氨酸", english: "Serine", short: "S", abbrev: "Ser", type: "极性", polarity: "亲水性", charge: "5.68" },
+                { chinese: "苏氨酸", english: "Threonine", short: "T", abbrev: "Thr", type: "极性", polarity: "亲水性", charge: "5.60" },
+                { chinese: "缬氨酸", english: "Valine", short: "V", abbrev: "Val", type: "非极性", polarity: "疏水性", charge: "5.96" },
+                { chinese: "色氨酸", english: "Tryptophan", short: "W", abbrev: "Trp", type: "非极性", polarity: "疏水性", charge: "5.89" },
+                { chinese: "酪氨酸", english: "Tyrosine", short: "Y", abbrev: "Tyr", type: "极性", polarity: "亲水性", charge: "5.66" }
+            ];
+
+            // 初始化氨基酸表格
+            function initAminoAcidTable() {
+                const tableBody = document.querySelector('#amino-acid-table tbody');
+                tableBody.innerHTML = ''; // 清空现有内容
+                
+                aminoAcids.forEach(acid => {
+                    const row = document.createElement('tr');
+                    
+                    row.innerHTML = `
+                        <td>${acid.chinese}</td>
+                        <td>${acid.english}</td>
+                        <td style="font-weight: bold;">${acid.short}</td>
+                        <td>${acid.abbrev}</td>
+                        <td>${acid.type}</td>
+                        <td>${acid.polarity}</td>
+                        <td>${acid.charge}</td>
+                    `;
+                    
+                    // 根据氨基酸类型添加背景色
+                    switch(acid.type) {
+                        case "酸性":
+                            row.style.backgroundColor = "#ffebee"; // 浅红色
+                            break;
+                        case "碱性":
+                            row.style.backgroundColor = "#e3f2fd"; // 浅蓝色
+                            break;
+                        case "极性":
+                            row.style.backgroundColor = "#f1f8e9"; // 浅绿色
+                            break;
+                        case "非极性":
+                            row.style.backgroundColor = "#f5f5f5"; // 浅灰色
+                            break;
+                    }
+                    
+                    tableBody.appendChild(row);
+                });
+                
+                // 设置氨基酸图片
+                const imageUrl = "https://raw.githubusercontent.com/PeichenDuan/PeichenDuan.github.io/main/氨基酸周期表.png";
+                document.getElementById('amino-acid-image').src = imageUrl;
+                
+                // 添加搜索功能
+                const searchInput = document.getElementById('amino-acid-search');
+                const searchButton = document.getElementById('search-button');
+                const resetButton = document.getElementById('reset-button');
+                
+                // 搜索按钮事件
+                searchButton.addEventListener('click', function() {
+                    const keywords = searchInput.value.toLowerCase().trim().split(/\s+/);
+                    
+                    if (keywords.length === 0 || (keywords.length === 1 && keywords[0] === '')) {
+                        // 如果搜索框为空，显示所有行
+                        const rows = tableBody.querySelectorAll('tr');
+                        rows.forEach(row => {
+                            row.style.display = '';
+                        });
+                        return;
+                    }
+                    
+                    // 过滤行
+                    const rows = tableBody.querySelectorAll('tr');
+                    rows.forEach(row => {
+                        const cells = row.querySelectorAll('td');
+                        let rowText = '';
+                        
+                        // 获取行的所有文本内容
+                        cells.forEach(cell => {
+                            rowText += cell.textContent.toLowerCase() + ' ';
+                        });
+                        
+                        // 检查是否包含所有关键字
+                        let containsAll = true;
+                        for (const keyword of keywords) {
+                            if (keyword && !rowText.includes(keyword)) {
+                                containsAll = false;
+                                break;
+                            }
+                        }
+                        
+                        // 显示或隐藏行
+                        row.style.display = containsAll ? '' : 'none';
+                    });
+                });
+                
+                // 重置按钮事件
+                resetButton.addEventListener('click', function() {
+                    searchInput.value = '';
+                    const rows = tableBody.querySelectorAll('tr');
+                    rows.forEach(row => {
+                        row.style.display = '';
+                    });
+                });
+                
+                // 按Enter键触发搜索
+                searchInput.addEventListener('keypress', function(e) {
+                    if (e.key === 'Enter') {
+                        searchButton.click();
+                    }
+                });
+            }
+
+            // 初始化表格
+            initAminoAcidTable();
+        });
+    </script>
+</body>
+</html>
