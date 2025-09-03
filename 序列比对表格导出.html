@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>序列比对表格导出 - 生物信息分析工具包</title>
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --secondary-color: #3498db;
+            --accent-color: #e74c3c;
+            --light-color: #ecf0f1;
+            --dark-color: #2c3e50;
+            --success-color: #27ae60;
+            --warning-color: #f39c12;
+            --border-radius: 8px;
+            --box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            --transition: all 0.3s ease;
+            --header-light-blue: #e3f2fd; /* 表头浅蓝背景色 */
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            min-height: 100vh;
+        }
+
+        /* 顶部标题栏 */
+        .tool-header {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background-color: var(--primary-color);
+            color: white;
+            padding: 20px;
+            width: 100%;
+            text-align: center;
+        }
+
+        .back-button {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            padding: 8px 16px;
+            border-radius: var(--border-radius);
+            cursor: pointer;
+            transition: var(--transition);
+            font-size: 0.9rem;
+            margin-top: 15px;
+            text-decoration: none;
+        }
+
+        .back-button:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        /* 内容区域样式 */
+        .content {
+            padding: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .section {
+            background: white;
+            border-radius: var(--border-radius);
+            padding: 20px;
+            margin-bottom: 30px;
+            box-shadow: var(--box-shadow);
+        }
+
+        h2 {
+            color: var(--primary-color);
+            text-align: center;
+        }
+
+        h3 {
+            color: var(--secondary-color);
+            margin-bottom: 15px;
+            text-align: center;
+        }
+
+        /* 表单样式 */
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+        }
+
+        input[type="text"], textarea, input[type="number"], input[type="file"] {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: var(--border-radius);
+            font-size: 14px;
+        }
+
+        textarea {
+            min-height: 100px;
+            resize: vertical;
+        }
+
+        /* 按钮样式 */
+        .search-button, .reset-button, .process-button {
+            padding: 10px 20px;
+            font-weight: bold;
+            border: none;
+            border-radius: var(--border-radius);
+            cursor: pointer;
+            transition: var(--transition);
+            margin-right: 10px;
+            margin-top: 10px;
+        }
+
+        .search-button, .process-button {
+            background-color: var(--secondary-color);
+            color: white;
+        }
+
+        .search-button:hover, .process-button:hover {
+            background-color: #2980b9;
+        }
+
+        .reset-button {
+            background-color: var(--accent-color);
+            color: white;
+        }
+
+        .reset-button:hover {
+            background-color: #c0392b;
+        }
+
+        .download-button {
+            background-color: var(--success-color);
+            color: white;
+            padding: 10px 20px;
+            font-weight: bold;
+            border: none;
+            border-radius: var(--border-radius);
+            cursor: pointer;
+            transition: var(--transition);
+            margin-top: 15px;
+        }
+
+        .download-button:hover {
+            background-color: #219653;
+        }
+
+        /* 结果区域样式 */
+        .result-box {
+            padding: 15px;
+            background-color: #f9f9f9;
+            border-radius: var(--border-radius);
+            margin-top: 15px;
+            border-left: 4px solid var(--secondary-color);
+        }
+
+        /* 表格样式 - 核心修改部分 */
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            font-size: 0.9rem;
+            overflow-x: auto;
+            display: block;
+        }
+
+        .data-table th, .data-table td {
+            border: 1px solid #ddd;
+            padding: 6px;
+            text-align: center;
+        }
+
+        /* 1. 第一列自动适应宽度 */
+        .data-table td:first-child, 
+        .data-table th:first-child {
+            white-space: nowrap; /* 防止文字换行 */
+            width: auto !important; /* 自动适应内容宽度 */
+            min-width: 120px; /* 最小宽度保证可读性 */
+            text-align: left !important; /* 名称列左对齐更易读 */
+            padding-left: 12px !important; /* 增加左侧内边距 */
+        }
+
+        /* 2. 表头行（每个分段的第一行）从第二列开始设为浅蓝色 */
+        .data-table .header-row td:nth-child(n+2) {
+            background-color: var(--header-light-blue);
+            color: var(--dark-color);
+            font-weight: 600;
+        }
+
+        /* 原有表头样式保留（兼容其他场景） */
+        .data-table th {
+            background-color: var(--secondary-color);
+            color: white;
+            font-weight: 600;
+            position: sticky;
+            top: 0;
+        }
+
+        .data-table tr:nth-child(even) {
+            background-color: #f2f2f2;
+        }
+
+        .data-table tr:hover {
+            background-color: #e9f7fe;
+        }
+
+        .table-container {
+            max-height: 500px;
+            overflow-y: auto;
+            margin-top: 20px;
+            border: 1px solid #ddd;
+            border-radius: var(--border-radius);
+        }
+
+        /* 状态消息样式 */
+        .status-message {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: var(--border-radius);
+            text-align: center;
+        }
+
+        .status-success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .status-error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        /* 状态栏样式 */
+        .status-bar {
+            padding: 10px;
+            background-color: var(--primary-color);
+            color: white;
+            text-align: center;
+            font-weight: bold;
+            width: 100%;
+            margin-top: 20px;
+        }
+
+        @media (max-width: 768px) {
+            .content {
+                padding: 15px;
+            }
+            
+            .data-table {
+                font-size: 0.8rem;
+            }
+            
+            .data-table th, 
+            .data-table td {
+                padding: 4px 2px;
+            }
+
+            /* 移动端第一列最小宽度调整 */
+            .data-table td:first-child, 
+            .data-table th:first-child {
+                min-width: 100px;
+            }
+        }
+    </style>
+    <!-- 引入xlsx库用于生成Excel文件 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+</head>
+<body>
+    <div class="tool-header">
+        <h2 style="color: white;">序列比对表格导出</h2>
+        <a href="index.html" class="back-button">返回主界面</a>
+    </div>
+    
+    <div class="content">
+        <div class="section">
+            <h2>FASTA文件处理与表格导出</h2>
+            
+            <div class="form-group">
+                <label for="fasta-file">选择FASTA文件:</label>
+                <input type="file" id="fasta-file" accept=".fasta,.fa,.fna,.ffn,.faa,.frn">
+            </div>
+            
+            <div class="form-group">
+                <label for="max-per-line">每行最大氨基酸数:</label>
+                <input type="number" id="max-per-line" value="50" min="1">
+            </div>
+            
+            <button id="process-btn" class="process-button">处理文件</button>
+            <button id="reset-btn" class="reset-button">重置</button>
+            
+            <div id="status-message" class="status-message" style="display: none;"></div>
+            
+            <div id="result-area" style="display: none;">
+                <h3>生成的表格预览</h3>
+                <div class="table-container">
+                    <table id="preview-table" class="data-table">
+                        <!-- 表格预览将在这里生成 -->
+                    </table>
+                </div>
+                
+                <button id="download-excel" class="download-button">下载Excel文件</button>
+            </div>
+        </div>
+    </div>
+    
+    <div class="status-bar">
+        江南大学 粮食发酵工艺与技术国家工程实验室
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const fileInput = document.getElementById('fasta-file');
+            const maxPerLineInput = document.getElementById('max-per-line');
+            const processBtn = document.getElementById('process-btn');
+            const resetBtn = document.getElementById('reset-btn');
+            const statusMessage = document.getElementById('status-message');
+            const resultArea = document.getElementById('result-area');
+            const previewTable = document.getElementById('preview-table');
+            const downloadExcelBtn = document.getElementById('download-excel');
+            
+            let tableData = []; // 存储生成的表格数据
+            
+            // 读取FASTA文件内容
+            function readFASTAFile(file) {
+                return new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    
+                    reader.onload = function(e) {
+                        resolve(e.target.result);
+                    };
+                    
+                    reader.onerror = function() {
+                        reject(new Error('无法读取文件'));
+                    };
+                    
+                    reader.readAsText(file);
+                });
+            }
+            
+            // 解析FASTA文件内容
+            function parseFASTA(content) {
+                const proteins = [];
+                let currentName = null;
+                let currentSequence = [];
+                
+                const lines = content.split('\n');
+                
+                for (const line of lines) {
+                    const trimmedLine = line.trim();
+                    
+                    if (!trimmedLine) continue; // 跳过空行
+                    
+                    if (trimmedLine.startsWith('>')) {
+                        if (currentName !== null) {
+                            proteins.push({
+                                name: currentName,
+                                sequence: currentSequence.join('').toUpperCase()
+                            });
+                        }
+                        
+                        currentName = trimmedLine.substring(1); // 去除开头的'>'
+                        currentSequence = [];
+                    } else {
+                        currentSequence.push(trimmedLine);
+                    }
+                }
+                
+                // 处理最后一个蛋白质
+                if (currentName !== null) {
+                    proteins.push({
+                        name: currentName,
+                        sequence: currentSequence.join('').toUpperCase()
+                    });
+                }
+                
+                return proteins;
+            }
+            
+            // 验证所有序列长度是否一致
+            function validateSequences(proteins) {
+                if (!proteins || proteins.length === 0) {
+                    throw new Error("文件中未找到任何蛋白质记录");
+                }
+                
+                const firstLength = proteins[0].sequence.length;
+                
+                for (let i = 1; i < proteins.length; i++) {
+                    if (proteins[i].sequence.length !== firstLength) {
+                        throw new Error("错误：蛋白质序列长度不一致");
+                    }
+                }
+                
+                return firstLength;
+            }
+            
+            // 生成表格数据 - 核心修改：删除第二列（空白列）
+            function generateTableData(proteins, alignmentLength, maxPerLine) {
+                const table = [];
+                
+                // 计算需要的分段数
+                const numSegments = Math.ceil(alignmentLength / maxPerLine);
+                
+                for (let segment = 0; segment < numSegments; segment++) {
+                    const startIdx = segment * maxPerLine;
+                    const endIdx = Math.min((segment + 1) * maxPerLine, alignmentLength);
+                    const segmentLength = endIdx - startIdx;
+                    
+                    // 生成表头行 - 移除原第二列（空白），改为仅[''] + 序号
+                    const header = [''];
+                    for (let i = startIdx; i < endIdx; i++) {
+                        header.push((i + 1).toString());
+                    }
+                    table.push(header);
+                    
+                    // 处理每个蛋白质
+                    for (const protein of proteins) {
+                        const { name, sequence } = protein;
+                        // 提取当前分段的序列
+                        const segmentSeq = sequence.substring(startIdx, endIdx);
+                        
+                        let count = 0;
+                        // 获取该分段在完整序列中的起始计数（跳过前面段的非'-'字符）
+                        if (segment > 0) {
+                            const prevSeq = sequence.substring(0, startIdx);
+                            count = (prevSeq.match(/[^-]/g) || []).length;
+                        }
+                        
+                        // 序号行 - 移除原第二列（空白），改为仅[name] + 计数
+                        const numberRow = [name];
+                        // 序列行 - 移除原第二列（空白），改为仅[name] + 序列
+                        const sequenceRow = [name];
+                        
+                        for (const char of segmentSeq) {
+                            // 处理序号行
+                            if (char !== '-') {
+                                count++;
+                                numberRow.push(count.toString());
+                            } else {
+                                numberRow.push('');
+                            }
+                            
+                            // 处理序列行
+                            sequenceRow.push(char);
+                        }
+                        
+                        table.push(numberRow);
+                        table.push(sequenceRow);
+                    }
+                    
+                    // 段之间添加空行（最后一段除外）- 列数同步减少1（移除第二列）
+                    if (segment < numSegments - 1) {
+                        const emptyRow = Array(segmentLength + 1).fill('');
+                        table.push(emptyRow);
+                    }
+                }
+                
+                return table;
+            }
+            
+            // 生成预览表格 - 核心修改：给表头行添加标识类，用于样式控制
+            function generatePreviewTable(data) {
+                previewTable.innerHTML = '';
+                
+                for (let i = 0; i < data.length; i++) {
+                    const row = data[i];
+                    const tr = document.createElement('tr');
+                    
+                    // 给每个分段的第一行（表头行）添加标识类
+                    if (isHeaderRow(i, data)) {
+                        tr.classList.add('header-row');
+                    }
+                    
+                    for (const cell of row) {
+                        const td = document.createElement('td');
+                        td.textContent = cell;
+                        tr.appendChild(td);
+                    }
+                    
+                    previewTable.appendChild(tr);
+                }
+            }
+            
+            // 判断是否为表头行（每个分段的第一行）
+            function isHeaderRow(index, data) {
+                // 表头行特征：第一列为空，且后续列是数字（序号）
+                const row = data[index];
+                if (row.length === 0) return false;
+                
+                // 表头行第一列是空字符串
+                if (row[0] !== '') return false;
+                
+                // 表头行第二列开始是数字（序号）
+                if (row.length < 2) return false;
+                return !isNaN(parseInt(row[1]));
+            }
+            
+            // 处理按钮点击事件
+            processBtn.addEventListener('click', async function() {
+                const file = fileInput.files[0];
+                
+                if (!file) {
+                    showStatus('请选择FASTA文件', 'error');
+                    return;
+                }
+                
+                const maxPerLine = parseInt(maxPerLineInput.value);
+                
+                if (isNaN(maxPerLine) || maxPerLine <= 0) {
+                    showStatus('请输入有效的每行最大氨基酸数', 'error');
+                    return;
+                }
+                
+                try {
+                    showStatus('处理中，请稍候...', 'loading');
+                    
+                    // 读取并解析FASTA文件
+                    const content = await readFASTAFile(file);
+                    const proteins = parseFASTA(content);
+                    
+                    // 验证序列长度
+                    const alignmentLength = validateSequences(proteins);
+                    
+                    // 生成表格数据
+                    tableData = generateTableData(proteins, alignmentLength, maxPerLine);
+                    
+                    // 生成预览表格
+                    generatePreviewTable(tableData);
+                    
+                    // 显示结果区域
+                    resultArea.style.display = 'block';
+                    
+                    showStatus(`处理完成！共找到 ${proteins.length} 个蛋白质，序列长度 ${alignmentLength}`, 'success');
+                } catch (error) {
+                    showStatus(`处理文件时发生错误：${error.message}`, 'error');
+                    console.error(error);
+                }
+            });
+            
+            // 下载Excel文件
+            downloadExcelBtn.addEventListener('click', function() {
+                if (tableData.length === 0) {
+                    showStatus('没有可导出的数据', 'error');
+                    return;
+                }
+                
+                try {
+ 
