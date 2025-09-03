@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>序列反向/互补 - 生物信息分析工具包</title>
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --secondary-color: #3498db;
+            --accent-color: #e74c3c;
+            --light-color: #ecf0f1;
+            --dark-color: #2c3e50;
+            --success-color: #27ae60;
+            --warning-color: #f39c12;
+            --border-radius: 8px;
+            --box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            --transition: all 0.3s ease;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            min-height: 100vh;
+        }
+
+        /* 顶部标题栏 */
+        .tool-header {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background-color: var(--primary-color);
+            color: white;
+            padding: 20px;
+            width: 100%;
+            text-align: center;
+        }
+
+        .back-button {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            padding: 8px 16px;
+            border-radius: var(--border-radius);
+            cursor: pointer;
+            transition: var(--transition);
+            font-size: 0.9rem;
+            margin-top: 15px;
+            text-decoration: none;
+        }
+
+        .back-button:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        /* 内容区域样式 */
+        .content {
+            padding: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .section {
+            background: white;
+            border-radius: var(--border-radius);
+            padding: 20px;
+            margin-bottom: 30px;
+            box-shadow: var(--box-shadow);
+        }
+
+        h2 {
+            color: var(--primary-color);
+            text-align: center;
+        }
+
+        h3 {
+            color: var(--secondary-color);
+            margin-bottom: 15px;
+            text-align: center;
+        }
+
+        /* 表单样式 */
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+        }
+
+        input[type="text"], textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: var(--border-radius);
+            font-size: 14px;
+        }
+
+        textarea {
+            min-height: 100px;
+            resize: vertical;
+        }
+
+        /* 按钮容器样式 */
+        .button-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin: 20px 0;
+        }
+
+        .operation-button {
+            flex: 1 0 18%;
+            min-width: 120px;
+            padding: 12px;
+            background-color: var(--secondary-color);
+            color: white;
+            font-weight: bold;
+            border: none;
+            border-radius: var(--border-radius);
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .operation-button:hover {
+            background-color: #2980b9;
+        }
+
+        /* 结果区域样式 */
+        .result-box {
+            padding: 15px;
+            background-color: #f9f9f9;
+            border-radius: var(--border-radius);
+            margin-top: 15px;
+            border-left: 4px solid var(--secondary-color);
+        }
+
+        /* 操作按钮样式 */
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .action-button {
+            flex: 1;
+            padding: 12px;
+            font-weight: bold;
+            border: none;
+            border-radius: var(--border-radius);
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .copy-button {
+            background-color: var(--success-color);
+            color: white;
+        }
+
+        .copy-button:hover {
+            background-color: #219653;
+        }
+
+        .reset-button {
+            background-color: var(--accent-color);
+            color: white;
+        }
+
+        .reset-button:hover {
+            background-color: #c0392b;
+        }
+
+        /* 状态栏样式 */
+        .status-bar {
+            padding: 10px;
+            background-color: var(--primary-color);
+            color: white;
+            text-align: center;
+            font-weight: bold;
+            width: 100%;
+            margin-top: 20px;
+        }
+
+        @media (max-width: 768px) {
+            .content {
+                padding: 15px;
+            }
+            
+            .button-container {
+                flex-direction: column;
+            }
+            
+            .operation-button {
+                flex: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="tool-header">
+        <h2 style="color: white;">序列反向/互补</h2>
+        <a href="index.html" class="back-button">返回主界面</a>
+    </div>
+    
+    <div class="content">
+        <div class="section">
+            <h2>序列处理工具</h2>
+            
+            <div class="form-group">
+                <label for="sequence-input">输入序列:</label>
+                <textarea id="sequence-input" placeholder="输入DNA或RNA序列（如ATCG或AUCG）"></textarea>
+            </div>
+            
+            <div class="button-container">
+                <button id="reverse-btn" class="operation-button">序列反向<br>(ATCG→GCTA)</button>
+                <button id="dna-complement-btn" class="operation-button">DNA互补链<br>(ATCG→TAGC)</button>
+                <button id="rna-complement-btn" class="operation-button">RNA互补链<br>(ATCG→UAGC)</button>
+                <button id="dna-reverse-complement-btn" class="operation-button">DNA反向互补链<br>(ATCG→CGAT)</button>
+                <button id="rna-reverse-complement-btn" class="operation-button">RNA反向互补链<br>(ATCG→CGAU)</button>
+            </div>
+            
+            <div class="form-group">
+                <label for="result-output">处理结果:</label>
+                <textarea id="result-output" readonly></textarea>
+            </div>
+            
+            <div class="action-buttons">
+                <button id="copy-btn" class="action-button copy-button">复制结果</button>
+                <button id="reset-btn" class="action-button reset-button">重置</button>
+            </div>
+        </div>
+    </div>
+    
+    <div class="status-bar">
+        江南大学 粮食发酵工艺与技术国家工程实验室
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const sequenceInput = document.getElementById('sequence-input');
+            const resultOutput = document.getElementById('result-output');
+            const copyBtn = document.getElementById('copy-btn');
+            const resetBtn = document.getElementById('reset-btn');
+            
+            // 序列处理函数
+            function reverseSequence(seq) {
+                return seq.split('').reverse().join('');
+            }
+            
+            function getDnaComplement(seq) {
+                const complementMap = {
+                    'A': 'T', 'T': 'A', 'C': 'G', 'G': 'C',
+                    'a': 't', 't': 'a', 'c': 'g', 'g': 'c'
+                };
+                return seq.split('').map(base => complementMap[base] || base).join('');
+            }
+            
+            function getRnaComplement(seq) {
+                const complementMap = {
+                    'A': 'U', 'T': 'A', 'C': 'G', 'G': 'C',
+                    'a': 'u', 't': 'a', 'c': 'g', 'g': 'c'
+                };
+                return seq.split('').map(base => complementMap[base] || base).join('');
+            }
+            
+            function getDnaReverseComplement(seq) {
+                return getDnaComplement(reverseSequence(seq));
+            }
+            
+            function getRnaReverseComplement(seq) {
+                return getRnaComplement(reverseSequence(seq));
+            }
+            
+            // 按钮事件处理
+            document.getElementById('reverse-btn').addEventListener('click', function() {
+                const sequence = sequenceInput.value.trim();
+                if (!sequence) {
+                    alert('请输入序列');
+                    return;
+                }
+                resultOutput.value = reverseSequence(sequence);
+            });
+            
+            document.getElementById('dna-complement-btn').addEventListener('click', function() {
+                const sequence = sequenceInput.value.trim();
+                if (!sequence) {
+                    alert('请输入序列');
+                    return;
+                }
+                resultOutput.value = getDnaComplement(sequence);
+            });
+            
+            document.getElementById('rna-complement-btn').addEventListener('click', function() {
+                const sequence = sequenceInput.value.trim();
+                if (!sequence) {
+                    alert('请输入序列');
+                    return;
+                }
+                resultOutput.value = getRnaComplement(sequence);
+            });
+            
+            document.getElementById('dna-reverse-complement-btn').addEventListener('click', function() {
+                const sequence = sequenceInput.value.trim();
+                if (!sequence) {
+                    alert('请输入序列');
+                    return;
+                }
+                resultOutput.value = getDnaReverseComplement(sequence);
+            });
+            
+            document.getElementById('rna-reverse-complement-btn').addEventListener('click', function() {
+                const sequence = sequenceInput.value.trim();
+                if (!sequence) {
+                    alert('请输入序列');
+                    return;
+                }
+                resultOutput.value = getRnaReverseComplement(sequence);
+            });
+            
+            // 复制功能
+            copyBtn.addEventListener('click', function() {
+                if (!resultOutput.value) {
+                    alert('没有可复制的内容');
+                    return;
+                }
+                
+                resultOutput.select();
+                document.execCommand('copy');
+                
+                alert('结果已复制到剪贴板');
+            });
+            
+            // 重置功能
+            resetBtn.addEventListener('click', function() {
+                sequenceInput.value = '';
+                resultOutput.value = '';
+            });
+        });
+    </script>
+</body>
+</html>
