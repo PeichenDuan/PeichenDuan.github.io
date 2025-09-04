@@ -1,0 +1,1338 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>热图绘制 - 生物信息分析工具包</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --secondary-color: #3498db;
+            --accent-color: #e74c3c;
+            --light-color: #ecf0f1;
+            --dark-color: #2c3e50;
+            --success-color: #27ae60;
+            --warning-color: #f39c12;
+            --border-radius: 8px;
+            --box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            --transition: all 0.3s ease;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            min-height: 100vh;
+        }
+
+        /* 顶部标题栏 */
+        .tool-header {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background-color: var(--primary-color);
+            color: white;
+            padding: 20px;
+            width: 100%;
+            text-align: center;
+        }
+
+        .back-button {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            padding: 8px 16px;
+            border-radius: var(--border-radius);
+            cursor: pointer;
+            transition: var(--transition);
+            font-size: 0.9rem;
+            margin-top: 15px;
+            text-decoration: none;
+        }
+
+        .back-button:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        /* 内容区域样式 */
+        .content {
+            padding: 20px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .section {
+            background: white;
+            border-radius: var(--border-radius);
+            padding: 20px;
+            margin-bottom: 30px;
+            box-shadow: var(--box-shadow);
+        }
+
+        h2 {
+            color: var(--primary-color);
+            text-align: center;
+        }
+
+        h3 {
+            color: var(--secondary-color);
+            margin-bottom: 15px;
+            text-align: center;
+        }
+
+        /* 表单样式 */
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+        }
+
+        input[type="text"], textarea, input[type="file"], input[type="number"] {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: var(--border-radius);
+            font-size: 14px;
+        }
+
+        textarea {
+            min-height: 150px;
+            resize: vertical;
+        }
+
+        /* 按钮样式 */
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin: 15px 0;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 10px 15px;
+            border: none;
+            border-radius: var(--border-radius);
+            cursor: pointer;
+            transition: var(--transition);
+            font-weight: bold;
+        }
+
+        .btn-primary {
+            background-color: var(--secondary-color);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background-color: #2980b9;
+        }
+
+        .btn-danger {
+            background-color: var(--accent-color);
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background-color: #c0392b;
+        }
+
+        .btn-success {
+            background-color: var(--success-color);
+            color: white;
+        }
+
+        .btn-success:hover {
+            background-color: #219653;
+        }
+
+        /* 结果区域样式 */
+        .result-box {
+            padding: 15px;
+            background-color: #f9f9f9;
+            border-radius: var(--border-radius);
+            margin-top: 15px;
+            border-left: 4px solid var(--secondary-color);
+        }
+
+        /* 热图容器 - 修改为自适应 */
+        #heatmap-container {
+            width: 100%;
+            margin: 20px 0;
+            border: 1px solid #ddd;
+            border-radius: var(--border-radius);
+            overflow: auto;
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 200px;
+            max-height: 80vh;
+        }
+
+        #heatmap-canvas {
+            display: block;
+            max-width: 100%;
+        }
+
+        /* 颜色范围设置 */
+        .color-range {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+            gap: 10px;
+        }
+
+        .color-range input {
+            flex: 1;
+        }
+
+        .color-preview {
+            width: 30px;
+            height: 30px;
+            border-radius: 4px;
+            border: 1px solid #ddd;
+        }
+
+        /* 矩形列表 */
+        .rectangle-list {
+            max-height: 200px;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            border-radius: var(--border-radius);
+            padding: 10px;
+            margin-top: 15px;
+        }
+
+        .rectangle-item {
+            padding: 8px;
+            margin-bottom: 5px;
+            border-radius: var(--border-radius);
+            background-color: #f5f5f5;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .rectangle-item:hover {
+            background-color: #e9f7fe;
+        }
+
+        .rectangle-item.selected {
+            background-color: #d1edff;
+            border: 1px solid var(--secondary-color);
+        }
+
+        /* 双列布局 */
+        .two-columns {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .column {
+            flex: 1;
+        }
+
+        .column-small {
+            flex: 1;
+        }
+
+        .column-large {
+            flex: 2;
+        }
+
+        /* 功能描述 */
+        .function-desc {
+            font-style: italic;
+            color: #666;
+            text-align: center;
+            margin-top: 10px;
+            padding: 10px;
+            background-color: #f9f9f9;
+            border-radius: var(--border-radius);
+        }
+
+        /* 状态栏样式 */
+        .status-bar {
+            padding: 10px;
+            background-color: var(--primary-color);
+            color: white;
+            text-align: center;
+            font-weight: bold;
+            width: 100%;
+            margin-top: 20px;
+        }
+
+        /* 模态框样式 */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-content {
+            background-color: white;
+            padding: 20px;
+            border-radius: var(--border-radius);
+            width: 90%;
+            max-width: 500px;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .close-modal {
+            font-size: 24px;
+            cursor: pointer;
+        }
+
+        /* 热图设置 - 修改为4:1:5比例 */
+        .heatmap-settings {
+            display: flex;
+            gap: 15px;
+            margin: 15px 0;
+            flex-wrap: wrap;
+            align-items: flex-end;
+        }
+
+        .setting-group {
+            flex: 1;
+            min-width: 200px;
+        }
+
+        .ratio-group {
+            flex: 4;
+        }
+
+        .apply-group {
+            flex: 1;
+        }
+
+        .dpi-group {
+            flex: 5;
+        }
+
+        /* 颜色范围项样式 */
+        .color-range-item {
+            padding: 8px;
+            margin-bottom: 5px;
+            border-radius: var(--border-radius);
+            background-color: #f5f5f5;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+        }
+
+        .color-range-item:hover {
+            background-color: #e9f7fe;
+        }
+
+        .color-range-item.selected {
+            background-color: #d1edff;
+            border: 1px solid var(--secondary-color);
+        }
+
+        @media (max-width: 768px) {
+            .content {
+                padding: 15px;
+            }
+            
+            .button-group {
+                flex-direction: column;
+            }
+            
+            .heatmap-settings {
+                flex-direction: column;
+            }
+            
+            .two-columns {
+                flex-direction: column;
+            }
+            
+            .ratio-group, .apply-group, .dpi-group {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="tool-header">
+        <h2 style="color: white;">热图绘制</h2>
+        <a href="index.html" class="back-button">返回主界面</a>
+    </div>
+    
+    <div class="content">
+        <!-- 数据加载部分 -->
+        <div class="section">
+            <h2>数据加载</h2>
+            
+            <div class="form-group">
+                <label for="data-input">粘贴数值矩阵（制表符或空格分隔）:</label>
+                <textarea id="data-input" placeholder="例如：
+1.2	3.4	5.6
+2.1	4.3	6.5
+3.2	5.4	7.6"></textarea>
+            </div>
+            
+            <div class="button-group">
+                <button id="load-data" class="btn btn-primary">加载数据</button>
+                <button id="example-data" class="btn btn-success">加载示例数据</button>
+                <button id="export-example" class="btn btn-primary">导出示例数据</button>
+                <button id="clear-data" class="btn btn-danger">清除数据</button>
+            </div>
+            
+            <div class="function-desc">
+                在此区域粘贴纯数值矩阵数据，支持制表符或空格分隔（可从Excel中直接复制单元格区域），点击“加载数据”，系统将自动识别数据范围并生成热图
+            </div>
+            
+            <div id="file-info" class="result-box" style="display: none;">
+                <!-- 文件信息将在这里显示 -->
+            </div>
+        </div>
+        
+        <!-- 双列布局 -->
+        <div class="two-columns">
+            <!-- 颜色范围设置部分 -->
+            <div class="column column-small">
+                <div class="section">
+                    <h2>颜色范围设置</h2>
+                    
+                    <div id="color-ranges-list" class="rectangle-list">
+                        <!-- 颜色范围列表将在这里显示 -->
+                    </div>
+                    
+                    <div class="button-group">
+                        <button id="add-range" class="btn btn-primary">添加范围</button>
+                        <button id="edit-range" class="btn btn-success" disabled>编辑范围</button>
+                        <button id="delete-range" class="btn btn-danger" disabled>删除范围</button>
+                        <button id="apply-ranges" class="btn btn-success">应用颜色范围</button>
+                    </div>
+                    
+                    <div class="function-desc">
+                        设置不同数值范围对应的颜色，可添加多个颜色区间，系统将根据数值自动应用对应颜色
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 矩形框选工具部分 -->
+            <div class="column column-large">
+                <div class="section">
+                    <h2>矩形框选工具</h2>
+                    
+                    <div class="form-group">
+                        <label>矩形坐标 (矩形左上角/右下角两个单元格所在行号X1/X2, 列号Y1/Y2):</label>
+                        <div style="display: flex; gap: 10px;">
+                            <input type="number" id="rect-x1" placeholder="X1" min="1">
+                            <input type="number" id="rect-y1" placeholder="Y1" min="1">
+                            <input type="number" id="rect-x2" placeholder="X2" min="1">
+                            <input type="number" id="rect-y2" placeholder="Y2" min="1">
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="rect-color">边框颜色:</label>
+                        <input type="color" id="rect-color" value="#ff0000">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="rect-text">矩形内文字:</label>
+                        <input type="text" id="rect-text" placeholder="输入文字（可选）">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="text-color">文字颜色:</label>
+                        <input type="color" id="text-color" value="#000000">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="text-size">文字大小:</label>
+                        <input type="number" id="text-size" value="12" min="6" max="36">
+                    </div>
+                    
+                    <div class="button-group">
+                        <button id="add-rectangle" class="btn btn-primary">添加矩形</button>
+                        <button id="edit-rectangle" class="btn btn-success" disabled>编辑选中矩形</button>
+                        <button id="delete-rectangle" class="btn btn-danger" disabled>删除选中矩形</button>
+                        <button id="clear-rectangles" class="btn btn-danger">清除所有矩形</button>
+                    </div>
+                    
+                    <div class="function-desc">
+                        在热图上添加矩形标记，可设置位置、边框颜色和内部文字，用于突出显示特定数据区域
+                    </div>
+                    
+                    <h3>矩形列表</h3>
+                    <div id="rectangle-list" class="rectangle-list">
+                        <!-- 矩形列表将在这里显示 -->
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 热图显示部分 -->
+        <div class="section">
+            <h2>热图显示</h2>
+            
+            <div class="heatmap-settings">
+                <div class="setting-group ratio-group">
+                    <label for="aspect-ratio">图形比例 (宽:高):</label>
+                    <input type="text" id="aspect-ratio" value="1:1" placeholder="例如: 4:3">
+                </div>
+                
+                <div class="setting-group apply-group">
+                    <button id="apply-aspect-ratio" class="btn btn-primary" style="margin-top: 20px;">应用比例</button>
+                </div>
+                
+                <div class="setting-group dpi-group">
+                    <label for="dpi-setting">导出清晰度 (DPI):</label>
+                    <input type="number" id="dpi-setting" value="300" min="72" max="1200">
+                </div>
+            </div>
+            
+            <div id="heatmap-container">
+                <canvas id="heatmap-canvas"></canvas>
+            </div>
+            
+            <div class="button-group">
+                <button id="export-heatmap" class="btn btn-primary" disabled>导出热图</button>
+                <button id="reset-heatmap" class="btn btn-danger" disabled>重置热图</button>
+            </div>
+            
+            <div class="function-desc">
+                热图显示区域，可根据需要调整图形比例和导出清晰度，支持高分辨率导出用于出版物
+            </div>
+        </div>
+    </div>
+    
+    <div class="status-bar">
+        江南大学 粮食发酵工艺与技术国家工程实验室
+    </div>
+
+    <!-- 添加/编辑范围模态框 -->
+    <div id="range-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modal-title">添加颜色范围</h3>
+                <span class="close-modal">&times;</span>
+            </div>
+            
+            <div class="form-group">
+                <label for="range-min">最小值 (输入-inf表示负无穷):</label>
+                <input type="text" id="range-min" placeholder="例如: -1.5 或 -inf">
+            </div>
+            
+            <div class="form-group">
+                <label for="range-max">最大值 (输入inf表示无穷大):</label>
+                <input type="text" id="range-max" placeholder="例如: 1.5 或 inf">
+            </div>
+            
+            <div class="form-group">
+                <label for="range-color">颜色:</label>
+                <input type="color" id="range-color" value="#ffffff">
+            </div>
+            
+            <div class="button-group">
+                <button id="confirm-range" class="btn btn-primary">确认</button>
+                <button id="cancel-range" class="btn btn-danger">取消</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // 全局变量
+            let heatmapData = null;
+            let colorRanges = [];
+            let rectangles = [];
+            let selectedRectIndex = -1;
+            let selectedRangeIndex = -1;
+            const BASE_SIZE = 500; // 基础图片尺寸改为500
+            
+            // 获取DOM元素
+            const dataInput = document.getElementById('data-input');
+            const loadDataBtn = document.getElementById('load-data');
+            const exampleDataBtn = document.getElementById('example-data');
+            const exportExampleBtn = document.getElementById('export-example');
+            const clearDataBtn = document.getElementById('clear-data');
+            const fileInfoDiv = document.getElementById('file-info');
+            const heatmapCanvas = document.getElementById('heatmap-canvas');
+            const exportHeatmapBtn = document.getElementById('export-heatmap');
+            const resetHeatmapBtn = document.getElementById('reset-heatmap');
+            const colorRangesListDiv = document.getElementById('color-ranges-list');
+            const addRangeBtn = document.getElementById('add-range');
+            const editRangeBtn = document.getElementById('edit-range');
+            const deleteRangeBtn = document.getElementById('delete-range');
+            const applyRangesBtn = document.getElementById('apply-ranges');
+            const rectX1 = document.getElementById('rect-x1');
+            const rectY1 = document.getElementById('rect-y1');
+            const rectX2 = document.getElementById('rect-x2');
+            const rectY2 = document.getElementById('rect-y2');
+            const rectColor = document.getElementById('rect-color');
+            const rectText = document.getElementById('rect-text');
+            const textColor = document.getElementById('text-color');
+            const textSize = document.getElementById('text-size');
+            const addRectangleBtn = document.getElementById('add-rectangle');
+            const editRectangleBtn = document.getElementById('edit-rectangle');
+            const deleteRectangleBtn = document.getElementById('delete-rectangle');
+            const clearRectanglesBtn = document.getElementById('clear-rectangles');
+            const rectangleListDiv = document.getElementById('rectangle-list');
+            const rangeModal = document.getElementById('range-modal');
+            const modalTitle = document.getElementById('modal-title');
+            const closeModalBtn = document.querySelector('.close-modal');
+            const cancelRangeBtn = document.getElementById('cancel-range');
+            const confirmRangeBtn = document.getElementById('confirm-range');
+            const rangeMin = document.getElementById('range-min');
+            const rangeMax = document.getElementById('range-max');
+            const rangeColor = document.getElementById('range-color');
+            const aspectRatio = document.getElementById('aspect-ratio');
+            const applyAspectRatioBtn = document.getElementById('apply-aspect-ratio');
+            const dpiSetting = document.getElementById('dpi-setting');
+            const heatmapContainer = document.getElementById('heatmap-container');
+            
+            // 加载数据事件
+            loadDataBtn.addEventListener('click', function() {
+                const content = dataInput.value.trim();
+                if (!content) {
+                    alert('请输入数据');
+                    return;
+                }
+                
+                parseData(content);
+            });
+            
+            // 示例数据事件
+            exampleDataBtn.addEventListener('click', function() {
+                // 生成示例数据 (10x10矩阵)
+                let exampleData = [];
+                const rows = 10;
+                const cols = 10;
+                
+                for (let i = 0; i < rows; i++) {
+                    let row = [];
+                    for (let j = 0; j < cols; j++) {
+                        // 生成一些有模式的数据，包含负值
+                        const value = Math.sin(i / 2) * Math.cos(j / 2) + (Math.random() - 0.5) * 2;
+                        row.push(value.toFixed(4));
+                    }
+                    exampleData.push(row);
+                }
+                
+                // 转换为文本格式
+                let textContent = '';
+                for (let i = 0; i < rows; i++) {
+                    textContent += exampleData[i].join('\t') + '\n';
+                }
+                
+                dataInput.value = textContent;
+                parseData(textContent);
+                
+                // 生成示例颜色范围 (从白到蓝)，包含负无穷
+                colorRanges = [
+                    { min: -Infinity, max: -0.25, color: '#ffffff' },
+                    { min: -0.25, max: 0.25, color: '#bfdfff' },
+                    { min: 0.25, max: 0.75, color: '#7fbfff' },
+                    { min: 0.75, max: 1.0, color: '#3f9fff' },
+                    { min: 1.0, max: Infinity, color: '#007fff' }
+                ];
+                
+                updateColorRangesList();
+                drawHeatmap();
+            });
+            
+            // 导出示例数据
+            exportExampleBtn.addEventListener('click', function() {
+                // 生成示例数据 (10x10矩阵)
+                let exampleData = [];
+                const rows = 10;
+                const cols = 10;
+                
+                for (let i = 0; i < rows; i++) {
+                    let row = [];
+                    for (let j = 0; j < cols; j++) {
+                        // 生成一些有模式的数据
+                        const value = Math.sin(i / 2) * Math.cos(j / 2) + Math.random() * 0.5;
+                        row.push(value);
+                    }
+                    exampleData.push(row);
+                }
+                
+                // 创建工作簿
+                const ws = XLSX.utils.aoa_to_sheet(exampleData);
+                const wb = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(wb, ws, "示例数据");
+                
+                // 导出为XLSX
+                XLSX.writeFile(wb, "热图示例数据.xlsx");
+            });
+            
+            // 清除数据
+            clearDataBtn.addEventListener('click', function() {
+                dataInput.value = '';
+                heatmapData = null;
+                colorRanges = [];
+                rectangles = [];
+                selectedRectIndex = -1;
+                selectedRangeIndex = -1;
+                
+                fileInfoDiv.style.display = 'none';
+                exportHeatmapBtn.disabled = true;
+                resetHeatmapBtn.disabled = true;
+                editRangeBtn.disabled = true;
+                deleteRangeBtn.disabled = true;
+                
+                // 清除画布
+                const ctx = heatmapCanvas.getContext('2d');
+                ctx.clearRect(0, 0, heatmapCanvas.width, heatmapCanvas.height);
+                
+                // 更新UI
+                updateColorRangesList();
+                updateRectangleList();
+            });
+            
+            // 解析数据
+            function parseData(content) {
+                const lines = content.split('\n').filter(line => line.trim() !== '');
+                const data = [];
+                
+                // 解析数据
+                for (let i = 0; i < lines.length; i++) {
+                    // 使用正则表达式分割行（支持制表符和空格）
+                    const values = lines[i].split(/\s+/).map(v => v.trim()).filter(v => v !== '');
+                    
+                    // 转换值为数字
+                    const rowData = values.map(v => parseFloat(v));
+                    
+                    // 跳过空行或无效行
+                    if (rowData.length > 0 && !rowData.some(isNaN)) {
+                        data.push(rowData);
+                    }
+                }
+                
+                if (data.length === 0) {
+                    alert('未找到有效数据');
+                    return;
+                }
+                
+                // 检查所有行是否具有相同的列数
+                const colCount = data[0].length;
+                for (let i = 1; i < data.length; i++) {
+                    if (data[i].length !== colCount) {
+                        alert(`第${i+1}行列数不一致。第一行有${colCount}列，但第${i+1}行有${data[i].length}列`);
+                        return;
+                    }
+                }
+                
+                heatmapData = data;
+                
+                // 更新文件信息
+                const rows = data.length;
+                const cols = data[0].length;
+                fileInfoDiv.innerHTML = `
+                    <h3>数据加载成功</h3>
+                    <p><strong>数据尺寸:</strong> ${rows} 行 × ${cols} 列</p>
+                    <p><strong>坐标范围:</strong> X(1-${cols}), Y(1-${rows})</p>
+                    <p><strong>数值范围:</strong> ${Math.min(...data.flat()).toFixed(4)} - ${Math.max(...data.flat()).toFixed(4)}</p>
+                `;
+                fileInfoDiv.style.display = 'block';
+                
+                // 启用按钮
+                exportHeatmapBtn.disabled = false;
+                resetHeatmapBtn.disabled = false;
+                
+                // 绘制热图
+                drawHeatmap();
+            }
+            
+            // 绘制热图
+            function drawHeatmap() {
+                if (!heatmapData) return;
+                
+                const canvas = heatmapCanvas;
+                const ctx = canvas.getContext('2d');
+                
+                // 获取比例设置
+                let ratioValue = aspectRatio.value;
+                let ratioParts = ratioValue.split(':');
+                let widthRatio = 1;
+                let heightRatio = 1;
+                
+                if (ratioParts.length === 2) {
+                    widthRatio = parseFloat(ratioParts[0]) || 1;
+                    heightRatio = parseFloat(ratioParts[1]) || 1;
+                    
+                    // 限制比例范围在1:10到10:1之间
+                    const finalRatio = widthRatio / heightRatio;
+                    if (finalRatio < 0.1 || finalRatio > 10) {
+                        alert('宽高比必须在1:10到10:1之间');
+                        widthRatio = 1;
+                        heightRatio = 1;
+                        aspectRatio.value = '1:1';
+                    }
+                }
+                
+                const aspectRatioValue = widthRatio / heightRatio;
+                
+                const rows = heatmapData.length;
+                const cols = heatmapData[0].length;
+                
+                // 计算画布尺寸 - 基于基础大小和比例
+                let canvasWidth, canvasHeight;
+                
+                // 当高度小于宽度时，应该是宽不变，高度拉长
+                if (aspectRatioValue >= 1) {
+                    // 宽度优先
+                    canvasWidth = BASE_SIZE;
+                    canvasHeight = BASE_SIZE / aspectRatioValue;
+                } else {
+                    // 高度优先
+                    canvasHeight = BASE_SIZE;
+                    canvasWidth = BASE_SIZE * aspectRatioValue;
+                }
+                
+                // 设置canvas尺寸
+                canvas.width = canvasWidth;
+                canvas.height = canvasHeight;
+                
+                // 计算单元格大小 - 确保单元格大小至少为1像素
+                const cellWidth = Math.max(1, canvasWidth / cols);
+                const cellHeight = Math.max(1, canvasHeight / rows);
+                
+                // 绘制热图
+                for (let i = 0; i < rows; i++) {
+                    for (let j = 0; j < cols; j++) {
+                        const value = heatmapData[i][j];
+                        const color = getColorForValue(value);
+                        
+                        ctx.fillStyle = color;
+                        ctx.fillRect(j * cellWidth, i * cellHeight, cellWidth, cellHeight);
+                    }
+                }
+                
+                // 绘制矩形
+                drawRectangles(ctx, cellWidth, cellHeight);
+            }
+            
+            // 应用比例按钮事件
+            applyAspectRatioBtn.addEventListener('click', function() {
+                if (heatmapData) {
+                    drawHeatmap();
+                }
+            });
+            
+            // 根据值获取颜色
+            function getColorForValue(value) {
+                for (const range of colorRanges) {
+                    const minCheck = range.min === -Infinity || value > range.min || (range.min !== -Infinity && value === range.min && range.includeMin);
+                    const maxCheck = range.max === Infinity || value < range.max || (range.max !== Infinity && value === range.max && range.includeMax);
+                    
+                    if (minCheck && maxCheck) {
+                        return range.color;
+                    }
+                }
+                return '#cccccc'; // 默认颜色
+            }
+            
+            // 绘制矩形
+            function drawRectangles(ctx, cellWidth, cellHeight) {
+                for (let i = 0; i < rectangles.length; i++) {
+                    const rect = rectangles[i];
+                    const isSelected = i === selectedRectIndex;
+                    
+                    // 转换为canvas坐标
+                    const x = (Math.min(rect.x1, rect.x2) - 1) * cellWidth;
+                    const y = (Math.min(rect.y1, rect.y2) - 1) * cellHeight;
+                    const width = (Math.abs(rect.x2 - rect.x1) + 1) * cellWidth;
+                    const height = (Math.abs(rect.y2 - rect.y1) + 1) * cellHeight;
+                    
+                    // 绘制矩形边框
+                    ctx.strokeStyle = rect.color;
+                    ctx.lineWidth = isSelected ? 3 : 2;
+                    ctx.setLineDash(isSelected ? [5, 5] : []);
+                    ctx.strokeRect(x, y, width, height);
+                    
+                    // 绘制文字
+                    if (rect.text) {
+                        ctx.fillStyle = rect.textColor;
+                        ctx.font = `${rect.textSize}px Arial`;
+                        ctx.textAlign = 'center';
+                        ctx.textBaseline = 'middle';
+                        ctx.fillText(
+                            rect.text, 
+                            x + width / 2, 
+                            y + height / 2
+                        );
+                    }
+                }
+            }
+            
+            // 更新颜色范围列表显示
+            function updateColorRangesList() {
+                colorRangesListDiv.innerHTML = '';
+                
+                if (colorRanges.length === 0) {
+                    colorRangesListDiv.innerHTML = '<p>暂无颜色范围设置</p>';
+                    return;
+                }
+                
+                // 按最小值排序
+                colorRanges.sort((a, b) => {
+                    if (a.min === -Infinity) return -1;
+                    if (b.min === -Infinity) return 1;
+                    return a.min - b.min;
+                });
+                
+                colorRanges.forEach((range, index) => {
+                    const rangeEl = document.createElement('div');
+                    rangeEl.className = 'color-range-item' + (index === selectedRangeIndex ? ' selected' : '');
+                    
+                    // 格式化范围显示
+                    const minDisplay = range.min === -Infinity ? '-∞' : range.min;
+                    const maxDisplay = range.max === Infinity ? '∞' : range.max;
+                    const leftBracket = range.min === -Infinity ? '(' : '[';
+                    const rightBracket = range.max === Infinity ? ')' : ']';
+                    
+                    rangeEl.innerHTML = `
+                        <span>${leftBracket}${minDisplay}, ${maxDisplay}${rightBracket}</span>
+                        <div class="color-preview" style="background-color: ${range.color}"></div>
+                    `;
+                    
+                    rangeEl.addEventListener('click', function() {
+                        selectedRangeIndex = index;
+                        updateColorRangesList();
+                        
+                        // 启用编辑和删除按钮
+                        editRangeBtn.disabled = false;
+                        deleteRangeBtn.disabled = true; // 不允许删除，只允许编辑
+                    });
+                    
+                    colorRangesListDiv.appendChild(rangeEl);
+                });
+            }
+            
+            // 添加颜色范围
+            addRangeBtn.addEventListener('click', function() {
+                modalTitle.textContent = '添加颜色范围';
+                rangeMin.value = '';
+                rangeMax.value = '';
+                rangeColor.value = '#ffffff';
+                rangeModal.style.display = 'flex';
+                selectedRangeIndex = -1;
+            });
+            
+            // 编辑颜色范围
+            editRangeBtn.addEventListener('click', function() {
+                if (selectedRangeIndex === -1) return;
+                
+                const range = colorRanges[selectedRangeIndex];
+                modalTitle.textContent = '编辑颜色范围';
+                rangeMin.value = range.min === -Infinity ? '-inf' : range.min;
+                rangeMax.value = range.max === Infinity ? 'inf' : range.max;
+                rangeColor.value = range.color;
+                rangeModal.style.display = 'flex';
+            });
+            
+            // 关闭模态框
+            function closeModal() {
+                rangeModal.style.display = 'none';
+            }
+            
+            closeModalBtn.addEventListener('click', closeModal);
+            cancelRangeBtn.addEventListener('click', closeModal);
+            
+            // 确认添加/编辑范围
+            confirmRangeBtn.addEventListener('click', function() {
+                let min = rangeMin.value.toLowerCase();
+                let max = rangeMax.value.toLowerCase();
+                
+                // 处理最小值
+                let minNum = min === '-inf' ? -Infinity : parseFloat(min);
+                // 处理最大值
+                let maxNum = max === 'inf' ? Infinity : parseFloat(max);
+                
+                if ((min !== '-inf' && isNaN(minNum)) || (max !== 'inf' && isNaN(maxNum))) {
+                    alert('请输入有效的数值');
+                    return;
+                }
+                
+                if (maxNum !== Infinity && minNum !== -Infinity && minNum >= maxNum) {
+                    alert('最小值必须小于最大值');
+                    return;
+                }
+                
+                // 检查范围是否重叠
+                for (let i = 0; i < colorRanges.length; i++) {
+                    if (selectedRangeIndex !== i) { // 跳过当前编辑的范围
+                        const existingRange = colorRanges[i];
+                        
+                        // 检查新范围是否与现有范围重叠
+                        const overlap = !(
+                            (maxNum !== Infinity && existingRange.min !== -Infinity && maxNum <= existingRange.min) ||
+                            (minNum !== -Infinity && existingRange.max !== Infinity && minNum >= existingRange.max)
+                        );
+                        
+                        if (overlap) {
+                            alert('颜色范围不能重叠');
+                            return;
+                        }
+                    }
+                }
+                
+                if (selectedRangeIndex === -1) {
+                    // 添加新范围
+                    colorRanges.push({
+                        min: minNum,
+                        max: maxNum,
+                        color: rangeColor.value,
+                        includeMin: minNum !== -Infinity, // 非无穷小值时包含最小值
+                        includeMax: maxNum !== Infinity   // 非无穷大值时包含最大值
+                    });
+                } else {
+                    // 编辑现有范围
+                    colorRanges[selectedRangeIndex] = {
+                        min: minNum,
+                        max: maxNum,
+                        color: rangeColor.value,
+                        includeMin: minNum !== -Infinity,
+                        includeMax: maxNum !== Infinity
+                    };
+                }
+                
+                updateColorRangesList();
+                closeModal();
+            });
+            
+            // 应用颜色范围
+            applyRangesBtn.addEventListener('click', function() {
+                drawHeatmap();
+            });
+            
+            // 添加矩形
+            addRectangleBtn.addEventListener('click', function() {
+                if (!heatmapData) {
+                    alert('请先加载数据');
+                    return;
+                }
+                
+                const x1 = parseInt(rectX1.value);
+                const y1 = parseInt(rectY1.value);
+                const x2 = parseInt(rectX2.value);
+                const y2 = parseInt(rectY2.value);
+                
+                const rows = heatmapData.length;
+                const cols = heatmapData[0].length;
+                
+                if (isNaN(x1) || isNaN(y1) || isNaN(x2) || isNaN(y2)) {
+                    alert('请输入有效的坐标');
+                    return;
+                }
+                
+                if (x1 < 1 || x1 > cols || x2 < 1 || x2 > cols || 
+                    y1 < 1 || y1 > rows || y2 < 1 || y2 > rows) {
+                    alert(`坐标超出范围！X应在1-${cols}之间，Y应在1-${rows}之间`);
+                    return;
+                }
+                
+                rectangles.push({
+                    x1: x1,
+                    y1: y1,
+                    x2: x2,
+                    y2: y2,
+                    color: rectColor.value,
+                    text: rectText.value,
+                    textColor: textColor.value,
+                    textSize: parseInt(textSize.value)
+                });
+                
+                updateRectangleList();
+                drawHeatmap();
+                
+                // 清空输入框
+                rectX1.value = '';
+                rectY1.value = '';
+                rectX2.value = '';
+                rectY2.value = '';
+                rectText.value = '';
+            });
+            
+            // 更新矩形列表
+            function updateRectangleList() {
+                rectangleListDiv.innerHTML = '';
+                
+                rectangles.forEach((rect, index) => {
+                    const rectEl = document.createElement('div');
+                    rectEl.className = 'rectangle-item' + (index === selectedRectIndex ? ' selected' : '');
+                    rectEl.innerHTML = `
+                        <span>矩形 ${index+1}: (${rect.x1},${rect.y1})-(${rect.x2},${rect.y2}) ${rect.text ? '[' + rect.text + ']' : ''}</span>
+                    `;
+                    
+                    rectEl.addEventListener('click', function() {
+                        selectedRectIndex = index;
+                        updateRectangleList();
+                        
+                        // 启用编辑和删除按钮
+                        editRectangleBtn.disabled = false;
+                        deleteRectangleBtn.disabled = false;
+                        
+                        // 更新输入框
+                        const rect = rectangles[index];
+                        rectX1.value = rect.x1;
+                        rectY1.value = rect.y1;
+                        rectX2.value = rect.x2;
+                        rectY2.value = rect.y2;
+                        rectColor.value = rect.color;
+                        rectText.value = rect.text || '';
+                        textColor.value = rect.textColor;
+                        textSize.value = rect.textSize;
+                        
+                        drawHeatmap();
+                    });
+                    
+                    rectangleListDiv.appendChild(rectEl);
+                });
+            }
+            
+            // 编辑矩形
+            editRectangleBtn.addEventListener('click', function() {
+                if (selectedRectIndex === -1) return;
+                
+                const x1 = parseInt(rectX1.value);
+                const y1 = parseInt(rectY1.value);
+                const x2 = parseInt(rectX2.value);
+                const y2 = parseInt(rectY2.value);
+                
+                const rows = heatmapData.length;
+                const cols = heatmapData[0].length;
+                
+                if (isNaN(x1) || isNaN(y1) || isNaN(x2) || isNaN(y2)) {
+                    alert('请输入有效的坐标');
+                    return;
+                }
+                
+                if (x1 < 1 || x1 > cols || x2 < 1 || x2 > cols || 
+                    y1 < 1 || y1 > rows || y2 < 1 || y2 > rows) {
+                    alert(`坐标超出范围！X应在1-${cols}之间，Y应在1-${rows}之间`);
+                    return;
+                }
+                
+                rectangles[selectedRectIndex] = {
+                    x1: x1,
+                    y1: y1,
+                    x2: x2,
+                    y2: y2,
+                    color: rectColor.value,
+                    text: rectText.value,
+                    textColor: textColor.value,
+                    textSize: parseInt(textSize.value)
+                };
+                
+                updateRectangleList();
+                drawHeatmap();
+            });
+            
+            // 删除矩形
+            deleteRectangleBtn.addEventListener('click', function() {
+                if (selectedRectIndex === -1) return;
+                
+                rectangles.splice(selectedRectIndex, 1);
+                selectedRectIndex = -1;
+                
+                // 禁用编辑和删除按钮
+                editRectangleBtn.disabled = true;
+                deleteRectangleBtn.disabled = true;
+                
+                // 清空输入框
+                rectX1.value = '';
+                rectY1.value = '';
+                rectX2.value = '';
+                rectY2.value = '';
+                rectText.value = '';
+                
+                updateRectangleList();
+                drawHeatmap();
+            });
+            
+            // 清除所有矩形
+            clearRectanglesBtn.addEventListener('click', function() {
+                if (rectangles.length === 0) {
+                    alert('没有可清除的矩形');
+                    return;
+                }
+                
+                if (confirm('确定要清除所有矩形吗？')) {
+                    rectangles = [];
+                    selectedRectIndex = -1;
+                    
+                    // 禁用编辑和删除按钮
+                    editRectangleBtn.disabled = true;
+                    deleteRectangleBtn.disabled = true;
+                    
+                    // 清空输入框
+                    rectX1.value = '';
+                    rectY1.value = '';
+                    rectX2.value = '';
+                    rectY2.value = '';
+                    rectText.value = '';
+                    
+                    updateRectangleList();
+                    drawHeatmap();
+                }
+            });
+            
+            // 导出热图
+            exportHeatmapBtn.addEventListener('click', function() {
+                if (!heatmapData) {
+                    alert('请先加载数据');
+                    return;
+                }
+                
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                
+                // 获取DPI设置
+                const dpi = parseInt(dpiSetting.value) || 300;
+                const dpiRatio = dpi / 96; // 96是标准屏幕的DPI
+                
+                // 获取比例设置
+                let ratioValue = aspectRatio.value;
+                let ratioParts = ratioValue.split(':');
+                let widthRatio = 1;
+                let heightRatio = 1;
+                
+                if (ratioParts.length === 2) {
+                    widthRatio = parseFloat(ratioParts[0]) || 1;
+                    heightRatio = parseFloat(ratioParts[1]) || 1;
+                }
+                
+                const aspectRatioValue = widthRatio / heightRatio;
+                
+                const rows = heatmapData.length;
+                const cols = heatmapData[0].length;
+                
+                // 计算画布尺寸 - 基于基础大小、比例和DPI
+                let canvasWidth, canvasHeight;
+                
+                // 当高度小于宽度时，应该是宽不变，高度拉长
+                if (aspectRatioValue >= 1) {
+                    // 宽度优先
+                    canvasWidth = BASE_SIZE * dpiRatio;
+                    canvasHeight = BASE_SIZE * dpiRatio / aspectRatioValue;
+                } else {
+                    // 高度优先
+                    canvasHeight = BASE_SIZE * dpiRatio;
+                    canvasWidth = BASE_SIZE * dpiRatio * aspectRatioValue;
+                }
+                
+                // 设置canvas尺寸
+                canvas.width = canvasWidth;
+                canvas.height = canvasHeight;
+                
+                // 计算单元格大小
+                const cellWidth = canvasWidth / cols;
+                const cellHeight = canvasHeight / rows;
+                
+                // 绘制热图
+                for (let i = 0; i < rows; i++) {
+                    for (let j = 0; j < cols; j++) {
+                        const value = heatmapData[i][j];
+                        const color = getColorForValue(value);
+                        
+                        ctx.fillStyle = color;
+                        ctx.fillRect(
+                            j * cellWidth, 
+                            i * cellHeight, 
+                            cellWidth, 
+                            cellHeight
+                        );
+                    }
+                }
+                
+                // 绘制矩形
+                for (const rect of rectangles) {
+                    const x = (Math.min(rect.x1, rect.x2) - 1) * cellWidth;
+                    const y = (Math.min(rect.y1, rect.y2) - 1) * cellHeight;
+                    const width = (Math.abs(rect.x2 - rect.x1) + 1) * cellWidth;
+                    const height = (Math.abs(rect.y2 - rect.y1) + 1) * cellHeight;
+                    
+                    // 绘制矩形边框
+                    ctx.strokeStyle = rect.color;
+                    ctx.lineWidth = 2 * dpiRatio;
+                    ctx.strokeRect(x, y, width, height);
+                    
+                    // 绘制文字
+                    if (rect.text) {
+                        ctx.fillStyle = rect.textColor;
+                        ctx.font = `${rect.textSize * dpiRatio}px Arial`;
+                        ctx.textAlign = 'center';
+                        ctx.textBaseline = 'middle';
+                        ctx.fillText(
+                            rect.text, 
+                            x + width / 2, 
+                            y + height / 2
+                        );
+                    }
+                }
+                
+                // 创建下载链接
+                const link = document.createElement('a');
+                link.download = '热图.png';
+                link.href = canvas.toDataURL('image/png');
+                link.click();
+            });
+            
+            // 重置热图
+            resetHeatmapBtn.addEventListener('click', function() {
+                if (confirm('确定要重置热图吗？这将清除所有矩形和设置。')) {
+                    rectangles = [];
+                    selectedRectIndex = -1;
+                    
+                    // 禁用编辑和删除按钮
+                    editRectangleBtn.disabled = true;
+                    deleteRectangleBtn.disabled = true;
+                    
+                    // 清空输入框
+                    rectX1.value = '';
+                    rectY1.value = '';
+                    rectX2.value = '';
+                    rectY2.value = '';
+                    rectText.value = '';
+                    
+                    updateRectangleList();
+                    drawHeatmap();
+                }
+            });
+            
+            // 窗口大小变化时重绘热图
+            window.addEventListener('resize', function() {
+                if (heatmapData) {
+                    drawHeatmap();
+                }
+            });
+        });
+    </script>
+</body>
+</html>
