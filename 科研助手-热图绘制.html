@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>热图绘制 - 生物信息分析工具包</title>
+    <title>热图绘制 - 高性能优化版</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <style>
         :root {
@@ -33,7 +33,6 @@
             min-height: 100vh;
         }
 
-        /* 顶部标题栏 */
         .tool-header {
             display: flex;
             flex-direction: column;
@@ -63,7 +62,6 @@
             background: rgba(255, 255, 255, 0.3);
         }
 
-        /* 内容区域样式 */
         .content {
             padding: 20px;
             max-width: 1400px;
@@ -89,7 +87,6 @@
             text-align: center;
         }
 
-        /* 表单样式 */
         .form-group {
             margin-bottom: 15px;
         }
@@ -113,7 +110,6 @@
             resize: vertical;
         }
 
-        /* 按钮样式 */
         .button-group {
             display: flex;
             gap: 10px;
@@ -157,7 +153,6 @@
             background-color: #219653;
         }
 
-        /* 结果区域样式 */
         .result-box {
             padding: 15px;
             background-color: #f9f9f9;
@@ -166,7 +161,6 @@
             border-left: 4px solid var(--secondary-color);
         }
 
-        /* 热图容器 - 修改为自适应 */
         #heatmap-container {
             width: 100%;
             margin: 20px 0;
@@ -186,7 +180,6 @@
             max-width: 100%;
         }
 
-        /* 颜色范围设置 */
         .color-range {
             display: flex;
             align-items: center;
@@ -205,7 +198,6 @@
             border: 1px solid #ddd;
         }
 
-        /* 矩形列表 */
         .rectangle-list {
             max-height: 200px;
             overflow-y: auto;
@@ -234,7 +226,6 @@
             border: 1px solid var(--secondary-color);
         }
 
-        /* 双列布局 */
         .two-columns {
             display: flex;
             gap: 20px;
@@ -253,7 +244,6 @@
             flex: 2;
         }
 
-        /* 功能描述 */
         .function-desc {
             font-style: italic;
             color: #666;
@@ -264,7 +254,6 @@
             border-radius: var(--border-radius);
         }
 
-        /* 状态栏样式 */
         .status-bar {
             padding: 10px;
             background-color: var(--primary-color);
@@ -275,7 +264,6 @@
             margin-top: 20px;
         }
 
-        /* 模态框样式 */
         .modal {
             display: none;
             position: fixed;
@@ -304,14 +292,18 @@
             justify-content: space-between;
             align-items: center;
             margin-bottom: 15px;
+            position: relative;
         }
 
         .close-modal {
             font-size: 24px;
             cursor: pointer;
+            position: absolute;
+            right: 0;
+            top: 0;
+            padding: 5px 10px;
         }
 
-        /* 热图设置 - 修改为4:1:5比例 */
         .heatmap-settings {
             display: flex;
             gap: 15px;
@@ -327,6 +319,8 @@
 
         .ratio-group {
             flex: 4;
+            display: flex;
+            flex-direction: column;
         }
 
         .apply-group {
@@ -337,7 +331,6 @@
             flex: 5;
         }
 
-        /* 颜色范围项样式 */
         .color-range-item {
             padding: 8px;
             margin-bottom: 5px;
@@ -356,6 +349,104 @@
         .color-range-item.selected {
             background-color: #d1edff;
             border: 1px solid var(--secondary-color);
+        }
+
+        .boundary-selector {
+            display: flex;
+            gap: 10px;
+            margin-top: 5px;
+        }
+
+        .boundary-option {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .ratio-input-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .ratio-input {
+            width: 80px;
+            text-align: center;
+        }
+
+        .ratio-separator {
+            font-weight: bold;
+            font-size: 18px;
+        }
+
+        .loading-indicator {
+            display: none;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(255, 255, 255, 0.9);
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+            z-index: 100;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+        }
+
+        .performance-warning {
+            display: none;
+            padding: 10px;
+            background-color: #fff3cd;
+            border-left: 4px solid #ffc107;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+
+        .progress-bar-container {
+            width: 100%;
+            height: 20px;
+            background-color: #f0f0f0;
+            border-radius: 10px;
+            margin: 10px 0;
+            overflow: hidden;
+        }
+
+        .progress-bar {
+            height: 100%;
+            background-color: #4caf50;
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+
+        .large-data-options {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin: 15px 0;
+            padding: 15px;
+            background-color: #f9f9f9;
+            border-radius: var(--border-radius);
+        }
+
+        .tips-section {
+            background-color: #e8f4fd;
+            border-left: 4px solid #3498db;
+        }
+
+        .tips-section h2 {
+            color: #3498db;
+        }
+
+        .tips-content {
+            padding: 10px 15px;
+        }
+
+        .tips-content ol {
+            padding-left: 20px;
+        }
+
+        .tips-content li {
+            margin-bottom: 8px;
         }
 
         @media (max-width: 768px) {
@@ -378,26 +469,46 @@
             .ratio-group, .apply-group, .dpi-group {
                 width: 100%;
             }
+            
+            .ratio-input-container {
+                justify-content: center;
+            }
         }
     </style>
 </head>
 <body>
     <div class="tool-header">
-        <h2 style="color: white;">热图绘制</h2>
+        <h2 style="color: white;">热图绘制 - 高性能优化版</h2>
         <a href="index.html" class="back-button">返回主界面</a>
     </div>
     
     <div class="content">
+        <!-- 提示部分 -->
+        <div class="section tips-section">
+            <h2>提示</h2>
+            <div class="tips-content">
+                <ol>
+                    <li>本工具支持从Excel直接复制数据粘贴到数据输入区，最大支持1000×1000的数值矩阵</li>
+                    <li>小型数值矩阵（200×200以内）绘制热图时，可以对热图的宽高比进行自由调整；当数值矩阵行数或列数的任意一个大于200时，将只能绘制宽高比=“列数：行数”的固定比例热图</li>
+                    <li>可通过颜色范围设置功能自定义不同数值区间的颜色，通过矩形框选工具标注特定的数值范围。</li>
+                </ol>
+            </div>
+        </div>
+        
         <!-- 数据加载部分 -->
         <div class="section">
             <h2>数据加载</h2>
             
             <div class="form-group">
-                <label for="data-input">粘贴数值矩阵（制表符或空格分隔）:</label>
+                <label for="data-input">粘贴数值矩阵（制表符或空格分隔，数据量较大时请等待10秒左右）:</label>
                 <textarea id="data-input" placeholder="例如：
 1.2	3.4	5.6
 2.1	4.3	6.5
 3.2	5.4	7.6"></textarea>
+            </div>
+            
+            <div class="performance-warning" id="size-warning">
+                <strong>注意：</strong> 大型数值矩阵（超过200×200）可能需要较长时间处理和渲染。
             </div>
             
             <div class="button-group">
@@ -408,7 +519,7 @@
             </div>
             
             <div class="function-desc">
-                在此区域粘贴纯数值矩阵数据，支持制表符或空格分隔（可从Excel中直接复制单元格区域），点击“加载数据”，系统将自动识别数据范围并生成热图
+                在此区域粘贴纯数值矩阵数据，支持制表符或空格分隔（可从Excel中直接复制单元格区域），点击"加载数据"，系统将自动识别数据范围并生成热图
             </div>
             
             <div id="file-info" class="result-box" style="display: none;">
@@ -428,6 +539,7 @@
                     </div>
                     
                     <div class="button-group">
+                        <button id="add-single-value" class="btn btn-primary">添加单值</button>
                         <button id="add-range" class="btn btn-primary">添加范围</button>
                         <button id="edit-range" class="btn btn-success" disabled>编辑范围</button>
                         <button id="delete-range" class="btn btn-danger" disabled>删除范围</button>
@@ -477,7 +589,6 @@
                     
                     <div class="button-group">
                         <button id="add-rectangle" class="btn btn-primary">添加矩形</button>
-                        <button id="edit-rectangle" class="btn btn-success" disabled>编辑选中矩形</button>
                         <button id="delete-rectangle" class="btn btn-danger" disabled>删除选中矩形</button>
                         <button id="clear-rectangles" class="btn btn-danger">清除所有矩形</button>
                     </div>
@@ -500,8 +611,12 @@
             
             <div class="heatmap-settings">
                 <div class="setting-group ratio-group">
-                    <label for="aspect-ratio">图形比例 (宽:高):</label>
-                    <input type="text" id="aspect-ratio" value="1:1" placeholder="例如: 4:3">
+                    <label for="aspect-ratio">图形比例 (宽:高，宽度/高度>200的大型热图仅支持数值矩阵列数:行数的宽高比):</label>
+                    <div class="ratio-input-container">
+                        <input type="number" id="ratio-width" class="ratio-input" value="1" min="1" max="10" step="0.1">
+                        <span class="ratio-separator">:</span>
+                        <input type="number" id="ratio-height" class="ratio-input" value="1" min="1" max="10" step="0.1">
+                    </div>
                 </div>
                 
                 <div class="setting-group apply-group">
@@ -509,12 +624,20 @@
                 </div>
                 
                 <div class="setting-group dpi-group">
-                    <label for="dpi-setting">导出清晰度 (DPI):</label>
-                    <input type="number" id="dpi-setting" value="300" min="72" max="1200">
+                    <label for="dpi-setting">导出清晰度 (DPI，建议120-2400，过高的清晰度可能导出失败):</label>
+                    <input type="number" id="dpi-setting" value="300" min="120" max="2400">
                 </div>
             </div>
             
+            <div class="progress-bar-container">
+                <div class="progress-bar" id="progress-bar"></div>
+            </div>
+            
             <div id="heatmap-container">
+                <div class="loading-indicator" id="loading-indicator">
+                    <p>正在渲染热图，请稍候...</p>
+                    <p id="progress-text">0%</p>
+                </div>
                 <canvas id="heatmap-canvas"></canvas>
             </div>
             
@@ -541,14 +664,39 @@
                 <span class="close-modal">&times;</span>
             </div>
             
-            <div class="form-group">
-                <label for="range-min">最小值 (输入-inf表示负无穷):</label>
-                <input type="text" id="range-min" placeholder="例如: -1.5 或 -inf">
+            <div id="single-value-group" class="form-group">
+                <label for="single-value">数值:</label>
+                <input type="text" id="single-value" placeholder="例如: 1.5">
             </div>
             
-            <div class="form-group">
+            <div id="range-value-group" class="form-group">
+                <label for="range-min">最小值 (输入-inf表示负无穷):</label>
+                <input type="text" id="range-min" placeholder="例如: -1.5 或 -inf">
+                <div class="boundary-selector">
+                    <div class="boundary-option">
+                        <input type="radio" id="min-inclusive" name="min-boundary" value="inclusive">
+                        <label for="min-inclusive">包含</label>
+                    </div>
+                    <div class="boundary-option">
+                        <input type="radio" id="min-exclusive" name="min-boundary" value="exclusive" checked>
+                        <label for="min-exclusive">不包含</label>
+                    </div>
+                </div>
+            </div>
+            
+            <div id="range-max-group" class="form-group">
                 <label for="range-max">最大值 (输入inf表示无穷大):</label>
                 <input type="text" id="range-max" placeholder="例如: 1.5 或 inf">
+                <div class="boundary-selector">
+                    <div class="boundary-option">
+                        <input type="radio" id="max-inclusive" name="max-boundary" value="inclusive">
+                        <label for="max-inclusive">包含</label>
+                    </div>
+                    <div class="boundary-option">
+                        <input type="radio" id="max-exclusive" name="max-boundary" value="exclusive" checked>
+                        <label for="max-exclusive">不包含</label>
+                    </div>
+                </div>
             </div>
             
             <div class="form-group">
@@ -571,7 +719,8 @@
             let rectangles = [];
             let selectedRectIndex = -1;
             let selectedRangeIndex = -1;
-            const BASE_SIZE = 500; // 基础图片尺寸改为500
+            const BASE_SIZE = 500; // 基础图片尺寸
+            let isRendering = false;
             
             // 获取DOM元素
             const dataInput = document.getElementById('data-input');
@@ -585,6 +734,7 @@
             const resetHeatmapBtn = document.getElementById('reset-heatmap');
             const colorRangesListDiv = document.getElementById('color-ranges-list');
             const addRangeBtn = document.getElementById('add-range');
+            const addSingleValueBtn = document.getElementById('add-single-value');
             const editRangeBtn = document.getElementById('edit-range');
             const deleteRangeBtn = document.getElementById('delete-range');
             const applyRangesBtn = document.getElementById('apply-ranges');
@@ -597,7 +747,6 @@
             const textColor = document.getElementById('text-color');
             const textSize = document.getElementById('text-size');
             const addRectangleBtn = document.getElementById('add-rectangle');
-            const editRectangleBtn = document.getElementById('edit-rectangle');
             const deleteRectangleBtn = document.getElementById('delete-rectangle');
             const clearRectanglesBtn = document.getElementById('clear-rectangles');
             const rectangleListDiv = document.getElementById('rectangle-list');
@@ -609,10 +758,22 @@
             const rangeMin = document.getElementById('range-min');
             const rangeMax = document.getElementById('range-max');
             const rangeColor = document.getElementById('range-color');
-            const aspectRatio = document.getElementById('aspect-ratio');
+            const singleValue = document.getElementById('single-value');
+            const singleValueGroup = document.getElementById('single-value-group');
+            const rangeValueGroup = document.getElementById('range-value-group');
+            const rangeMaxGroup = document.getElementById('range-max-group');
+            const ratioWidth = document.getElementById('ratio-width');
+            const ratioHeight = document.getElementById('ratio-height');
             const applyAspectRatioBtn = document.getElementById('apply-aspect-ratio');
             const dpiSetting = document.getElementById('dpi-setting');
             const heatmapContainer = document.getElementById('heatmap-container');
+            const loadingIndicator = document.getElementById('loading-indicator');
+            const progressText = document.getElementById('progress-text');
+            const progressBar = document.getElementById('progress-bar');
+            const sizeWarning = document.getElementById('size-warning');
+            
+            // 初始化模态框显示
+            singleValueGroup.style.display = 'none';
             
             // 加载数据事件
             loadDataBtn.addEventListener('click', function() {
@@ -627,10 +788,10 @@
             
             // 示例数据事件
             exampleDataBtn.addEventListener('click', function() {
-                // 生成示例数据 (10x10矩阵)
+                // 生成示例数据 (30x30矩阵，比之前小一些，但足够演示)
                 let exampleData = [];
-                const rows = 10;
-                const cols = 10;
+                const rows = 30;
+                const cols = 30;
                 
                 for (let i = 0; i < rows; i++) {
                     let row = [];
@@ -651,13 +812,16 @@
                 dataInput.value = textContent;
                 parseData(textContent);
                 
-                // 生成示例颜色范围 (从白到蓝)，包含负无穷
+                // 生成示例颜色范围 (从白到蓝)，确保不重叠
                 colorRanges = [
-                    { min: -Infinity, max: -0.25, color: '#ffffff' },
-                    { min: -0.25, max: 0.25, color: '#bfdfff' },
-                    { min: 0.25, max: 0.75, color: '#7fbfff' },
-                    { min: 0.75, max: 1.0, color: '#3f9fff' },
-                    { min: 1.0, max: Infinity, color: '#007fff' }
+                    { min: -Infinity, max: -0.5, color: '#ffffff', minInclusive: false, maxInclusive: false, isSingleValue: false },
+                    { min: -0.5, max: -0.25, color: '#d9e6ff', minInclusive: true, maxInclusive: false, isSingleValue: false },
+                    { min: -0.25, max: 0, color: '#b3cdff', minInclusive: true, maxInclusive: false, isSingleValue: false },
+                    { min: 0, max: 0.25, color: '#8db4ff', minInclusive: true, maxInclusive: false, isSingleValue: false },
+                    { min: 0.25, max: 0.5, color: '#679bff', minInclusive: true, maxInclusive: false, isSingleValue: false },
+                    { min: 0.5, max: 0.75, color: '#4182ff', minInclusive: true, maxInclusive: false, isSingleValue: false },
+                    { min: 0.75, max: 1.0, color: '#1b69ff', minInclusive: true, maxInclusive: false, isSingleValue: false },
+                    { min: 1.0, max: Infinity, color: '#0050ff', minInclusive: true, maxInclusive: false, isSingleValue: false }
                 ];
                 
                 updateColorRangesList();
@@ -666,10 +830,10 @@
             
             // 导出示例数据
             exportExampleBtn.addEventListener('click', function() {
-                // 生成示例数据 (10x10矩阵)
+                // 生成示例数据 (30x30矩阵)
                 let exampleData = [];
-                const rows = 10;
-                const cols = 10;
+                const rows = 30;
+                const cols = 30;
                 
                 for (let i = 0; i < rows; i++) {
                     let row = [];
@@ -704,6 +868,7 @@
                 resetHeatmapBtn.disabled = true;
                 editRangeBtn.disabled = true;
                 deleteRangeBtn.disabled = true;
+                sizeWarning.style.display = 'none';
                 
                 // 清除画布
                 const ctx = heatmapCanvas.getContext('2d');
@@ -714,86 +879,122 @@
                 updateRectangleList();
             });
             
+            // 计算数组的最小值和最大值（避免堆栈溢出）
+            function calculateMinMax(data) {
+                let min = Infinity;
+                let max = -Infinity;
+                
+                for (let i = 0; i < data.length; i++) {
+                    for (let j = 0; j < data[i].length; j++) {
+                        const value = data[i][j];
+                        if (value < min) min = value;
+                        if (value > max) max = value;
+                    }
+                }
+                
+                return { min, max };
+            }
+            
             // 解析数据
             function parseData(content) {
-                const lines = content.split('\n').filter(line => line.trim() !== '');
-                const data = [];
+                loadingIndicator.style.display = 'block';
+                progressText.textContent = '0%';
+                progressBar.style.width = '0%';
                 
-                // 解析数据
-                for (let i = 0; i < lines.length; i++) {
-                    // 使用正则表达式分割行（支持制表符和空格）
-                    const values = lines[i].split(/\s+/).map(v => v.trim()).filter(v => v !== '');
-                    
-                    // 转换值为数字
-                    const rowData = values.map(v => parseFloat(v));
-                    
-                    // 跳过空行或无效行
-                    if (rowData.length > 0 && !rowData.some(isNaN)) {
-                        data.push(rowData);
+                // 使用setTimeout允许UI更新
+                setTimeout(() => {
+                    try {
+                        const lines = content.split('\n').filter(line => line.trim() !== '');
+                        const data = [];
+                        
+                        // 解析数据
+                        for (let i = 0; i < lines.length; i++) {
+                            // 使用正则表达式分割行（支持制表符和空格）
+                            const values = lines[i].split(/\s+/).map(v => v.trim()).filter(v => v !== '');
+                            
+                            // 转换值为数字
+                            const rowData = values.map(v => parseFloat(v));
+                            
+                            // 跳过空行或无效行
+                            if (rowData.length > 0 && !rowData.some(isNaN)) {
+                                data.push(rowData);
+                            }
+                            
+                            // 更新进度
+                            if (i % 10 === 0) {
+                                const progress = Math.round((i / lines.length) * 50);
+                                progressText.textContent = progress + '%';
+                                progressBar.style.width = progress + '%';
+                            }
+                        }
+                        
+                        if (data.length === 0) {
+                            alert('未找到有效数据');
+                            loadingIndicator.style.display = 'none';
+                            progressBar.style.width = '0%';
+                            return;
+                        }
+                        
+                        // 检查所有行是否具有相同的列数
+                        const colCount = data[0].length;
+                        for (let i = 1; i < data.length; i++) {
+                            if (data[i].length !== colCount) {
+                                alert(`第${i+1}行列数不一致。第一行有${colCount}列，但第${i+1}行有${data[i].length}列`);
+                                loadingIndicator.style.display = 'none';
+                                progressBar.style.width = '0%';
+                                return;
+                            }
+                        }
+                        
+                        heatmapData = data;
+                        
+                        // 检查数据大小并显示警告
+                        const rows = data.length;
+                        const cols = data[0].length;
+                        if (rows > 200 || cols > 200) {
+                            sizeWarning.style.display = 'block';
+                        } else {
+                            sizeWarning.style.display = 'none';
+                        }
+                        
+                        // 计算最小最大值（使用安全的方法）
+                        const { min, max } = calculateMinMax(data);
+                        
+                        // 更新文件信息
+                        fileInfoDiv.innerHTML = `
+                            <h3>数据加载成功</h3>
+                            <p><strong>数据尺寸:</strong> ${rows} 行 × ${cols} 列</p>
+                            <p><strong>坐标范围:</strong> X(1-${cols}), Y(1-${rows})</p>
+                            <p><strong>数值范围:</strong> ${min.toFixed(4)} - ${max.toFixed(4)}</p>
+                        `;
+                        fileInfoDiv.style.display = 'block';
+                        
+                        // 启用按钮
+                        exportHeatmapBtn.disabled = false;
+                        resetHeatmapBtn.disabled = false;
+                        
+                        // 绘制热图
+                        drawHeatmap();
+                    } catch (error) {
+                        console.error('数据解析错误:', error);
+                        alert('数据解析错误: ' + error.message);
+                        loadingIndicator.style.display = 'none';
+                        progressBar.style.width = '0%';
                     }
-                }
-                
-                if (data.length === 0) {
-                    alert('未找到有效数据');
-                    return;
-                }
-                
-                // 检查所有行是否具有相同的列数
-                const colCount = data[0].length;
-                for (let i = 1; i < data.length; i++) {
-                    if (data[i].length !== colCount) {
-                        alert(`第${i+1}行列数不一致。第一行有${colCount}列，但第${i+1}行有${data[i].length}列`);
-                        return;
-                    }
-                }
-                
-                heatmapData = data;
-                
-                // 更新文件信息
-                const rows = data.length;
-                const cols = data[0].length;
-                fileInfoDiv.innerHTML = `
-                    <h3>数据加载成功</h3>
-                    <p><strong>数据尺寸:</strong> ${rows} 行 × ${cols} 列</p>
-                    <p><strong>坐标范围:</strong> X(1-${cols}), Y(1-${rows})</p>
-                    <p><strong>数值范围:</strong> ${Math.min(...data.flat()).toFixed(4)} - ${Math.max(...data.flat()).toFixed(4)}</p>
-                `;
-                fileInfoDiv.style.display = 'block';
-                
-                // 启用按钮
-                exportHeatmapBtn.disabled = false;
-                resetHeatmapBtn.disabled = false;
-                
-                // 绘制热图
-                drawHeatmap();
+                }, 100);
             }
             
             // 绘制热图
             function drawHeatmap() {
-                if (!heatmapData) return;
+                if (!heatmapData || isRendering) return;
                 
+                isRendering = true;
                 const canvas = heatmapCanvas;
                 const ctx = canvas.getContext('2d');
                 
                 // 获取比例设置
-                let ratioValue = aspectRatio.value;
-                let ratioParts = ratioValue.split(':');
-                let widthRatio = 1;
-                let heightRatio = 1;
-                
-                if (ratioParts.length === 2) {
-                    widthRatio = parseFloat(ratioParts[0]) || 1;
-                    heightRatio = parseFloat(ratioParts[1]) || 1;
-                    
-                    // 限制比例范围在1:10到10:1之间
-                    const finalRatio = widthRatio / heightRatio;
-                    if (finalRatio < 0.1 || finalRatio > 10) {
-                        alert('宽高比必须在1:10到10:1之间');
-                        widthRatio = 1;
-                        heightRatio = 1;
-                        aspectRatio.value = '1:1';
-                    }
-                }
+                const widthRatio = parseFloat(ratioWidth.value) || 1;
+                const heightRatio = parseFloat(ratioHeight.value) || 1;
                 
                 const aspectRatioValue = widthRatio / heightRatio;
                 
@@ -803,15 +1004,29 @@
                 // 计算画布尺寸 - 基于基础大小和比例
                 let canvasWidth, canvasHeight;
                 
-                // 当高度小于宽度时，应该是宽不变，高度拉长
-                if (aspectRatioValue >= 1) {
-                    // 宽度优先
-                    canvasWidth = BASE_SIZE;
-                    canvasHeight = BASE_SIZE / aspectRatioValue;
+                // 对于大型热图，使用固定大小但可滚动的容器
+                if (rows > 200 || cols > 200) {
+                    // 大型热图：限制最大尺寸但保持比例
+                    const maxSize = 1001;
+                    
+                    if (cols > rows) {
+                        canvasWidth = Math.min(cols, maxSize);
+                        canvasHeight = Math.min(rows * (heightRatio / widthRatio), maxSize * (rows / cols));
+                    } else {
+                        canvasHeight = Math.min(rows, maxSize);
+                        canvasWidth = Math.min(cols * (widthRatio / heightRatio), maxSize * (cols / rows));
+                    }
                 } else {
-                    // 高度优先
-                    canvasHeight = BASE_SIZE;
-                    canvasWidth = BASE_SIZE * aspectRatioValue;
+                    // 小型热图：按比例缩放
+                    if (aspectRatioValue >= 1) {
+                        // 宽度优先
+                        canvasWidth = BASE_SIZE;
+                        canvasHeight = BASE_SIZE / aspectRatioValue;
+                    } else {
+                        // 高度优先
+                        canvasHeight = BASE_SIZE;
+                        canvasWidth = BASE_SIZE * aspectRatioValue;
+                    }
                 }
                 
                 // 设置canvas尺寸
@@ -822,33 +1037,154 @@
                 const cellWidth = Math.max(1, canvasWidth / cols);
                 const cellHeight = Math.max(1, canvasHeight / rows);
                 
-                // 绘制热图
-                for (let i = 0; i < rows; i++) {
-                    for (let j = 0; j < cols; j++) {
-                        const value = heatmapData[i][j];
-                        const color = getColorForValue(value);
+                // 根据数据大小选择渲染方法
+                if (rows > 100 || cols > 100) {
+                    // 分块渲染，避免界面冻结
+                    chunkedDrawHeatmap(ctx, rows, cols, cellWidth, cellHeight);
+                } else {
+                    // 完整渲染
+                    fullDrawHeatmap(ctx, rows, cols, cellWidth, cellHeight);
+                }
+            }
+            
+            // 完整渲染热图
+            function fullDrawHeatmap(ctx, rows, cols, cellWidth, cellHeight) {
+                loadingIndicator.style.display = 'block';
+                
+                try {
+                    for (let i = 0; i < rows; i++) {
+                        for (let j = 0; j < cols; j++) {
+                            const value = heatmapData[i][j];
+                            const color = getColorForValue(value);
+                            
+                            ctx.fillStyle = color;
+                            ctx.fillRect(j * cellWidth, i * cellHeight, cellWidth, cellHeight);
+                        }
                         
-                        ctx.fillStyle = color;
-                        ctx.fillRect(j * cellWidth, i * cellHeight, cellWidth, cellHeight);
+                        // 更新进度
+                        if (rows > 100 && i % 10 === 0) {
+                            const progress = 50 + Math.round((i / rows) * 50);
+                            progressText.textContent = progress + '%';
+                            progressBar.style.width = progress + '%';
+                        }
+                    }
+                    
+                    // 绘制矩形
+                    drawRectangles(ctx, cellWidth, cellHeight);
+                    
+                    progressText.textContent = '100%';
+                    progressBar.style.width = '100%';
+                    
+                    // 隐藏加载指示器
+                    setTimeout(() => {
+                        loadingIndicator.style.display = 'none';
+                        isRendering = false;
+                    }, 500);
+                } catch (error) {
+                    console.error('完整渲染错误:', error);
+                    loadingIndicator.style.display = 'none';
+                    isRendering = false;
+                }
+            }
+            
+            // 分块渲染热图
+            function chunkedDrawHeatmap(ctx, rows, cols, cellWidth, cellHeight) {
+                loadingIndicator.style.display = 'block';
+                progressText.textContent = '50%';
+                progressBar.style.width = '50%';
+                
+                const chunkSize = Math.max(1, Math.floor(10000 / cols)); // 动态计算块大小
+                let currentRow = 0;
+                
+                function drawChunk() {
+                    try {
+                        const endRow = Math.min(currentRow + chunkSize, rows);
+                        
+                        for (let i = currentRow; i < endRow; i++) {
+                            for (let j = 0; j < cols; j++) {
+                                const value = heatmapData[i][j];
+                                const color = getColorForValue(value);
+                                
+                                ctx.fillStyle = color;
+                                ctx.fillRect(j * cellWidth, i * cellHeight, cellWidth, cellHeight);
+                            }
+                        }
+                        
+                        currentRow += chunkSize;
+                        
+                        // 更新进度
+                        const progress = 50 + Math.round((currentRow / rows) * 50);
+                        progressText.textContent = progress + '%';
+                        progressBar.style.width = progress + '%';
+                        
+                        if (currentRow < rows) {
+                            // 继续渲染下一块
+                            setTimeout(drawChunk, 0);
+                        } else {
+                            progressText.textContent = '100%';
+                            progressBar.style.width = '100%';
+                            
+                            // 绘制矩形
+                            drawRectangles(ctx, cellWidth, cellHeight);
+                            
+                            // 隐藏加载指示器
+                            setTimeout(() => {
+                                loadingIndicator.style.display = 'none';
+                                isRendering = false;
+                            }, 500);
+                        }
+                    } catch (error) {
+                        console.error('分块渲染错误:', error);
+                        loadingIndicator.style.display = 'none';
+                        isRendering = false;
                     }
                 }
                 
-                // 绘制矩形
-                drawRectangles(ctx, cellWidth, cellHeight);
+                // 开始分块渲染
+                drawChunk();
             }
             
             // 应用比例按钮事件
             applyAspectRatioBtn.addEventListener('click', function() {
                 if (heatmapData) {
-                    drawHeatmap();
+                    loadingIndicator.style.display = 'block';
+                    progressText.textContent = '0%';
+                    progressBar.style.width = '0%';
+                    
+                    setTimeout(() => {
+                        drawHeatmap();
+                    }, 100);
                 }
             });
             
             // 根据值获取颜色
             function getColorForValue(value) {
                 for (const range of colorRanges) {
-                    const minCheck = range.min === -Infinity || value > range.min || (range.min !== -Infinity && value === range.min && range.includeMin);
-                    const maxCheck = range.max === Infinity || value < range.max || (range.max !== Infinity && value === range.max && range.includeMax);
+                    let minCheck, maxCheck;
+                    
+                    if (range.isSingleValue) {
+                        // 单值情况
+                        if (value === range.min) {
+                            return range.color;
+                        }
+                        continue;
+                    }
+                    
+                    if (range.min === -Infinity) {
+                        minCheck = true;
+                    } else if (range.minInclusive) {
+                        minCheck = value >= range.min;
+                    } else {
+                        minCheck = value > range.min;
+                    }
+                    
+                    if (range.max === Infinity) {
+                        maxCheck = true;
+                    } else if (range.maxInclusive) {
+                        maxCheck = value <= range.max;
+                    } else {
+                        maxCheck = value < range.max;
+                    }
                     
                     if (minCheck && maxCheck) {
                         return range.color;
@@ -872,7 +1208,6 @@
                     // 绘制矩形边框
                     ctx.strokeStyle = rect.color;
                     ctx.lineWidth = isSelected ? 3 : 2;
-                    ctx.setLineDash(isSelected ? [5, 5] : []);
                     ctx.strokeRect(x, y, width, height);
                     
                     // 绘制文字
@@ -911,15 +1246,22 @@
                     rangeEl.className = 'color-range-item' + (index === selectedRangeIndex ? ' selected' : '');
                     
                     // 格式化范围显示
-                    const minDisplay = range.min === -Infinity ? '-∞' : range.min;
-                    const maxDisplay = range.max === Infinity ? '∞' : range.max;
-                    const leftBracket = range.min === -Infinity ? '(' : '[';
-                    const rightBracket = range.max === Infinity ? ')' : ']';
-                    
-                    rangeEl.innerHTML = `
-                        <span>${leftBracket}${minDisplay}, ${maxDisplay}${rightBracket}</span>
-                        <div class="color-preview" style="background-color: ${range.color}"></div>
-                    `;
+                    if (range.isSingleValue) {
+                        rangeEl.innerHTML = `
+                            <span>${range.min}</span>
+                            <div class="color-preview" style="background-color: ${range.color}"></div>
+                        `;
+                    } else {
+                        const minDisplay = range.min === -Infinity ? '-∞' : range.min;
+                        const maxDisplay = range.max === Infinity ? '∞' : range.max;
+                        const leftBracket = range.minInclusive ? '[' : '(';
+                        const rightBracket = range.maxInclusive ? ']' : ')';
+                        
+                        rangeEl.innerHTML = `
+                            <span>${leftBracket}${minDisplay}, ${maxDisplay}${rightBracket}</span>
+                            <div class="color-preview" style="background-color: ${range.color}"></div>
+                        `;
+                    }
                     
                     rangeEl.addEventListener('click', function() {
                         selectedRangeIndex = index;
@@ -927,19 +1269,38 @@
                         
                         // 启用编辑和删除按钮
                         editRangeBtn.disabled = false;
-                        deleteRangeBtn.disabled = true; // 不允许删除，只允许编辑
+                        deleteRangeBtn.disabled = false;
                     });
                     
                     colorRangesListDiv.appendChild(rangeEl);
                 });
             }
             
+            // 添加单值颜色
+            addSingleValueBtn.addEventListener('click', function() {
+                modalTitle.textContent = '添加单值颜色';
+                singleValueGroup.style.display = 'block';
+                rangeValueGroup.style.display = 'none';
+                rangeMaxGroup.style.display = 'none';
+                singleValue.value = '';
+                rangeColor.value = '#ffffff';
+                rangeModal.style.display = 'flex';
+                selectedRangeIndex = -1;
+            });
+            
             // 添加颜色范围
             addRangeBtn.addEventListener('click', function() {
                 modalTitle.textContent = '添加颜色范围';
+                singleValueGroup.style.display = 'none';
+                rangeValueGroup.style.display = 'block';
+                rangeMaxGroup.style.display = 'block';
                 rangeMin.value = '';
                 rangeMax.value = '';
                 rangeColor.value = '#ffffff';
+                document.getElementById('min-inclusive').checked = false;
+                document.getElementById('min-exclusive').checked = true;
+                document.getElementById('max-inclusive').checked = false;
+                document.getElementById('max-exclusive').checked = true;
                 rangeModal.style.display = 'flex';
                 selectedRangeIndex = -1;
             });
@@ -949,9 +1310,28 @@
                 if (selectedRangeIndex === -1) return;
                 
                 const range = colorRanges[selectedRangeIndex];
-                modalTitle.textContent = '编辑颜色范围';
-                rangeMin.value = range.min === -Infinity ? '-inf' : range.min;
-                rangeMax.value = range.max === Infinity ? 'inf' : range.max;
+                
+                if (range.isSingleValue) {
+                    modalTitle.textContent = '编辑单值颜色';
+                    singleValueGroup.style.display = 'block';
+                    rangeValueGroup.style.display = 'none';
+                    rangeMaxGroup.style.display = 'none';
+                    singleValue.value = range.min;
+                } else {
+                    modalTitle.textContent = '编辑颜色范围';
+                    singleValueGroup.style.display = 'none';
+                    rangeValueGroup.style.display = 'block';
+                    rangeMaxGroup.style.display = 'block';
+                    rangeMin.value = range.min === -Infinity ? '-inf' : range.min;
+                    rangeMax.value = range.max === Infinity ? 'inf' : range.max;
+                    
+                    // 设置边界包含选项
+                    document.getElementById('min-inclusive').checked = range.minInclusive;
+                    document.getElementById('min-exclusive').checked = !range.minInclusive;
+                    document.getElementById('max-inclusive').checked = range.maxInclusive;
+                    document.getElementById('max-exclusive').checked = !range.maxInclusive;
+                }
+                
                 rangeColor.value = range.color;
                 rangeModal.style.display = 'flex';
             });
@@ -966,69 +1346,217 @@
             
             // 确认添加/编辑范围
             confirmRangeBtn.addEventListener('click', function() {
-                let min = rangeMin.value.toLowerCase();
-                let max = rangeMax.value.toLowerCase();
+                // 判断是单值模式还是范围模式
+                const isSingleValueMode = singleValueGroup.style.display !== 'none';
                 
-                // 处理最小值
-                let minNum = min === '-inf' ? -Infinity : parseFloat(min);
-                // 处理最大值
-                let maxNum = max === 'inf' ? Infinity : parseFloat(max);
-                
-                if ((min !== '-inf' && isNaN(minNum)) || (max !== 'inf' && isNaN(maxNum))) {
-                    alert('请输入有效的数值');
-                    return;
-                }
-                
-                if (maxNum !== Infinity && minNum !== -Infinity && minNum >= maxNum) {
-                    alert('最小值必须小于最大值');
-                    return;
-                }
-                
-                // 检查范围是否重叠
-                for (let i = 0; i < colorRanges.length; i++) {
-                    if (selectedRangeIndex !== i) { // 跳过当前编辑的范围
-                        const existingRange = colorRanges[i];
-                        
-                        // 检查新范围是否与现有范围重叠
-                        const overlap = !(
-                            (maxNum !== Infinity && existingRange.min !== -Infinity && maxNum <= existingRange.min) ||
-                            (minNum !== -Infinity && existingRange.max !== Infinity && minNum >= existingRange.max)
-                        );
-                        
-                        if (overlap) {
-                            alert('颜色范围不能重叠');
-                            return;
+                if (isSingleValueMode) {
+                    // 单值模式
+                    const value = parseFloat(singleValue.value);
+                    
+                    if (isNaN(value)) {
+                        alert('请输入有效的数值');
+                        return;
+                    }
+                    
+                    // 检查是否与现有范围重叠
+                    for (let i = 0; i < colorRanges.length; i++) {
+                        if (selectedRangeIndex !== i) {
+                            const existingRange = colorRanges[i];
+                            
+                            if (existingRange.isSingleValue) {
+                                if (value === existingRange.min) {
+                                    alert('该单值已存在，请使用不同的数值');
+                                    return;
+                                }
+                            } else {
+                                // 检查单值是否在现有范围内
+                                const minCheck = existingRange.min === -Infinity ? true : 
+                                    (existingRange.minInclusive ? value >= existingRange.min : value > existingRange.min);
+                                const maxCheck = existingRange.max === Infinity ? true : 
+                                    (existingRange.maxInclusive ? value <= existingRange.max : value < existingRange.max);
+                                
+                                if (minCheck && maxCheck) {
+                                    alert('该单值已包含在现有范围内，请使用不同的数值');
+                                    return;
+                                }
+                            }
                         }
                     }
-                }
-                
-                if (selectedRangeIndex === -1) {
-                    // 添加新范围
-                    colorRanges.push({
-                        min: minNum,
-                        max: maxNum,
-                        color: rangeColor.value,
-                        includeMin: minNum !== -Infinity, // 非无穷小值时包含最小值
-                        includeMax: maxNum !== Infinity   // 非无穷大值时包含最大值
-                    });
+                    
+                    if (selectedRangeIndex === -1) {
+                        // 添加新单值
+                        colorRanges.push({
+                            min: value,
+                            max: value,
+                            color: rangeColor.value,
+                            minInclusive: true,
+                            maxInclusive: true,
+                            isSingleValue: true
+                        });
+                    } else {
+                        // 编辑现有单值
+                        colorRanges[selectedRangeIndex] = {
+                            min: value,
+                            max: value,
+                            color: rangeColor.value,
+                            minInclusive: true,
+                            maxInclusive: true,
+                            isSingleValue: true
+                        };
+                    }
                 } else {
-                    // 编辑现有范围
-                    colorRanges[selectedRangeIndex] = {
-                        min: minNum,
-                        max: maxNum,
-                        color: rangeColor.value,
-                        includeMin: minNum !== -Infinity,
-                        includeMax: maxNum !== Infinity
-                    };
+                    // 范围模式
+                    let min = rangeMin.value.toLowerCase();
+                    let max = rangeMax.value.toLowerCase();
+                    
+                    // 获取边界包含选项
+                    const minInclusive = document.getElementById('min-inclusive').checked;
+                    const maxInclusive = document.getElementById('max-inclusive').checked;
+                    
+                    // 处理最小值
+                    let minNum = min === '-inf' ? -Infinity : parseFloat(min);
+                    // 处理最大值
+                    let maxNum = max === 'inf' ? Infinity : parseFloat(max);
+                    
+                    if ((min !== '-inf' && isNaN(minNum)) || (max !== 'inf' && isNaN(maxNum))) {
+                        alert('请输入有效的数值');
+                        return;
+                    }
+                    
+                    if (maxNum !== Infinity && minNum !== -Infinity && minNum >= maxNum) {
+                        alert('最小值必须小于最大值');
+                        return;
+                    }
+                    
+                    // 检查范围是否重叠
+                    for (let i = 0; i < colorRanges.length; i++) {
+                        if (selectedRangeIndex !== i) {
+                            const existingRange = colorRanges[i];
+                            
+                            // 检查新范围是否与现有范围重叠
+                            const overlap = rangesOverlap(
+                                {min: minNum, max: maxNum, minInclusive, maxInclusive},
+                                existingRange
+                            );
+                            
+                            if (overlap) {
+                                alert('颜色范围不能重叠');
+                                return;
+                            }
+                        }
+                    }
+                    
+                    if (selectedRangeIndex === -1) {
+                        // 添加新范围
+                        colorRanges.push({
+                            min: minNum,
+                            max: maxNum,
+                            color: rangeColor.value,
+                            minInclusive: minInclusive,
+                            maxInclusive: maxInclusive,
+                            isSingleValue: false
+                        });
+                    } else {
+                        // 编辑现有范围
+                        colorRanges[selectedRangeIndex] = {
+                            min: minNum,
+                            max: maxNum,
+                            color: rangeColor.value,
+                            minInclusive: minInclusive,
+                            maxInclusive: maxInclusive,
+                            isSingleValue: false
+                        };
+                    }
                 }
                 
                 updateColorRangesList();
                 closeModal();
+                
+                // 重新绘制热图
+                if (heatmapData) {
+                    loadingIndicator.style.display = 'block';
+                    progressText.textContent = '0%';
+                    progressBar.style.width = '0%';
+                    
+                    setTimeout(() => {
+                        drawHeatmap();
+                    }, 100);
+                }
+            });
+            
+            // 检查两个范围是否重叠
+            function rangesOverlap(range1, range2) {
+                if (range2.isSingleValue) {
+                    // range2是单值，检查是否在range1范围内
+                    const value = range2.min;
+                    const minCheck = range1.min === -Infinity ? true : 
+                        (range1.minInclusive ? value >= range1.min : value > range1.min);
+                    const maxCheck = range1.max === Infinity ? true : 
+                        (range1.maxInclusive ? value <= range1.max : value < range1.max);
+                    
+                    return minCheck && maxCheck;
+                }
+                
+                // 处理无穷大和无穷小的情况
+                const r1Min = range1.min === -Infinity ? -Number.MAX_VALUE : range1.min;
+                const r1Max = range1.max === Infinity ? Number.MAX_VALUE : range1.max;
+                const r2Min = range2.min === -Infinity ? -Number.MAX_VALUE : range2.min;
+                const r2Max = range2.max === Infinity ? Number.MAX_VALUE : range2.max;
+                
+                // 检查是否有重叠部分
+                if (r1Max < r2Min || r2Max < r1Min) {
+                    return false;
+                }
+                
+                // 如果端点相同，检查是否都是闭区间
+                if (r1Max === r2Min) {
+                    return range1.maxInclusive && range2.minInclusive;
+                }
+                
+                if (r1Min === r2Max) {
+                    return range1.minInclusive && range2.maxInclusive;
+                }
+                
+                // 其他情况肯定有重叠
+                return true;
+            }
+            
+            // 删除颜色范围
+            deleteRangeBtn.addEventListener('click', function() {
+                if (selectedRangeIndex === -1) return;
+                
+                colorRanges.splice(selectedRangeIndex, 1);
+                selectedRangeIndex = -1;
+                
+                // 禁用编辑和删除按钮
+                editRangeBtn.disabled = true;
+                deleteRangeBtn.disabled = true;
+                
+                updateColorRangesList();
+                
+                // 重新绘制热图
+                if (heatmapData) {
+                    loadingIndicator.style.display = 'block';
+                    progressText.textContent = '0%';
+                    progressBar.style.width = '0%';
+                    
+                    setTimeout(() => {
+                        drawHeatmap();
+                    }, 100);
+                }
             });
             
             // 应用颜色范围
             applyRangesBtn.addEventListener('click', function() {
-                drawHeatmap();
+                if (heatmapData) {
+                    loadingIndicator.style.display = 'block';
+                    progressText.textContent = '0%';
+                    progressBar.style.width = '0%';
+                    
+                    setTimeout(() => {
+                        drawHeatmap();
+                    }, 100);
+                }
             });
             
             // 添加矩形
@@ -1069,14 +1597,16 @@
                 });
                 
                 updateRectangleList();
-                drawHeatmap();
                 
-                // 清空输入框
-                rectX1.value = '';
-                rectY1.value = '';
-                rectX2.value = '';
-                rectY2.value = '';
-                rectText.value = '';
+                if (heatmapData) {
+                    loadingIndicator.style.display = 'block';
+                    progressText.textContent = '0%';
+                    progressBar.style.width = '0%';
+                    
+                    setTimeout(() => {
+                        drawHeatmap();
+                    }, 100);
+                }
             });
             
             // 更新矩形列表
@@ -1094,8 +1624,7 @@
                         selectedRectIndex = index;
                         updateRectangleList();
                         
-                        // 启用编辑和删除按钮
-                        editRectangleBtn.disabled = false;
+                        // 启用删除按钮
                         deleteRectangleBtn.disabled = false;
                         
                         // 更新输入框
@@ -1108,51 +1637,11 @@
                         rectText.value = rect.text || '';
                         textColor.value = rect.textColor;
                         textSize.value = rect.textSize;
-                        
-                        drawHeatmap();
                     });
                     
                     rectangleListDiv.appendChild(rectEl);
                 });
             }
-            
-            // 编辑矩形
-            editRectangleBtn.addEventListener('click', function() {
-                if (selectedRectIndex === -1) return;
-                
-                const x1 = parseInt(rectX1.value);
-                const y1 = parseInt(rectY1.value);
-                const x2 = parseInt(rectX2.value);
-                const y2 = parseInt(rectY2.value);
-                
-                const rows = heatmapData.length;
-                const cols = heatmapData[0].length;
-                
-                if (isNaN(x1) || isNaN(y1) || isNaN(x2) || isNaN(y2)) {
-                    alert('请输入有效的坐标');
-                    return;
-                }
-                
-                if (x1 < 1 || x1 > cols || x2 < 1 || x2 > cols || 
-                    y1 < 1 || y1 > rows || y2 < 1 || y2 > rows) {
-                    alert(`坐标超出范围！X应在1-${cols}之间，Y应在1-${rows}之间`);
-                    return;
-                }
-                
-                rectangles[selectedRectIndex] = {
-                    x1: x1,
-                    y1: y1,
-                    x2: x2,
-                    y2: y2,
-                    color: rectColor.value,
-                    text: rectText.value,
-                    textColor: textColor.value,
-                    textSize: parseInt(textSize.value)
-                };
-                
-                updateRectangleList();
-                drawHeatmap();
-            });
             
             // 删除矩形
             deleteRectangleBtn.addEventListener('click', function() {
@@ -1161,8 +1650,7 @@
                 rectangles.splice(selectedRectIndex, 1);
                 selectedRectIndex = -1;
                 
-                // 禁用编辑和删除按钮
-                editRectangleBtn.disabled = true;
+                // 禁用删除按钮
                 deleteRectangleBtn.disabled = true;
                 
                 // 清空输入框
@@ -1173,7 +1661,16 @@
                 rectText.value = '';
                 
                 updateRectangleList();
-                drawHeatmap();
+                
+                if (heatmapData) {
+                    loadingIndicator.style.display = 'block';
+                    progressText.textContent = '0%';
+                    progressBar.style.width = '0%';
+                    
+                    setTimeout(() => {
+                        drawHeatmap();
+                    }, 100);
+                }
             });
             
             // 清除所有矩形
@@ -1187,8 +1684,7 @@
                     rectangles = [];
                     selectedRectIndex = -1;
                     
-                    // 禁用编辑和删除按钮
-                    editRectangleBtn.disabled = true;
+                    // 禁用删除按钮
                     deleteRectangleBtn.disabled = true;
                     
                     // 清空输入框
@@ -1199,7 +1695,16 @@
                     rectText.value = '';
                     
                     updateRectangleList();
-                    drawHeatmap();
+                    
+                    if (heatmapData) {
+                        loadingIndicator.style.display = 'block';
+                        progressText.textContent = '0%';
+                        progressBar.style.width = '0%';
+                        
+                        setTimeout(() => {
+                            drawHeatmap();
+                        }, 100);
+                    }
                 }
             });
             
@@ -1210,98 +1715,136 @@
                     return;
                 }
                 
-                const canvas = document.createElement('canvas');
-                const ctx = canvas.getContext('2d');
+                loadingIndicator.style.display = 'block';
+                progressText.textContent = '正在导出...';
+                progressBar.style.width = '0%';
                 
-                // 获取DPI设置
-                const dpi = parseInt(dpiSetting.value) || 300;
-                const dpiRatio = dpi / 96; // 96是标准屏幕的DPI
-                
-                // 获取比例设置
-                let ratioValue = aspectRatio.value;
-                let ratioParts = ratioValue.split(':');
-                let widthRatio = 1;
-                let heightRatio = 1;
-                
-                if (ratioParts.length === 2) {
-                    widthRatio = parseFloat(ratioParts[0]) || 1;
-                    heightRatio = parseFloat(ratioParts[1]) || 1;
-                }
-                
-                const aspectRatioValue = widthRatio / heightRatio;
-                
-                const rows = heatmapData.length;
-                const cols = heatmapData[0].length;
-                
-                // 计算画布尺寸 - 基于基础大小、比例和DPI
-                let canvasWidth, canvasHeight;
-                
-                // 当高度小于宽度时，应该是宽不变，高度拉长
-                if (aspectRatioValue >= 1) {
-                    // 宽度优先
-                    canvasWidth = BASE_SIZE * dpiRatio;
-                    canvasHeight = BASE_SIZE * dpiRatio / aspectRatioValue;
-                } else {
-                    // 高度优先
-                    canvasHeight = BASE_SIZE * dpiRatio;
-                    canvasWidth = BASE_SIZE * dpiRatio * aspectRatioValue;
-                }
-                
-                // 设置canvas尺寸
-                canvas.width = canvasWidth;
-                canvas.height = canvasHeight;
-                
-                // 计算单元格大小
-                const cellWidth = canvasWidth / cols;
-                const cellHeight = canvasHeight / rows;
-                
-                // 绘制热图
-                for (let i = 0; i < rows; i++) {
-                    for (let j = 0; j < cols; j++) {
-                        const value = heatmapData[i][j];
-                        const color = getColorForValue(value);
+                setTimeout(() => {
+                    // 创建一个离屏canvas用于导出
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
+                    
+                    // 获取DPI设置
+                    const dpi = parseInt(dpiSetting.value) || 150;
+                    const dpiRatio = dpi / 96; // 96是标准屏幕的DPI
+                    
+                    // 获取比例设置
+                    const widthRatio = parseFloat(ratioWidth.value) || 1;
+                    const heightRatio = parseFloat(ratioHeight.value) || 1;
+                    
+                    const aspectRatioValue = widthRatio / heightRatio;
+                    
+                    const rows = heatmapData.length;
+                    const cols = heatmapData[0].length;
+                    
+                    // 计算画布尺寸 - 基于基础大小、比例和DPI
+                    let canvasWidth, canvasHeight;
+                    
+                    // 对于大型热图，限制最大尺寸
+                    if (rows > 200 || cols > 200) {
+                        const maxSize = 16000;
                         
-                        ctx.fillStyle = color;
-                        ctx.fillRect(
-                            j * cellWidth, 
-                            i * cellHeight, 
-                            cellWidth, 
-                            cellHeight
-                        );
+                        if (cols > rows) {
+                            canvasWidth = Math.min(cols * dpiRatio, maxSize);
+                            canvasHeight = Math.min(rows * dpiRatio * (heightRatio / widthRatio), maxSize * (rows / cols));
+                        } else {
+                            canvasHeight = Math.min(rows * dpiRatio, maxSize);
+                            canvasWidth = Math.min(cols * dpiRatio * (widthRatio / heightRatio), maxSize * (cols / rows));
+                        }
+                    } else {
+                        // 小型热图：按比例缩放
+                        if (aspectRatioValue >= 1) {
+                            // 宽度优先
+                            canvasWidth = BASE_SIZE * dpiRatio;
+                            canvasHeight = BASE_SIZE * dpiRatio / aspectRatioValue;
+                        } else {
+                            // 高度优先
+                            canvasHeight = BASE_SIZE * dpiRatio;
+                            canvasWidth = BASE_SIZE * dpiRatio * aspectRatioValue;
+                        }
                     }
-                }
-                
-                // 绘制矩形
-                for (const rect of rectangles) {
-                    const x = (Math.min(rect.x1, rect.x2) - 1) * cellWidth;
-                    const y = (Math.min(rect.y1, rect.y2) - 1) * cellHeight;
-                    const width = (Math.abs(rect.x2 - rect.x1) + 1) * cellWidth;
-                    const height = (Math.abs(rect.y2 - rect.y1) + 1) * cellHeight;
                     
-                    // 绘制矩形边框
-                    ctx.strokeStyle = rect.color;
-                    ctx.lineWidth = 2 * dpiRatio;
-                    ctx.strokeRect(x, y, width, height);
+                    // 设置canvas尺寸
+                    canvas.width = canvasWidth;
+                    canvas.height = canvasHeight;
                     
-                    // 绘制文字
-                    if (rect.text) {
-                        ctx.fillStyle = rect.textColor;
-                        ctx.font = `${rect.textSize * dpiRatio}px Arial`;
-                        ctx.textAlign = 'center';
-                        ctx.textBaseline = 'middle';
-                        ctx.fillText(
-                            rect.text, 
-                            x + width / 2, 
-                            y + height / 2
-                        );
+                    // 计算单元格大小
+                    const cellWidth = canvasWidth / cols;
+                    const cellHeight = canvasHeight / rows;
+                    
+                    // 分块绘制热图
+                    const chunkSize = 100;
+                    let currentRow = 0;
+                    
+                    function drawExportChunk() {
+                        const endRow = Math.min(currentRow + chunkSize, rows);
+                        
+                        for (let i = currentRow; i < endRow; i++) {
+                            for (let j = 0; j < cols; j++) {
+                                const value = heatmapData[i][j];
+                                const color = getColorForValue(value);
+                                
+                                ctx.fillStyle = color;
+                                ctx.fillRect(
+                                    j * cellWidth, 
+                                    i * cellHeight, 
+                                    cellWidth, 
+                                    cellHeight
+                                );
+                            }
+                        }
+                        
+                        currentRow += chunkSize;
+                        
+                        // 更新进度
+                        const progress = Math.round((currentRow / rows) * 100);
+                        progressText.textContent = `导出中: ${progress}%`;
+                        progressBar.style.width = progress + '%';
+                        
+                        if (currentRow < rows) {
+                            // 继续渲染下一块
+                            setTimeout(drawExportChunk, 0);
+                        } else {
+                            // 绘制矩形
+                            for (const rect of rectangles) {
+                                const x = (Math.min(rect.x1, rect.x2) - 1) * cellWidth;
+                                const y = (Math.min(rect.y1, rect.y2) - 1) * cellHeight;
+                                const width = (Math.abs(rect.x2 - rect.x1) + 1) * cellWidth;
+                                const height = (Math.abs(rect.y2 - rect.y1) + 1) * cellHeight;
+                                
+                                // 绘制矩形边框
+                                ctx.strokeStyle = rect.color;
+                                ctx.lineWidth = 2 * dpiRatio;
+                                ctx.strokeRect(x, y, width, height);
+                                
+                                // 绘制文字
+                                if (rect.text) {
+                                    ctx.fillStyle = rect.textColor;
+                                    ctx.font = `${rect.textSize * dpiRatio}px Arial`;
+                                    ctx.textAlign = 'center';
+                                    ctx.textBaseline = 'middle';
+                                    ctx.fillText(
+                                        rect.text, 
+                                        x + width / 2, 
+                                        y + height / 2
+                                    );
+                                }
+                            }
+                            
+                            // 创建下载链接
+                            const link = document.createElement('a');
+                            link.download = '热图.png';
+                            link.href = canvas.toDataURL('image/png');
+                            link.click();
+                            
+                            loadingIndicator.style.display = 'none';
+                            progressBar.style.width = '0%';
+                        }
                     }
-                }
-                
-                // 创建下载链接
-                const link = document.createElement('a');
-                link.download = '热图.png';
-                link.href = canvas.toDataURL('image/png');
-                link.click();
+                    
+                    // 开始分块导出
+                    drawExportChunk();
+                }, 100);
             });
             
             // 重置热图
@@ -1310,8 +1853,7 @@
                     rectangles = [];
                     selectedRectIndex = -1;
                     
-                    // 禁用编辑和删除按钮
-                    editRectangleBtn.disabled = true;
+                    // 禁用删除按钮
                     deleteRectangleBtn.disabled = true;
                     
                     // 清空输入框
@@ -1322,14 +1864,16 @@
                     rectText.value = '';
                     
                     updateRectangleList();
-                    drawHeatmap();
-                }
-            });
-            
-            // 窗口大小变化时重绘热图
-            window.addEventListener('resize', function() {
-                if (heatmapData) {
-                    drawHeatmap();
+                    
+                    if (heatmapData) {
+                        loadingIndicator.style.display = 'block';
+                        progressText.textContent = '0%';
+                        progressBar.style.width = '0%';
+                        
+                        setTimeout(() => {
+                            drawHeatmap();
+                        }, 100);
+                    }
                 }
             });
         });
