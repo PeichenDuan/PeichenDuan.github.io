@@ -1,0 +1,1218 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>序列名称修改 - 生物信息分析工具包</title>
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --secondary-color: #3498db;
+            --accent-color: #e74c3c;
+            --light-color: #ecf0f1;
+            --dark-color: #2c3e50;
+            --success-color: #27ae60;
+            --warning-color: #f39c12;
+            --border-radius: 8px;
+            --box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            --transition: all 0.3s ease;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            min-height: 100vh;
+        }
+
+        /* 顶部标题栏 */
+        .tool-header {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background-color: var(--primary-color);
+            color: white;
+            padding: 20px;
+            width: 100%;
+            text-align: center;
+        }
+
+        .back-button {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            padding: 8px 16px;
+            border-radius: var(--border-radius);
+            cursor: pointer;
+            transition: var(--transition);
+            font-size: 0.9rem;
+            margin-top: 15px;
+            text-decoration: none;
+        }
+
+        .back-button:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        /* 主内容区 */
+        .main-content {
+            display: flex;
+            min-height: calc(100vh - 60px);
+        }
+
+        .left-panel {
+            flex: 3;
+            padding: 20px;
+            border-right: 1px solid #ddd;
+            overflow-y: auto;
+        }
+
+        .right-panel {
+            flex: 1;
+            padding: 20px;
+            background-color: #f9f9f9;
+        }
+
+        .section {
+            margin-bottom: 20px;
+        }
+
+        .section-title {
+            font-size: 20px;
+            font-weight: bold;
+            margin-bottom: 15px;
+            padding-bottom: 5px;
+            border-bottom: 2px solid var(--primary-color);
+        }
+
+        .section-title-small {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            padding-bottom: 5px;
+            border-bottom: 2px solid var(--primary-color);
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+
+        select, input, textarea, button {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: var(--border-radius);
+            font-size: 14px;
+        }
+
+        select {
+            background-color: white;
+        }
+
+        button {
+            background-color: var(--secondary-color);
+            color: white;
+            border: none;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        button:hover {
+            background-color: #2980b9;
+        }
+
+        button.delete-btn {
+            background-color: var(--accent-color);
+            width: auto;
+            padding: 5px 10px;
+        }
+
+        button.delete-btn:hover {
+            background-color: #c0392b;
+        }
+
+        .node-container {
+            margin-bottom: 20px;
+            border: 1px solid #ddd;
+            border-radius: var(--border-radius);
+            padding: 15px;
+            background-color: white;
+        }
+
+        .node-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .node-title {
+            font-weight: bold;
+            font-size: 16px;
+        }
+
+        .function-icons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .function-icon {
+            padding: 5px 10px;
+            background-color: #f0f0f0;
+            border-radius: var(--border-radius);
+            font-size: 12px;
+            cursor: pointer;
+        }
+
+        .function-icon.active {
+            background-color: var(--secondary-color);
+            color: white;
+        }
+
+        .insert-container {
+            display: flex;
+            margin-bottom: 15px;
+        }
+
+        .insert-position {
+            flex: 5;
+            padding-right: 10px;
+        }
+
+        .insert-label {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-weight: bold;
+        }
+
+        .insert-content {
+            flex: 5;
+            padding-left: 10px;
+        }
+
+        .function-options {
+            margin-top: 15px;
+        }
+
+        .option-row {
+            display: flex;
+            margin-bottom: 10px;
+            align-items: center;
+        }
+
+        .option-label {
+            width: 150px;
+            font-weight: bold;
+        }
+
+        .option-input {
+            flex: 1;
+        }
+
+        .add-node-btn {
+            display: block;
+            margin: 0 auto 15px;
+            width: auto;
+            padding: 8px 20px;
+        }
+
+        .export-btn {
+            background-color: var(--success-color);
+            padding: 10px;
+            font-weight: bold;
+        }
+
+        .export-btn:hover {
+            background-color: #219653;
+        }
+
+        .info-box {
+            height: 715px;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            border-radius: var(--border-radius);
+            padding: 10px;
+            background-color: white;
+            font-family: monospace;
+            font-size: 14px;
+        }
+
+        .log-entry {
+            margin-bottom: 5px;
+            padding-bottom: 5px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .status-bar {
+            padding: 10px;
+            background-color: #f0f0f0;
+            text-align: center;
+            font-weight: bold;
+            width: 100%;
+        }
+
+        @media (max-width: 768px) {
+            .main-content {
+                flex-direction: column;
+            }
+            
+            .left-panel, .right-panel {
+                width: 100%;
+            }
+            
+            .insert-container {
+                flex-direction: column;
+            }
+            
+            .insert-position, .insert-content {
+                padding: 0;
+                width: 100%;
+            }
+            
+            .insert-label {
+                margin: 10px 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="tool-header">
+        <h2>序列批量重命名</h2>
+        <a href="index.html" class="back-button">返回主界面</a>
+    </div>
+
+    <div class="main-content">
+        <div class="left-panel">
+            <div class="section">
+                <div class="section-title-small">文件选择</div>
+                <div class="form-group">
+                    <label for="fasta-file">选择FASTA文件:</label>
+                    <input type="file" id="fasta-file" accept=".fasta,.fa,.fna">
+                </div>
+            </div>
+
+            <div class="section">
+                <div class="section-title-small">编辑工作流</div>
+                <div id="nodes-container">
+                    <!-- 节点将动态添加到这里 -->
+                </div>
+                <button id="add-node-btn" class="add-node-btn">添加节点</button>
+            </div>
+
+            <div class="section">
+                <button id="export-btn" class="export-btn">导出修改后的FASTA文件</button>
+            </div>
+        </div>
+
+        <div class="right-panel">
+            <div class="section">
+                <div class="section-title-small">日志与预览</div>
+                <div id="info-box" class="info-box">
+                    <div class="log-entry">欢迎使用序列名称修改工具！请上传FASTA文件开始操作。</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="status-bar" id="status-bar">
+        江南大学 粮食发酵工艺与技术国家工程实验室
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // 全局变量
+            let genes = [];
+            let nodes = [];
+            let functionTypes = ['转换', '插入', '删除'];
+            
+            // 转换功能选项
+            let transformOptions = [
+                '将所有大写英文字母转换为小写英文字母',
+                '将所有小写英文字母转换为大写英文字母',
+                '将第n个大写英文字母转换为小写英文字母',
+                '将第n个小写英文字母转换为大写英文字母'
+            ];
+            
+            // DOM元素
+            const fastaFileInput = document.getElementById('fasta-file');
+            const nodesContainer = document.getElementById('nodes-container');
+            const addNodeBtn = document.getElementById('add-node-btn');
+            const exportBtn = document.getElementById('export-btn');
+            const infoBox = document.getElementById('info-box');
+            const statusBar = document.getElementById('status-bar');
+
+            // 事件监听
+            fastaFileInput.addEventListener('change', handleFileUpload);
+            addNodeBtn.addEventListener('click', addNode);
+            exportBtn.addEventListener('click', exportFasta);
+
+            // 文件上传处理
+            function handleFileUpload(event) {
+                const file = event.target.files[0];
+                if (!file) return;
+
+                genes = [];
+                logMessage(`已选择文件: ${file.name}`);
+
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    parseFasta(e.target.result, file.name);
+                };
+                reader.readAsText(file);
+            }
+
+            // 解析FASTA内容
+            function parseFasta(content, filename) {
+                const lines = content.split('\n');
+                let currentId = '';
+                let currentSeq = '';
+
+                for (let line of lines) {
+                    line = line.trim();
+                    if (line.startsWith('>')) {
+                        // 保存上一个基因
+                        if (currentId && currentSeq) {
+                            genes.push({
+                                id: currentId,
+                                seq: currentSeq
+                            });
+                        }
+
+                        // 开始新基因
+                        currentId = line;
+                        currentSeq = '';
+                    } else if (line) {
+                        currentSeq += line;
+                    }
+                }
+
+                // 保存最后一个基因
+                if (currentId && currentSeq) {
+                    genes.push({
+                        id: currentId,
+                        seq: currentSeq
+                    });
+                }
+
+                logMessage(`已解析文件: ${filename}, 包含 ${genes.length} 个基因`);
+                
+                // 显示前三个序列名称
+                const previewCount = Math.min(3, genes.length);
+                logMessage(`前${previewCount}个序列名称预览:`);
+                
+                for (let i = 0; i < previewCount; i++) {
+                    logMessage(genes[i].id);
+                }
+                
+                updateStatus(`已加载 ${genes.length} 个基因`);
+                
+                // 初始化第一个节点
+                if (nodes.length === 0) {
+                    addNode();
+                }
+            }
+
+            // 添加节点
+            function addNode() {
+                const nodeId = nodes.length + 1;
+                const node = {
+                    id: nodeId,
+                    functionType: null,
+                    functionOption: null,
+                    parameters: {}
+                };
+                
+                nodes.push(node);
+                
+                // 创建节点UI
+                const nodeElement = document.createElement('div');
+                nodeElement.className = 'node-container';
+                nodeElement.id = `node-${nodeId}`;
+                
+                nodeElement.innerHTML = `
+                    <div class="node-header">
+                        <div class="node-title">节点${nodeId}</div>
+                        <button class="delete-btn" onclick="removeNode(${nodeId})">删除节点</button>
+                    </div>
+                    <div class="form-group">
+                        <label for="function-type-${nodeId}">选择功能类型:</label>
+                        <select id="function-type-${nodeId}" onchange="updateFunctionOptions(${nodeId})">
+                            <option value="">请选择功能类型</option>
+                            ${functionTypes.map(type => `<option value="${type}">${type}</option>`).join('')}
+                        </select>
+                    </div>
+                    <div id="function-options-${nodeId}" class="function-options"></div>
+                    <div class="function-icons" id="function-icons-${nodeId}"></div>
+                `;
+                
+                nodesContainer.appendChild(nodeElement);
+                
+                // 更新函数选项
+                updateFunctionOptions(nodeId);
+            }
+
+            // 移除节点
+            function removeNode(nodeId) {
+                const index = nodes.findIndex(node => node.id === nodeId);
+                if (index !== -1) {
+                    nodes.splice(index, 1);
+                    document.getElementById(`node-${nodeId}`).remove();
+                    
+                    // 重新编号节点
+                    renumberNodes();
+                    
+                    logMessage(`已删除节点 ${nodeId}`);
+                    updatePreview();
+                }
+            }
+
+            // 重新编号节点
+            function renumberNodes() {
+                const nodeElements = nodesContainer.querySelectorAll('.node-container');
+                
+                nodeElements.forEach((element, index) => {
+                    const newId = index + 1;
+                    element.id = `node-${newId}`;
+                    element.querySelector('.node-title').textContent = `节点${newId}`;
+                    element.querySelector('button').setAttribute('onclick', `removeNode(${newId})`);
+                    
+                    // 更新选择框ID
+                    const select = element.querySelector('select');
+                    select.id = `function-type-${newId}`;
+                    select.setAttribute('onchange', `updateFunctionOptions(${newId})`);
+                    
+                    // 更新选项区域ID
+                    const optionsDiv = element.querySelector('.function-options');
+                    optionsDiv.id = `function-options-${newId}`;
+                    
+                    // 更新图标区域ID
+                    const iconsDiv = element.querySelector('.function-icons');
+                    iconsDiv.id = `function-icons-${newId}`;
+                    
+                    // 更新节点ID
+                    nodes[index].id = newId;
+                });
+            }
+
+            // 更新功能选项
+            function updateFunctionOptions(nodeId) {
+                const node = nodes.find(n => n.id === nodeId);
+                if (!node) return;
+                
+                const functionTypeSelect = document.getElementById(`function-type-${nodeId}`);
+                const functionOptionsDiv = document.getElementById(`function-options-${nodeId}`);
+                const functionIconsDiv = document.getElementById(`function-icons-${nodeId}`);
+                
+                node.functionType = functionTypeSelect.value;
+                node.functionOption = null;
+                node.parameters = {};
+                
+                functionOptionsDiv.innerHTML = '';
+                functionIconsDiv.innerHTML = '';
+                
+                if (!node.functionType) {
+                    return;
+                }
+                
+                logMessage(`节点${nodeId}选择了功能类型: ${node.functionType}`);
+                
+                // 显示功能图标
+                if (node.functionType === '转换') {
+                    transformOptions.forEach((option, index) => {
+                        const icon = document.createElement('div');
+                        icon.className = 'function-icon';
+                        icon.textContent = option;
+                        icon.onclick = function() {
+                            selectFunctionOption(nodeId, index, option);
+                        };
+                        functionIconsDiv.appendChild(icon);
+                    });
+                } else if (node.functionType === '插入') {
+                    // 插入功能需要更复杂的UI
+                    functionOptionsDiv.innerHTML = `
+                        <div class="insert-container">
+                            <div class="insert-position">
+                                <div class="section-title-small">插入位置</div>
+                                <div class="form-group">
+                                    <label>位置类型:</label>
+                                    <select id="insert-position-type-${nodeId}">
+                                        <option value="number">在第n个数字之前/后</option>
+                                        <option value="letter">在第n个英文字母之前/后</option>
+                                        <option value="lowercase">在第n个小写字母之前/后</option>
+                                        <option value="uppercase">在第n个大写字母之前/后</option>
+                                        <option value="string">在第n个特定字符串之前/后</option>
+                                        <option value="all">在所有基因名称之前/后</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label>位置参数n:</label>
+                                    <input type="number" id="insert-position-n-${nodeId}" min="1" value="1">
+                                </div>
+                                <div class="form-group" id="insert-position-string-container-${nodeId}" style="display: none;">
+                                    <label>特定字符串:</label>
+                                    <input type="text" id="insert-position-string-${nodeId}" placeholder="输入要查找的字符串">
+                                </div>
+                                <div class="form-group">
+                                    <label>位置关系:</label>
+                                    <select id="insert-position-relation-${nodeId}">
+                                        <option value="before">之前</option>
+                                        <option value="after">之后</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="insert-label">插入</div>
+                            <div class="insert-content">
+                                <div class="section-title-small">插入内容</div>
+                                <div class="form-group">
+                                    <label>内容类型:</label>
+                                    <select id="insert-content-type-${nodeId}">
+                                        <option value="custom">自定义字符串</option>
+                                        <option value="numeric1">数字排列样式1 (1,2,3,...)</option>
+                                        <option value="numeric2">数字排列样式2 (01,02,03...)</option>
+                                        <option value="lowercase-letters">小写英文字母排列样式 (a,b,c,...)</option>
+                                        <option value="uppercase-letters">大写英文字母排列样式 (A,B,C,...)</option>
+                                    </select>
+                                </div>
+                                <div class="form-group" id="insert-content-custom-container-${nodeId}">
+                                    <label>自定义字符串:</label>
+                                    <input type="text" id="insert-content-custom-${nodeId}" placeholder="输入要插入的字符串">
+                                </div>
+                            </div>
+                        </div>
+                        <button onclick="saveInsertFunction(${nodeId})" class="add-mutant-btn">保存插入功能</button>
+                    `;
+                    
+                    // 添加事件监听
+                    document.getElementById(`insert-position-type-${nodeId}`).addEventListener('change', function() {
+                        const showStringInput = this.value === 'string';
+                        document.getElementById(`insert-position-string-container-${nodeId}`).style.display = 
+                            showStringInput ? 'block' : 'none';
+                    });
+                    
+                    document.getElementById(`insert-content-type-${nodeId}`).addEventListener('change', function() {
+                        const showCustomInput = this.value === 'custom';
+                        document.getElementById(`insert-content-custom-container-${nodeId}`).style.display = 
+                            showCustomInput ? 'block' : 'none';
+                    });
+                    
+                } else if (node.functionType === '删除') {
+                    // 删除功能的UI
+                    functionOptionsDiv.innerHTML = `
+                        <div class="form-group">
+                            <label>删除类型:</label>
+                            <select id="delete-type-${nodeId}">
+                                <option value="around-string">删除第n个字符串x之前/后的内容</option>
+                                <option value="between-strings">删除第n个字符串x和第m个字符串y之间的内容</option>
+                                <option value="single-char">删除第n个字符</option>
+                                <option value="char-range">删除第n个到第m个字符</option>
+                                <option value="ends">删除基因名称前/后n个字符</option>
+                            </select>
+                        </div>
+                        <div id="delete-options-${nodeId}">
+                            <!-- 动态选项将在这里显示 -->
+                        </div>
+                        <button onclick="saveDeleteFunction(${nodeId})" class="add-mutant-btn">保存删除功能</button>
+                    `;
+                    
+                    // 初始化删除选项
+                    updateDeleteOptions(nodeId);
+                    
+                    // 添加事件监听
+                    document.getElementById(`delete-type-${nodeId}`).addEventListener('change', function() {
+                        updateDeleteOptions(nodeId);
+                    });
+                }
+                
+                updatePreview();
+            }
+
+            // 更新删除选项
+            function updateDeleteOptions(nodeId) {
+                const deleteType = document.getElementById(`delete-type-${nodeId}`).value;
+                const deleteOptionsDiv = document.getElementById(`delete-options-${nodeId}`);
+                
+                let html = '';
+                
+                if (deleteType === 'around-string') {
+                    html = `
+                        <div class="form-group">
+                            <label>位置n:</label>
+                            <input type="number" id="delete-n-${nodeId}" min="1" value="1">
+                        </div>
+                        <div class="form-group">
+                            <label>字符串x:</label>
+                            <input type="text" id="delete-string-x-${nodeId}" placeholder="输入要查找的字符串">
+                        </div>
+                        <div class="form-group">
+                            <label>位置关系:</label>
+                            <select id="delete-relation-${nodeId}">
+                                <option value="before">之前</option>
+                                <option value="after">之后</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>删除的内容中是否包含字符串x:</label>
+                            <select id="delete-include-${nodeId}">
+                                <option value="exclude">包括</option>
+                                <option value="include">不包括</option>
+                            </select>
+                        </div>
+                    `;
+                } else if (deleteType === 'between-strings') {
+                    html = `
+                        <div class="form-group">
+                            <label>位置n:</label>
+                            <input type="number" id="delete-n-${nodeId}" min="1" value="1">
+                        </div>
+                        <div class="form-group">
+                            <label>字符串x:</label>
+                            <input type="text" id="delete-string-x-${nodeId}" placeholder="输入要查找的第一个字符串">
+                        </div>
+                        <div class="form-group">
+                            <label>位置m:</label>
+                            <input type="number" id="delete-m-${nodeId}" min="1" value="1">
+                        </div>
+                        <div class="form-group">
+                            <label>字符串y:</label>
+                            <input type="text" id="delete-string-y-${nodeId}" placeholder="输入要查找的第二个字符串">
+                        </div>
+                        <div class="form-group">
+                            <label>删除的内容中是否包含字符串x:</label>
+                            <select id="delete-include-x-${nodeId}">
+                                <option value="include">包括</option>
+                                <option value="exclude">不包括</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>删除的内容中是否包含字符串y:</label>
+                            <select id="delete-include-y-${nodeId}">
+                                <option value="include">包括</option>
+                                <option value="exclude">不包括</option>
+                            </select>
+                        </div>
+                    `;
+                } else if (deleteType === 'single-char') {
+                    html = `
+                        <div class="form-group">
+                            <label>字符位置n:</label>
+                            <input type="number" id="delete-n-${nodeId}" min="1" value="1">
+                        </div>
+                    `;
+                } else if (deleteType === 'char-range') {
+                    html = `
+                        <div class="form-group">
+                            <label>起始位置n:</label>
+                            <input type="number" id="delete-n-${nodeId}" min="1" value="1">
+                        </div>
+                        <div class="form-group">
+                            <label>结束位置m:</label>
+                            <input type="number" id="delete-m-${nodeId}" min="1" value="2">
+                        </div>
+                    `;
+                } else if (deleteType === 'ends') {
+                    html = `
+                        <div class="form-group">
+                            <label>位置:</label>
+                            <select id="delete-relation-${nodeId}">
+                                <option value="start">前面</option>
+                                <option value="end">后面</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>字符数量n:</label>
+                            <input type="number" id="delete-n-${nodeId}" min="1" value="1">
+                        </div>
+                    `;
+                }
+                
+                deleteOptionsDiv.innerHTML = html;
+            }
+
+            // 选择功能选项（用于转换功能）
+            function selectFunctionOption(nodeId, optionIndex, optionText) {
+                const node = nodes.find(n => n.id === nodeId);
+                if (!node) return;
+                
+                node.functionOption = optionIndex;
+                
+                // 高亮选中的图标
+                const icons = document.querySelectorAll(`#function-icons-${nodeId} .function-icon`);
+                icons.forEach((icon, index) => {
+                    if (index === optionIndex) {
+                        icon.classList.add('active');
+                        
+                        // 显示参数输入框
+                        const functionOptionsDiv = document.getElementById(`function-options-${nodeId}`);
+                        
+                        if (optionIndex === 2 || optionIndex === 3) {
+                            // 需要输入n值的转换选项
+                            functionOptionsDiv.innerHTML = `
+                                <div class="form-group">
+                                    <label>位置n:</label>
+                                    <input type="number" id="transform-n-${nodeId}" min="1" value="1">
+                                </div>
+                                <button onclick="saveTransformFunction(${nodeId})" class="add-mutant-btn">保存转换功能</button>
+                            `;
+                        } else {
+                            // 不需要额外参数的转换选项
+                            functionOptionsDiv.innerHTML = `
+                                <button onclick="saveTransformFunction(${nodeId})" class="add-mutant-btn">保存转换功能</button>
+                            `;
+                        }
+                    } else {
+                        icon.classList.remove('active');
+                    }
+                });
+                
+                logMessage(`节点${nodeId}选择了: ${optionText}`);
+            }
+
+            // 保存转换功能
+            function saveTransformFunction(nodeId) {
+                const node = nodes.find(n => n.id === nodeId);
+                if (!node) return;
+                
+                // 保存参数
+                if (node.functionOption === 2 || node.functionOption === 3) {
+                    node.parameters.n = parseInt(document.getElementById(`transform-n-${nodeId}`).value) || 1;
+                }
+                
+                logMessage(`节点${nodeId}的转换功能已保存`);
+                updatePreview();
+            }
+
+            // 保存插入功能
+            function saveInsertFunction(nodeId) {
+                const node = nodes.find(n => n.id === nodeId);
+                if (!node) return;
+                
+                // 保存参数
+                node.parameters = {
+                    positionType: document.getElementById(`insert-position-type-${nodeId}`).value,
+                    positionN: parseInt(document.getElementById(`insert-position-n-${nodeId}`).value) || 1,
+                    positionString: document.getElementById(`insert-position-string-${nodeId}`).value || '',
+                    positionRelation: document.getElementById(`insert-position-relation-${nodeId}`).value,
+                    contentType: document.getElementById(`insert-content-type-${nodeId}`).value,
+                    contentCustom: document.getElementById(`insert-content-custom-${nodeId}`).value || ''
+                };
+                
+                // 设置functionOption为非null值，确保预览能识别
+                node.functionOption = 0;
+                
+                logMessage(`节点${nodeId}的插入功能已保存`);
+                updatePreview();
+            }
+
+            // 保存删除功能
+            function saveDeleteFunction(nodeId) {
+                const node = nodes.find(n => n.id === nodeId);
+                if (!node) return;
+                
+                const deleteType = document.getElementById(`delete-type-${nodeId}`).value;
+                node.parameters = { type: deleteType };
+                
+                if (deleteType === 'around-string') {
+                    node.parameters.n = parseInt(document.getElementById(`delete-n-${nodeId}`).value) || 1;
+                    node.parameters.stringX = document.getElementById(`delete-string-x-${nodeId}`).value || '';
+                    node.parameters.relation = document.getElementById(`delete-relation-${nodeId}`).value;
+                    node.parameters.include = document.getElementById(`delete-include-${nodeId}`).value;
+                } else if (deleteType === 'between-strings') {
+                    node.parameters.n = parseInt(document.getElementById(`delete-n-${nodeId}`).value) || 1;
+                    node.parameters.stringX = document.getElementById(`delete-string-x-${nodeId}`).value || '';
+                    node.parameters.m = parseInt(document.getElementById(`delete-m-${nodeId}`).value) || 1;
+                    node.parameters.stringY = document.getElementById(`delete-string-y-${nodeId}`).value || '';
+                    node.parameters.includeX = document.getElementById(`delete-include-x-${nodeId}`).value;
+                    node.parameters.includeY = document.getElementById(`delete-include-y-${nodeId}`).value;
+                } else if (deleteType === 'single-char') {
+                    node.parameters.n = parseInt(document.getElementById(`delete-n-${nodeId}`).value) || 1;
+                } else if (deleteType === 'char-range') {
+                    node.parameters.n = parseInt(document.getElementById(`delete-n-${nodeId}`).value) || 1;
+                    node.parameters.m = parseInt(document.getElementById(`delete-m-${nodeId}`).value) || 2;
+                } else if (deleteType === 'ends') {
+                    node.parameters.relation = document.getElementById(`delete-relation-${nodeId}`).value;
+                    node.parameters.n = parseInt(document.getElementById(`delete-n-${nodeId}`).value) || 1;
+                }
+                
+                // 设置functionOption为非null值，确保预览能识别
+                node.functionOption = 0;
+                
+                logMessage(`节点${nodeId}的删除功能已保存`);
+                updatePreview();
+            }
+
+            // 更新预览
+            function updatePreview() {
+                if (genes.length === 0) return;
+                
+                // 清空预览
+                const previewEntries = infoBox.querySelectorAll('.preview-entry');
+                previewEntries.forEach(entry => entry.remove());
+                
+                // 显示处理过程
+                const previewCount = Math.min(3, genes.length);
+                logMessage(`前${previewCount}个序列名称处理过程:`, 'preview-title');
+                
+                for (let i = 0; i < previewCount; i++) {
+                    let currentName = genes[i].id.substring(1); // 去掉开头的">"
+                    let processLog = `序列 ${i+1}: >${currentName}`;
+                    
+                    // 应用所有节点的处理
+                    for (let j = 0; j < nodes.length; j++) {
+                        const node = nodes[j];
+                        if (node.functionType && node.functionOption !== null) {
+                            try {
+                                const originalName = currentName;
+                                currentName = applyFunction(currentName, node, i);
+                                processLog += ` → 节点${j+1} → >${currentName}`;
+                                
+                                // 如果名称没有变化，可能是因为函数执行失败
+                                if (originalName === currentName) {
+                                    processLog += ` (无变化)`;
+                                }
+                            } catch (e) {
+                                processLog += ` → 节点${j+1}错误: ${e.message}`;
+                                break;
+                            }
+                        }
+                    }
+                    
+                    logMessage(processLog, 'preview-entry');
+                }
+            }
+
+            // 应用功能处理
+            function applyFunction(name, node, geneIndex) {
+                if (node.functionType === '转换') {
+                    return applyTransform(name, node);
+                } else if (node.functionType === '插入') {
+                    return applyInsert(name, node, geneIndex);
+                } else if (node.functionType === '删除') {
+                    return applyDelete(name, node);
+                }
+                return name;
+            }
+
+            // 应用转换功能
+            function applyTransform(name, node) {
+                switch (node.functionOption) {
+                    case 0: // 将所有大写英文字母转换为小写英文字母
+                        return name.replace(/[A-Z]/g, char => char.toLowerCase());
+                    case 1: // 将所有小写英文字母转换为大写英文字母
+                        return name.replace(/[a-z]/g, char => char.toUpperCase());
+                    case 2: // 将第n个大写英文字母转换为小写英文字母
+                        let upperCount = 0;
+                        return name.replace(/[A-Z]/g, char => {
+                            upperCount++;
+                            return upperCount === node.parameters.n ? char.toLowerCase() : char;
+                        });
+                    case 3: // 将第n个小写英文字母转换为大写英文字母
+                        let lowerCount = 0;
+                        return name.replace(/[a-z]/g, char => {
+                            lowerCount++;
+                            return lowerCount === node.parameters.n ? char.toUpperCase() : char;
+                        });
+                    default:
+                        return name;
+                }
+            }
+
+            // 应用插入功能
+            function applyInsert(name, node, geneIndex) {
+                const params = node.parameters;
+                let insertPosition = -1;
+                
+                // 确定插入位置
+                if (params.positionType === 'all') {
+                    insertPosition = params.positionRelation === 'before' ? 0 : name.length;
+                } else {
+                    // 查找特定位置
+                    let searchPattern;
+                    let count = 0;
+                    let targetCount = params.positionN;
+                    
+                    if (params.positionType === 'number') {
+                        searchPattern = /\d/g;
+                    } else if (params.positionType === 'letter') {
+                        searchPattern = /[a-zA-Z]/g;
+                    } else if (params.positionType === 'lowercase') {
+                        searchPattern = /[a-z]/g;
+                    } else if (params.positionType === 'uppercase') {
+                        searchPattern = /[A-Z]/g;
+                    } else if (params.positionType === 'string') {
+                        // 使用字符串字面量而不是正则表达式特殊字符
+                        const searchString = params.positionString;
+                        let index = -1;
+                        
+                        // 查找第n次出现的位置
+                        for (let i = 0; i < targetCount; i++) {
+                            index = name.indexOf(searchString, index + 1);
+                            if (index === -1) break;
+                        }
+                        
+                        if (index !== -1) {
+                            insertPosition = params.positionRelation === 'before' ? index : index + searchString.length;
+                        }
+                        // 如果没有找到足够的目标，插入到末尾
+                        if (insertPosition === -1) {
+                            insertPosition = name.length;
+                        }
+                        
+                        // 确定插入内容
+                        let insertContent = '';
+                        if (params.contentType === 'custom') {
+                            insertContent = params.contentCustom;
+                        } else if (params.contentType === 'numeric1') {
+                            insertContent = (geneIndex + 1).toString();
+                        } else if (params.contentType === 'numeric2') {
+                            const totalDigits = Math.max(2, genes.length.toString().length);
+                            insertContent = (geneIndex + 1).toString().padStart(totalDigits, '0');
+                        } else if (params.contentType === 'lowercase-letters') {
+                            insertContent = String.fromCharCode(97 + (geneIndex % 26)); // a-z
+                        } else if (params.contentType === 'uppercase-letters') {
+                            insertContent = String.fromCharCode(65 + (geneIndex % 26)); // A-Z
+                        }
+                        
+                        // 执行插入
+                        return name.slice(0, insertPosition) + insertContent + name.slice(insertPosition);
+                    }
+                    
+                    if (params.positionType !== 'string') {
+                        let match;
+                        while ((match = searchPattern.exec(name)) !== null) {
+                            count++;
+                            if (count === targetCount) {
+                                insertPosition = params.positionRelation === 'before' ? match.index : match.index + match[0].length;
+                                break;
+                            }
+                        }
+                    }
+                    
+                    if (insertPosition === -1) {
+                        // 如果没有找到足够的目标，插入到末尾
+                        insertPosition = name.length;
+                    }
+                }
+                
+                // 确定插入内容
+                let insertContent = '';
+                if (params.contentType === 'custom') {
+                    insertContent = params.contentCustom;
+                } else if (params.contentType === 'numeric1') {
+                    insertContent = (geneIndex + 1).toString();
+                } else if (params.contentType === 'numeric2') {
+                    const totalDigits = Math.max(2, genes.length.toString().length);
+                    insertContent = (geneIndex + 1).toString().padStart(totalDigits, '0');
+                } else if (params.contentType === 'lowercase-letters') {
+                    insertContent = String.fromCharCode(97 + (geneIndex % 26)); // a-z
+                } else if (params.contentType === 'uppercase-letters') {
+                    insertContent = String.fromCharCode(65 + (geneIndex % 26)); // A-Z
+                }
+                
+                // 执行插入
+                return name.slice(0, insertPosition) + insertContent + name.slice(insertPosition);
+            }
+
+            // 应用删除功能
+            function applyDelete(name, node) {
+                const params = node.parameters;
+                
+                if (params.type === 'around-string') {
+                    // 查找第n个字符串x
+                    const searchString = params.stringX;
+                    let index = -1;
+                    let count = 0;
+                    
+                    // 查找第n次出现的位置
+                    while (count < params.n) {
+                        index = name.indexOf(searchString, index + 1);
+                        if (index === -1) break;
+                        count++;
+                    }
+                    
+                    if (index === -1) return name;
+                    
+                    if (params.relation === 'before') {
+                        if (params.include === 'include') {
+                            return name.slice(index);
+                        } else {
+                            return name.slice(index + searchString.length);
+                        }
+                    } else {
+                        if (params.include === 'include') {
+                            return name.slice(0, index + searchString.length);
+                        } else {
+                            return name.slice(0, index);
+                        }
+                    }
+                } else if (params.type === 'between-strings') {
+                    // 查找第n个字符串x和第m个字符串y
+                    const stringX = params.stringX;
+                    const stringY = params.stringY;
+                    
+                    let indexX = -1;
+                    let countX = 0;
+                    
+                    // 查找第n次出现x的位置
+                    while (countX < params.n) {
+                        indexX = name.indexOf(stringX, indexX + 1);
+                        if (indexX === -1) break;
+                        countX++;
+                    }
+                    
+                    let indexY = -1;
+                    let countY = 0;
+                    
+                    // 查找第m次出现y的位置
+                    while (countY < params.m) {
+                        indexY = name.indexOf(stringY, indexY + 1);
+                        if (indexY === -1) break;
+                        countY++;
+                    }
+                    
+                    if (indexX === -1 || indexY === -1 || indexX >= indexY) return name;
+                    
+                    let start = indexX;
+                    let end = indexY;
+                    
+                    if (params.includeX === 'exclude') {
+                        start += stringX.length;
+                    }
+                    
+                    if (params.includeY === 'include') {
+                        end += stringY.length;
+                    }
+                    
+                    return name.slice(0, start) + name.slice(end);
+                } else if (params.type === 'single-char') {
+                    // 删除第n个字符
+                    if (params.n > 0 && params.n <= name.length) {
+                        return name.slice(0, params.n - 1) + name.slice(params.n);
+                    }
+                    return name;
+                } else if (params.type === 'char-range') {
+                    // 删除第n个到第m个字符
+                    const start = Math.max(0, params.n - 1);
+                    const end = Math.min(name.length, params.m);
+                    
+                    if (start >= end) return name;
+                    
+                    return name.slice(0, start) + name.slice(end);
+                } else if (params.type === 'ends') {
+                    // 删除前/后n个字符
+                    if (params.relation === 'start') {
+                        return name.slice(params.n);
+                    } else {
+                        return name.slice(0, name.length - params.n);
+                    }
+                }
+                
+                return name;
+            }
+
+            // 导出FASTA文件
+            function exportFasta() {
+                if (genes.length === 0) {
+                    alert('请先上传FASTA文件!');
+                    return;
+                }
+                
+                // 处理所有基因名称
+                const processedGenes = genes.map((gene, index) => {
+                    let processedName = gene.id.substring(1); // 去掉开头的">"
+                    
+                    // 应用所有节点的处理
+                    for (let i = 0; i < nodes.length; i++) {
+                        const node = nodes[i];
+                        if (node.functionType && node.functionOption !== null) {
+                            try {
+                                processedName = applyFunction(processedName, node, index);
+                            } catch (e) {
+                                console.error(`处理基因${gene.id}时出错:`, e);
+                                // 出错时使用原始名称
+                                processedName = gene.id.substring(1);
+                                break;
+                            }
+                        }
+                    }
+                    
+                    return {
+                        id: `>${processedName}`,
+                        seq: gene.seq
+                    };
+                });
+                
+                // 生成FASTA内容
+                let fastaContent = '';
+                processedGenes.forEach(gene => {
+                    fastaContent += `${gene.id}\n${formatSequence(gene.seq)}\n`;
+                });
+                
+                // 下载文件
+                const blob = new Blob([fastaContent], { type: 'text/plain' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'processed_sequences.fasta';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                
+                logMessage('已导出修改后的FASTA文件');
+            }
+
+            // 格式化序列（每60个字符换行）
+            function formatSequence(seq) {
+                const chunkSize = 60;
+                let result = '';
+                
+                for (let i = 0; i < seq.length; i += chunkSize) {
+                    result += seq.slice(i, i + chunkSize) + '\n';
+                }
+                
+                return result;
+            }
+
+            // 记录信息
+            function logMessage(message, className = 'log-entry') {
+                const logEntry = document.createElement('div');
+                logEntry.className = className;
+                logEntry.textContent = message;
+                infoBox.appendChild(logEntry);
+                infoBox.scrollTop = infoBox.scrollHeight;
+            }
+
+            // 更新状态栏
+            function updateStatus(message) {
+                statusBar.textContent = message;
+            }
+
+            // 使函数在全局可用（用于HTML中的onclick）
+            window.removeNode = removeNode;
+            window.updateFunctionOptions = updateFunctionOptions;
+            window.selectFunctionOption = selectFunctionOption;
+            window.saveTransformFunction = saveTransformFunction;
+            window.saveInsertFunction = saveInsertFunction;
+            window.saveDeleteFunction = saveDeleteFunction;
+        });
+    </script>
+</body>
+</html>
