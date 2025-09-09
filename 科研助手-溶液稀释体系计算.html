@@ -1,0 +1,676 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>溶液稀释体系计算 - 生物信息分析工具包</title>
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --secondary-color: #3498db;
+            --accent-color: #e74c3c;
+            --light-color: #ecf0f1;
+            --dark-color: #2c3e50;
+            --success-color: #27ae60;
+            --warning-color: #f39c12;
+            --border-radius: 8px;
+            --box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            --transition: all 0.3s ease;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            min-height: 100vh;
+        }
+
+        /* 顶部标题栏 */
+        .tool-header {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background-color: var(--primary-color);
+            color: white;
+            padding: 20px;
+            width: 100%;
+            text-align: center;
+        }
+
+        .back-button {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            padding: 8px 16px;
+            border-radius: var(--border-radius);
+            cursor: pointer;
+            transition: var(--transition);
+            font-size: 0.9rem;
+            margin-top: 15px;
+            text-decoration: none;
+        }
+
+        .back-button:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        /* 内容区域样式 */
+        .content {
+            padding: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .section {
+            background: white;
+            border-radius: var(--border-radius);
+            padding: 20px;
+            margin-bottom: 30px;
+            box-shadow: var(--box-shadow);
+        }
+
+        h2 {
+            color: var(--primary-color);
+            text-align: center;
+        }
+
+        h3 {
+            color: var(--secondary-color);
+            margin-bottom: 15px;
+            text-align: center;
+        }
+
+        /* 表单样式 */
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+        }
+
+        input[type="number"], select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: var(--border-radius);
+            font-size: 14px;
+        }
+
+        /* 按钮样式 */
+        .calculate-button {
+            background-color: var(--secondary-color);
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: var(--border-radius);
+            cursor: pointer;
+            font-weight: bold;
+            transition: var(--transition);
+            width: 100%;
+            margin-top: 10px;
+        }
+
+        .calculate-button:hover {
+            background-color: #2980b9;
+        }
+
+        .reset-button {
+            background-color: var(--accent-color);
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: var(--border-radius);
+            cursor: pointer;
+            font-weight: bold;
+            transition: var(--transition);
+            width: 100%;
+            margin-top: 10px;
+        }
+
+        .reset-button:hover {
+            background-color: #c0392b;
+        }
+
+        /* 结果区域样式 */
+        .result-box {
+            padding: 15px;
+            background-color: #f9f9f9;
+            border-radius: var(--border-radius);
+            margin-top: 15px;
+            border-left: 4px solid var(--secondary-color);
+        }
+
+        .result-item {
+            margin-bottom: 10px;
+            padding: 8px;
+            background-color: #e9f7fe;
+            border-radius: 4px;
+        }
+
+        .result-item strong {
+            color: var(--primary-color);
+        }
+
+        /* 状态栏样式 */
+        .status-bar {
+            padding: 10px;
+            background-color: var(--primary-color);
+            color: white;
+            text-align: center;
+            font-weight: bold;
+            width: 100%;
+            margin-top: 20px;
+        }
+
+        @media (max-width: 768px) {
+            .content {
+                padding: 15px;
+            }
+            
+            .form-row {
+                flex-direction: column;
+            }
+            
+            .form-group {
+                width: 100%;
+            }
+        }
+
+        .form-row {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+        
+        .form-group {
+            flex: 1;
+        }
+        
+        .info-text {
+            font-size: 0.9rem;
+            color: #666;
+            margin-top: 5px;
+            font-style: italic;
+        }
+        
+        .warning {
+            color: var(--accent-color);
+            font-weight: bold;
+            margin-top: 10px;
+        }
+        
+        .concentration-unit {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .unit-divider {
+            padding: 0 5px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="tool-header">
+        <h2 style="color: white;">溶液稀释体系计算</h2>
+        <a href="index.html" class="back-button">返回主界面</a>
+    </div>
+    
+    <div class="content">
+        <!-- 第一种计算方式 -->
+        <div class="section">
+            <h2>方式一：已知原浓度和终浓度</h2>
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="system-volume">体系大小</label>
+                    <input type="number" id="system-volume" step="any" min="0" placeholder="输入体系大小">
+                </div>
+                
+                <div class="form-group">
+                    <label for="volume-unit">单位</label>
+                    <select id="volume-unit">
+                        <option value="μL" selected>μL</option>
+                        <option value="mL">mL</option>
+                        <option value="L">L</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="initial-concentration">溶液原浓度</label>
+                    <input type="number" id="initial-concentration" step="any" min="0" placeholder="输入原浓度">
+                </div>
+                
+                <div class="form-group">
+                    <label>原浓度单位</label>
+                    <div class="concentration-unit">
+                        <select id="initial-numerator-unit">
+                            <option value="g" selected>g</option>
+                            <option value="mg">mg</option>
+                            <option value="μg">μg</option>
+                            <option value="ng">ng</option>
+                            <option value="mol">mol</option>
+                            <option value="mmol">mmol</option>
+                            <option value="μmol">μmol</option>
+                            <option value="nmol">nmol</option>
+                        </select>
+                        <span class="unit-divider">/</span>
+                        <select id="initial-denominator-unit">
+                            <option value="L" selected>L</option>
+                            <option value="mL">mL</option>
+                            <option value="μL">μL</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="final-concentration">溶液终浓度</label>
+                    <input type="number" id="final-concentration" step="any" min="0" placeholder="输入终浓度">
+                </div>
+                
+                <div class="form-group">
+                    <label>终浓度单位</label>
+                    <div class="concentration-unit">
+                        <select id="final-numerator-unit">
+                            <option value="g" selected>g</option>
+                            <option value="mg">mg</option>
+                            <option value="μg">μg</option>
+                            <option value="ng">ng</option>
+                            <option value="mol">mol</option>
+                            <option value="mmol">mmol</option>
+                            <option value="μmol">μmol</option>
+                            <option value="nmol">nmol</option>
+                        </select>
+                        <span class="unit-divider">/</span>
+                        <select id="final-denominator-unit">
+                            <option value="L" selected>L</option>
+                            <option value="mL">mL</option>
+                            <option value="μL">μL</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="molecular-weight">溶质分子量 (g/mol)</label>
+                    <input type="number" id="molecular-weight" step="any" min="0" placeholder="输入分子量 (可选)">
+                    <p class="info-text">仅当需要摩尔浓度与质量浓度转换时填写</p>
+                </div>
+            </div>
+            
+            <button id="calculate-method1" class="calculate-button">计算</button>
+            <button id="reset-method1" class="reset-button">重置</button>
+            
+            <div id="result-method1" class="result-box" style="display: none;">
+                <h3>计算结果</h3>
+                <div class="result-item">
+                    <strong>加入原溶液量:</strong> <span id="original-solution-volume"></span>
+                </div>
+                <div class="result-item">
+                    <strong>加入溶剂量:</strong> <span id="diluent-volume"></span>
+                </div>
+                <div id="conversion-info" class="result-item" style="display: none;">
+                    <strong>单位转换信息:</strong> <span id="conversion-details"></span>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 第二种计算方式 -->
+        <div class="section">
+            <h2>方式二：已知稀释倍数</h2>
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="system-volume2">体系大小</label>
+                    <input type="number" id="system-volume2" step="any" min="0" placeholder="输入体系大小">
+                </div>
+                
+                <div class="form-group">
+                    <label for="volume-unit2">单位</label>
+                    <select id="volume-unit2">
+                        <option value="μL" selected>μL</option>
+                        <option value="mL">mL</option>
+                        <option value="L">L</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="dilution-factor">稀释倍数</label>
+                    <input type="number" id="dilution-factor" step="any" min="1" placeholder="输入稀释倍数">
+                    <p class="info-text">例如: 10 (表示10倍稀释)</p>
+                </div>
+            </div>
+            
+            <button id="calculate-method2" class="calculate-button">计算</button>
+            <button id="reset-method2" class="reset-button">重置</button>
+            
+            <div id="result-method2" class="result-box" style="display: none;">
+                <h3>计算结果</h3>
+                <div class="result-item">
+                    <strong>加入原溶液量:</strong> <span id="original-solution-volume2"></span>
+                </div>
+                <div class="result-item">
+                    <strong>加入溶剂量:</strong> <span id="diluent-volume2"></span>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="status-bar">
+        江南大学 粮食发酵工艺与技术国家工程实验室
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // 体积单位智能转换函数
+            function formatVolume(value, inputUnit) {
+                // 首先将所有单位转换为μL
+                let valueInMicroLiters;
+                switch(inputUnit) {
+                    case 'L':
+                        valueInMicroLiters = value * 1000000;
+                        break;
+                    case 'mL':
+                        valueInMicroLiters = value * 1000;
+                        break;
+                    case 'μL':
+                    default:
+                        valueInMicroLiters = value;
+                        break;
+                }
+                
+                // 根据体积大小选择合适的单位
+                if (valueInMicroLiters >= 1000000) {
+                    // 大于等于1升，使用升为单位
+                    return (valueInMicroLiters / 1000000).toFixed(4) + ' L';
+                } else if (valueInMicroLiters >= 1000) {
+                    // 大于等于1毫升但小于1升，使用毫升为单位
+                    return (valueInMicroLiters / 1000).toFixed(4) + ' mL';
+                } else {
+                    // 小于1毫升，使用微升为单位
+                    return valueInMicroLiters.toFixed(4) + ' μL';
+                }
+            }
+            
+            // 将分子单位转换为基准单位 (g)
+            function convertNumerator(value, fromUnit, molecularWeight, toUnit) {
+                // 质量单位转换
+                const massConversions = {
+                    'g': 1,
+                    'mg': 0.001,
+                    'μg': 0.000001,
+                    'ng': 0.000000001
+                };
+                
+                // 摩尔单位转换
+                const moleConversions = {
+                    'mol': 1,
+                    'mmol': 0.001,
+                    'μmol': 0.000001,
+                    'nmol': 0.000000001
+                };
+                
+                // 如果目标单位是质量单位
+                if (toUnit === 'g' || toUnit === 'mg' || toUnit === 'μg' || toUnit === 'ng') {
+                    // 如果当前是质量单位
+                    if (massConversions.hasOwnProperty(fromUnit)) {
+                        return value * massConversions[fromUnit] / massConversions[toUnit];
+                    }
+                    // 如果当前是摩尔单位
+                    else if (moleConversions.hasOwnProperty(fromUnit)) {
+                        if (!molecularWeight) return null;
+                        // 先转换为mol，再转换为g，再转换为目标单位
+                        const inGrams = value * moleConversions[fromUnit] * molecularWeight;
+                        return inGrams / massConversions[toUnit];
+                    }
+                }
+                // 如果目标单位是摩尔单位
+                else if (toUnit === 'mol' || toUnit === 'mmol' || toUnit === 'μmol' || toUnit === 'nmol') {
+                    // 如果当前是摩尔单位
+                    if (moleConversions.hasOwnProperty(fromUnit)) {
+                        return value * moleConversions[fromUnit] / moleConversions[toUnit];
+                    }
+                    // 如果当前是质量单位
+                    else if (massConversions.hasOwnProperty(fromUnit)) {
+                        if (!molecularWeight) return null;
+                        // 先转换为g，再转换为mol，再转换为目标单位
+                        const inMoles = value * massConversions[fromUnit] / molecularWeight;
+                        return inMoles / moleConversions[toUnit];
+                    }
+                }
+                
+                return null;
+            }
+            
+            // 将分母单位转换为基准单位 (L)
+            function convertDenominator(value, fromUnit, toUnit) {
+                const volumeConversions = {
+                    'L': 1,
+                    'mL': 0.001,
+                    'μL': 0.000001
+                };
+                
+                if (volumeConversions.hasOwnProperty(fromUnit) && volumeConversions.hasOwnProperty(toUnit)) {
+                    return value * volumeConversions[fromUnit] / volumeConversions[toUnit];
+                }
+                
+                return null;
+            }
+            
+            // 获取单位类型（质量或摩尔）
+            function getUnitType(unit) {
+                const massUnits = ['g', 'mg', 'μg', 'ng'];
+                const moleUnits = ['mol', 'mmol', 'μmol', 'nmol'];
+                
+                if (massUnits.includes(unit)) return 'mass';
+                if (moleUnits.includes(unit)) return 'mole';
+                return null;
+            }
+            
+            // 方式一：已知原浓度和终浓度
+            document.getElementById('calculate-method1').addEventListener('click', function() {
+                // 获取输入值
+                const systemVolume = parseFloat(document.getElementById('system-volume').value);
+                const volumeUnit = document.getElementById('volume-unit').value;
+                const initialConcentration = parseFloat(document.getElementById('initial-concentration').value);
+                const initialNumeratorUnit = document.getElementById('initial-numerator-unit').value;
+                const initialDenominatorUnit = document.getElementById('initial-denominator-unit').value;
+                const finalConcentration = parseFloat(document.getElementById('final-concentration').value);
+                const finalNumeratorUnit = document.getElementById('final-numerator-unit').value;
+                const finalDenominatorUnit = document.getElementById('final-denominator-unit').value;
+                const molecularWeight = document.getElementById('molecular-weight').value ? 
+                    parseFloat(document.getElementById('molecular-weight').value) : null;
+                
+                // 验证输入
+                if (!systemVolume || !initialConcentration || !finalConcentration) {
+                    alert('请填写所有必填字段');
+                    return;
+                }
+                
+                if (initialConcentration <= 0 || finalConcentration <= 0 || systemVolume <= 0) {
+                    alert('请输入大于0的数值');
+                    return;
+                }
+                
+                // 获取单位类型
+                const initialUnitType = getUnitType(initialNumeratorUnit);
+                const finalUnitType = getUnitType(finalNumeratorUnit);
+                
+                // 检查是否需要分子量
+                let needsMolecularWeight = false;
+                let conversionDetails = "";
+                
+                // 如果单位类型不同，需要分子量进行转换
+                if (initialUnitType !== finalUnitType) {
+                    needsMolecularWeight = true;
+                    conversionDetails = `单位类型不同 (${initialUnitType} vs ${finalUnitType})，需要分子量进行转换`;
+                }
+                
+                // 如果需要分子量但未提供
+                if (needsMolecularWeight && !molecularWeight) {
+                    alert('初始浓度和终浓度单位类型不同，请提供分子量进行转换');
+                    document.getElementById('conversion-info').style.display = 'block';
+                    document.getElementById('conversion-details').textContent = conversionDetails;
+                    return;
+                }
+                
+                // 转换到相同单位进行比较
+                let initialConverted = initialConcentration;
+                let finalConverted = finalConcentration;
+                
+                // 如果单位不同，尝试转换到相同单位
+                if (initialNumeratorUnit !== finalNumeratorUnit || initialDenominatorUnit !== finalDenominatorUnit) {
+                    // 尝试将终浓度转换为初始浓度的单位
+                    // 先转换分母单位
+                    const denominatorConverted = convertDenominator(
+                        finalConcentration, 
+                        finalDenominatorUnit, 
+                        initialDenominatorUnit
+                    );
+                    
+                    if (denominatorConverted === null) {
+                        alert('无法进行分母单位转换');
+                        return;
+                    }
+                    
+                    // 再转换分子单位
+                    finalConverted = convertNumerator(
+                        denominatorConverted, 
+                        finalNumeratorUnit, 
+                        molecularWeight, 
+                        initialNumeratorUnit
+                    );
+                    
+                    if (finalConverted === null) {
+                        // 如果转换失败，尝试将初始浓度转换为终浓度的单位
+                        // 先转换分母单位
+                        const initialDenominatorConverted = convertDenominator(
+                            initialConcentration, 
+                            initialDenominatorUnit, 
+                            finalDenominatorUnit
+                        );
+                        
+                        if (initialDenominatorConverted === null) {
+                            alert('无法进行单位转换');
+                            return;
+                        }
+                        
+                        // 再转换分子单位
+                        initialConverted = convertNumerator(
+                            initialDenominatorConverted, 
+                            initialNumeratorUnit, 
+                            molecularWeight, 
+                            finalNumeratorUnit
+                        );
+                        
+                        if (initialConverted === null) {
+                            alert('无法进行单位转换，请检查单位类型或提供分子量');
+                            return;
+                        }
+                        
+                        // 更新转换详情
+                        conversionDetails = `将初始浓度从 ${initialConcentration} ${initialNumeratorUnit}/${initialDenominatorUnit} 转换为 ${initialConverted.toFixed(6)} ${finalNumeratorUnit}/${finalDenominatorUnit}`;
+                    } else {
+                        // 更新转换详情
+                        conversionDetails = `将终浓度从 ${finalConcentration} ${finalNumeratorUnit}/${finalDenominatorUnit} 转换为 ${finalConverted.toFixed(6)} ${initialNumeratorUnit}/${initialDenominatorUnit}`;
+                    }
+                    
+                    // 显示转换信息
+                    document.getElementById('conversion-info').style.display = 'block';
+                    document.getElementById('conversion-details').textContent = conversionDetails;
+                } else {
+                    document.getElementById('conversion-info').style.display = 'none';
+                }
+                
+                // 比较转换后的浓度
+                if (finalConverted > initialConverted) {
+                    alert('终浓度不能大于原浓度');
+                    return;
+                }
+                
+                // 计算
+                const originalSolutionVolume = (finalConverted / initialConverted) * systemVolume;
+                const diluentVolume = systemVolume - originalSolutionVolume;
+                
+                // 使用智能单位格式化显示结果
+                document.getElementById('original-solution-volume').textContent = 
+                    formatVolume(originalSolutionVolume, volumeUnit);
+                document.getElementById('diluent-volume').textContent = 
+                    formatVolume(diluentVolume, volumeUnit);
+                document.getElementById('result-method1').style.display = 'block';
+            });
+            
+            // 重置方式一
+            document.getElementById('reset-method1').addEventListener('click', function() {
+                document.getElementById('system-volume').value = '';
+                document.getElementById('initial-concentration').value = '';
+                document.getElementById('final-concentration').value = '';
+                document.getElementById('molecular-weight').value = '';
+                document.getElementById('result-method1').style.display = 'none';
+                document.getElementById('conversion-info').style.display = 'none';
+            });
+            
+            // 方式二：已知稀释倍数
+            document.getElementById('calculate-method2').addEventListener('click', function() {
+                // 获取输入值
+                const systemVolume = parseFloat(document.getElementById('system-volume2').value);
+                const volumeUnit = document.getElementById('volume-unit2').value;
+                const dilutionFactor = parseFloat(document.getElementById('dilution-factor').value);
+                
+                // 验证输入
+                if (!systemVolume || !dilutionFactor) {
+                    alert('请填写所有必填字段');
+                    return;
+                }
+                
+                if (systemVolume <= 0 || dilutionFactor <= 0) {
+                    alert('请输入大于0的数值');
+                    return;
+                }
+                
+                if (dilutionFactor < 1) {
+                    alert('稀释倍数必须大于1');
+                    return;
+                }
+                
+                // 计算
+                const originalSolutionVolume = systemVolume / dilutionFactor;
+                const diluentVolume = systemVolume - originalSolutionVolume;
+                
+                // 使用智能单位格式化显示结果
+                document.getElementById('original-solution-volume2').textContent = 
+                    formatVolume(originalSolutionVolume, volumeUnit);
+                document.getElementById('diluent-volume2').textContent = 
+                    formatVolume(diluentVolume, volumeUnit);
+                document.getElementById('result-method2').style.display = 'block';
+            });
+            
+            // 重置方式二
+            document.getElementById('reset-method2').addEventListener('click', function() {
+                document.getElementById('system-volume2').value = '';
+                document.getElementById('dilution-factor').value = '';
+                document.getElementById('result-method2').style.display = 'none';
+            });
+        });
+    </script>
+</body>
+</html>
