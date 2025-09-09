@@ -269,6 +269,54 @@
             width: 100%;
         }
 
+        /* 新增样式：文件列表 */
+        .file-list {
+            margin-top: 10px;
+            max-height: 150px;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            border-radius: var(--border-radius);
+            background-color: white;
+        }
+
+        .file-item {
+            padding: 8px 12px;
+            cursor: pointer;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .file-item:last-child {
+            border-bottom: none;
+        }
+
+        .file-item.active {
+            background-color: var(--secondary-color);
+            color: white;
+        }
+
+        .file-item:hover:not(.active) {
+            background-color: #f0f0f0;
+        }
+
+        .file-name {
+            flex: 1;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .file-count {
+            background-color: var(--primary-color);
+            color: white;
+            border-radius: 10px;
+            padding: 2px 8px;
+            font-size: 12px;
+            margin-left: 8px;
+        }
+
         @media (max-width: 768px) {
             .main-content {
                 flex-direction: column;
@@ -304,8 +352,11 @@
             <div class="section">
                 <div class="section-title-small">文件选择</div>
                 <div class="form-group">
-                    <label for="fasta-file">选择FASTA文件:</label>
-                    <input type="file" id="fasta-file" accept=".fasta,.fa,.fna">
+                    <label for="fasta-file">选择FASTA文件(可上传多个文件):</label>
+                    <input type="file" id="fasta-file" accept=".fasta,.fa,.fna" multiple>
+                </div>
+                <div id="file-list" class="file-list">
+                    <!-- 文件列表将动态添加到这里 -->
                 </div>
             </div>
 
@@ -326,7 +377,7 @@
             <div class="section">
                 <div class="section-title-small">日志与预览</div>
                 <div id="info-box" class="info-box">
-                    <div class="log-entry">欢迎使用基因名称批量修改工具！请上传FASTA文件开始操作。点击“添加节点”获取新的工作节点，在每个节点选择您需要执行的步骤，保存修改后在此处预览您的修改结果。</div>
+                    <div class="log-entry">欢迎使用基因名称批量修改工具！请上传FASTA文件开始操作。点击"添加节点"获取新的工作节点，在每个节点选择您需要执行的步骤，保存修改后在此处预览您的修改结果。</div>
                 </div>
             </div>
         </div>
@@ -336,10 +387,15 @@
         江南大学 粮食发酵工艺与技术国家工程实验室
     </div>
 
+    <!-- 引入JSZip库用于创建ZIP压缩包 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             // 全局变量
-            let genes = [];
+            let filesData = []; // 存储所有文件数据
+            let currentFileIndex = -1; // 当前选中的文件索引
             let nodes = [];
             let functionTypes = ['转换', '插入', '删除'];
             
@@ -353,6 +409,7 @@
             
             // DOM元素
             const fastaFileInput = document.getElementById('fasta-file');
+            const fileListContainer = document.getElementById('file-list');
             const nodesContainer = document.getElementById('nodes-container');
             const addNodeBtn = document.getElementById('add-node-btn');
             const exportBtn = document.getElementById('export-btn');
@@ -366,21 +423,91 @@
 
             // 文件上传处理
             function handleFileUpload(event) {
-                const file = event.target.files[0];
-                if (!file) return;
+                const files = Array.from(event.target.files);
+                if (files.length === 0) return;
 
-                genes = [];
-                logMessage(`已选择文件: ${file.name}`);
+                // 清空现有文件数据
+                filesData = [];
+                fileListContainer.innerHTML = '';
+                logMessage(`已选择 ${files.length} 个文件`);
 
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    parseFasta(e.target.result, file.name);
-                };
-                reader.readAsText(file);
+                // 逐个处理文件
+                files.forEach((file, index) => {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        const fileData = {
+                            name: file.name,
+                            genes: [],
+                            index: filesData.length
+                        };
+                        
+                        parseFasta(e.target.result, file.name, fileData);
+                        filesData.push(fileData);
+                        
+                        // 添加文件到列表
+                        addFileToList(file.name, fileData.genes.length, filesData.length - 1);
+                        
+                        // 如果是第一个文件，自动选中
+                        if (filesData.length === 1) {
+                            selectFile(0);
+                        }
+                        
+                        updateStatus(`已加载 ${filesData.length} 个文件`);
+                    };
+                    reader.readAsText(file);
+                });
+            }
+
+            // 添加文件到列表
+            function addFileToList(name, geneCount, index) {
+                const fileItem = document.createElement('div');
+                fileItem.className = 'file-item';
+                fileItem.dataset.index = index;
+                fileItem.innerHTML = `
+                    <div class="file-name">${name}</div>
+                    <div class="file-count">${geneCount}</div>
+                `;
+                
+                fileItem.addEventListener('click', () => {
+                    selectFile(index);
+                });
+                
+                fileListContainer.appendChild(fileItem);
+            }
+
+            // 选择文件
+            function selectFile(index) {
+                // 更新UI选中状态
+                const fileItems = fileListContainer.querySelectorAll('.file-item');
+                fileItems.forEach(item => item.classList.remove('active'));
+                fileItems[index].classList.add('active');
+                
+                // 更新当前文件索引
+                currentFileIndex = index;
+                
+                // 更新日志显示
+                const fileData = filesData[index];
+                infoBox.innerHTML = '';
+                logMessage(`已选择文件: ${fileData.name}`);
+                logMessage(`包含 ${fileData.genes.length} 个基因`);
+                
+                // 显示前三个序列名称
+                const previewCount = Math.min(3, fileData.genes.length);
+                if (previewCount > 0) {
+                    logMessage(`前${previewCount}个序列名称预览:`);
+                    
+                    for (let i = 0; i < previewCount; i++) {
+                        logMessage(fileData.genes[i].id);
+                    }
+                    
+                    updatePreview();
+                }
+                
+                updateStatus(`已选择: ${fileData.name}`);
             }
 
             // 解析FASTA内容
-            function parseFasta(content, filename) {
+            function parseFasta(content, filename, fileData) {
                 const lines = content.split('\n');
                 let currentId = '';
                 let currentSeq = '';
@@ -390,7 +517,7 @@
                     if (line.startsWith('>')) {
                         // 保存上一个基因
                         if (currentId && currentSeq) {
-                            genes.push({
+                            fileData.genes.push({
                                 id: currentId,
                                 seq: currentSeq
                             });
@@ -406,28 +533,13 @@
 
                 // 保存最后一个基因
                 if (currentId && currentSeq) {
-                    genes.push({
+                    fileData.genes.push({
                         id: currentId,
                         seq: currentSeq
                     });
                 }
 
-                logMessage(`已解析文件: ${filename}, 包含 ${genes.length} 个基因`);
-                
-                // 显示前三个序列名称
-                const previewCount = Math.min(3, genes.length);
-                logMessage(`前${previewCount}个序列名称预览:`);
-                
-                for (let i = 0; i < previewCount; i++) {
-                    logMessage(genes[i].id);
-                }
-                
-                updateStatus(`已加载 ${genes.length} 个基因`);
-                
-                // 初始化第一个节点
-                if (nodes.length === 0) {
-                    addNode();
-                }
+                logMessage(`已解析文件: ${filename}, 包含 ${fileData.genes.length} 个基因`);
             }
 
             // 添加节点
@@ -860,18 +972,22 @@
 
             // 更新预览
             function updatePreview() {
-                if (genes.length === 0) return;
+                if (currentFileIndex === -1 || filesData.length === 0) return;
+                
+                const currentFile = filesData[currentFileIndex];
+                if (currentFile.genes.length === 0) return;
                 
                 // 清空预览
                 const previewEntries = infoBox.querySelectorAll('.preview-entry');
                 previewEntries.forEach(entry => entry.remove());
                 
                 // 显示处理过程
-                const previewCount = Math.min(3, genes.length);
+                const previewCount = Math.min(3, currentFile.genes.length);
+                logMessage(`文件: ${currentFile.name}`, 'preview-title');
                 logMessage(`前${previewCount}个序列名称处理过程:`, 'preview-title');
                 
                 for (let i = 0; i < previewCount; i++) {
-                    let currentName = genes[i].id.substring(1); // 去掉开头的">"
+                    let currentName = currentFile.genes[i].id.substring(1); // 去掉开头的">"
                     let processLog = `序列 ${i+1}: >${currentName}`;
                     
                     // 应用所有节点的处理
@@ -982,7 +1098,7 @@
                         } else if (params.contentType === 'numeric1') {
                             insertContent = (geneIndex + 1).toString();
                         } else if (params.contentType === 'numeric2') {
-                            const totalDigits = Math.max(2, genes.length.toString().length);
+                            const totalDigits = Math.max(2, filesData[currentFileIndex].genes.length.toString().length);
                             insertContent = (geneIndex + 1).toString().padStart(totalDigits, '0');
                         } else if (params.contentType === 'lowercase-letters') {
                             insertContent = String.fromCharCode(97 + (geneIndex % 26)); // a-z
@@ -1018,7 +1134,7 @@
                 } else if (params.contentType === 'numeric1') {
                     insertContent = (geneIndex + 1).toString();
                 } else if (params.contentType === 'numeric2') {
-                    const totalDigits = Math.max(2, genes.length.toString().length);
+                    const totalDigits = Math.max(2, filesData[currentFileIndex].genes.length.toString().length);
                     insertContent = (geneIndex + 1).toString().padStart(totalDigits, '0');
                 } else if (params.contentType === 'lowercase-letters') {
                     insertContent = String.fromCharCode(97 + (geneIndex % 26)); // a-z
@@ -1128,14 +1244,65 @@
             }
 
             // 导出FASTA文件
-            function exportFasta() {
-                if (genes.length === 0) {
+            async function exportFasta() {
+                if (filesData.length === 0) {
                     alert('请先上传FASTA文件!');
                     return;
                 }
                 
-                // 处理所有基因名称
-                const processedGenes = genes.map((gene, index) => {
+                // 处理所有文件
+                if (filesData.length === 1) {
+                    // 单个文件：直接导出FASTA
+                    const fileData = filesData[0];
+                    const processedGenes = processFile(fileData);
+                    
+                    // 生成FASTA内容
+                    let fastaContent = '';
+                    processedGenes.forEach(gene => {
+                        fastaContent += `${gene.id}\n${formatSequence(gene.seq)}\n`;
+                    });
+                    
+                    // 下载文件
+                    const blob = new Blob([fastaContent], { type: 'text/plain' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = 'processed_sequences.fasta';
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                    
+                    logMessage('已导出修改后的FASTA文件');
+                } else {
+                    // 多个文件：创建ZIP压缩包
+                    const zip = new JSZip();
+                    
+                    filesData.forEach(fileData => {
+                        const processedGenes = processFile(fileData);
+                        
+                        // 生成FASTA内容
+                        let fastaContent = '';
+                        processedGenes.forEach(gene => {
+                            fastaContent += `${gene.id}\n${formatSequence(gene.seq)}\n`;
+                        });
+                        
+                        // 添加到ZIP
+                        zip.file(`processed_${fileData.name}`, fastaContent);
+                    });
+                    
+                    // 生成并下载ZIP文件
+                    zip.generateAsync({ type: 'blob' }).then(function(content) {
+                        saveAs(content, 'rename.zip');
+                    });
+                    
+                    logMessage(`已导出 ${filesData.length} 个文件的ZIP压缩包`);
+                }
+            }
+
+            // 处理单个文件
+            function processFile(fileData) {
+                return fileData.genes.map((gene, index) => {
                     let processedName = gene.id.substring(1); // 去掉开头的">"
                     
                     // 应用所有节点的处理
@@ -1158,25 +1325,6 @@
                         seq: gene.seq
                     };
                 });
-                
-                // 生成FASTA内容
-                let fastaContent = '';
-                processedGenes.forEach(gene => {
-                    fastaContent += `${gene.id}\n${formatSequence(gene.seq)}\n`;
-                });
-                
-                // 下载文件
-                const blob = new Blob([fastaContent], { type: 'text/plain' });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = 'processed_sequences.fasta';
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                URL.revokeObjectURL(url);
-                
-                logMessage('已导出修改后的FASTA文件');
             }
 
             // 格式化序列（每60个字符换行）
