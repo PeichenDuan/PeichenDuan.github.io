@@ -1,0 +1,638 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>序列文件合并 - 生物信息分析工具包</title>
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --secondary-color: #3498db;
+            --accent-color: #e74c3c;
+            --light-color: #ecf0f1;
+            --dark-color: #2c3e50;
+            --success-color: #27ae60;
+            --warning-color: #f39c12;
+            --border-radius: 8px;
+            --box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            --transition: all 0.3s ease;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            min-height: 100vh;
+        }
+
+        /* 顶部标题栏 */
+        .tool-header {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background-color: var(--primary-color);
+            color: white;
+            padding: 20px;
+            width: 100%;
+            text-align: center;
+        }
+
+        .back-button {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            padding: 8px 16px;
+            border-radius: var(--border-radius);
+            cursor: pointer;
+            transition: var(--transition);
+            font-size: 0.9rem;
+            margin-top: 15px;
+            text-decoration: none;
+        }
+
+        .back-button:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        /* 内容区域样式 */
+        .content {
+            padding: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .section {
+            background: white;
+            border-radius: var(--border-radius);
+            padding: 20px;
+            margin-bottom: 30px;
+            box-shadow: var(--box-shadow);
+        }
+
+        h2 {
+            color: var(--primary-color);
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        h3 {
+            color: var(--secondary-color);
+            margin-bottom: 15px;
+            text-align: center;
+        }
+
+        /* 表单样式 */
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+        }
+
+        input[type="text"], textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: var(--border-radius);
+            font-size: 14px;
+        }
+
+        textarea {
+            min-height: 100px;
+            resize: vertical;
+        }
+
+        /* 按钮样式 */
+        .button {
+            padding: 10px 15px;
+            background-color: var(--secondary-color);
+            color: white;
+            border: none;
+            border-radius: var(--border-radius);
+            cursor: pointer;
+            transition: var(--transition);
+            font-weight: bold;
+        }
+
+        .button:hover {
+            background-color: #2980b9;
+        }
+
+        .button-danger {
+            background-color: var(--accent-color);
+        }
+
+        .button-danger:hover {
+            background-color: #c0392b;
+        }
+
+        .button-success {
+            background-color: var(--success-color);
+        }
+
+        .button-success:hover {
+            background-color: #219955;
+        }
+
+        /* 文件上传区域 */
+        .file-upload {
+            border: 2px dashed #ccc;
+            border-radius: var(--border-radius);
+            padding: 20px;
+            text-align: center;
+            margin-bottom: 20px;
+            background-color: #f9f9f9;
+        }
+
+        .file-input {
+            display: none;
+        }
+
+        .file-label {
+            display: block;
+            padding: 10px 15px;
+            background-color: var(--secondary-color);
+            color: white;
+            border-radius: var(--border-radius);
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .file-label:hover {
+            background-color: #2980b9;
+        }
+
+        /* 文件列表样式 */
+        .file-list {
+            margin-top: 20px;
+        }
+
+        .file-item {
+            background-color: #f5f5f5;
+            border-radius: var(--border-radius);
+            padding: 10px;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .file-name {
+            font-weight: bold;
+        }
+
+        .file-action {
+            color: var(--accent-color);
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        /* 基因列表样式 */
+        .gene-list {
+            margin-top: 20px;
+            max-height: 400px;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            border-radius: var(--border-radius);
+        }
+
+        .gene-header {
+            display: flex;
+            background-color: var(--primary-color);
+            color: white;
+            padding: 10px;
+            border-top-left-radius: var(--border-radius);
+            border-top-right-radius: var(--border-radius);
+            font-weight: bold;
+        }
+
+        .gene-item {
+            display: flex;
+            padding: 10px;
+            border-bottom: 1px solid #ddd;
+            align-items: center;
+        }
+
+        .gene-item:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+
+        .gene-checkbox {
+            flex: 0 0 5%;
+        }
+
+        .gene-original-name {
+            flex: 0 0 30%;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .gene-rename {
+            flex: 0 0 30%;
+        }
+
+        .gene-source {
+            flex: 0 0 20%;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .gene-sequence {
+            flex: 0 0 15%;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        /* 选择控制区域 */
+        .selection-controls {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+            flex-wrap: wrap;
+        }
+
+        /* 导出文件名区域 */
+        .export-filename {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #f5f5f5;
+            border-radius: var(--border-radius);
+        }
+
+        /* 结果区域样式 */
+        .result-box {
+            padding: 15px;
+            background-color: #f9f9f9;
+            border-radius: var(--border-radius);
+            margin-top: 15px;
+            border-left: 4px solid var(--secondary-color);
+        }
+
+        /* 状态栏样式 */
+        .status-bar {
+            padding: 10px;
+            background-color: var(--primary-color);
+            color: white;
+            text-align: center;
+            font-weight: bold;
+            width: 100%;
+            margin-top: 20px;
+        }
+
+        @media (max-width: 768px) {
+            .content {
+                padding: 15px;
+            }
+            
+            .gene-header, .gene-item {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            
+            .gene-checkbox, .gene-original-name, 
+            .gene-rename, .gene-source, .gene-sequence {
+                flex: 1 1 100%;
+                margin-bottom: 5px;
+            }
+            
+            .selection-controls {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="tool-header">
+        <h2 style="color: white;">序列文件合并</h2>
+        <a href="index.html" class="back-button">返回主界面</a>
+    </div>
+    
+    <div class="content">
+        <!-- 文件上传部分 -->
+        <div class="section">
+            <h2>上传FASTA文件</h2>
+            
+            <div class="file-upload">
+                <label for="file-input" class="file-label">选择文件</label>
+                <input type="file" id="file-input" class="file-input" multiple accept=".fasta,.fa,.txt,.seq">
+                <p style="margin-top: 10px;">支持FASTA格式文件（.fasta, .fa, .txt, .seq）</p>
+            </div>
+            
+            <div id="file-list" class="file-list">
+                <!-- 上传的文件列表将在这里显示 -->
+            </div>
+        </div>
+        
+        <!-- 基因选择部分 -->
+        <div class="section">
+            <h2>选择基因</h2>
+            
+            <div class="selection-controls">
+                <button id="select-all" class="button">全选所有基因</button>
+                <button id="deselect-all" class="button button-danger">取消全选</button>
+            </div>
+            
+            <div id="gene-list" class="gene-list">
+                <!-- 基因列表将在这里显示 -->
+                <div class="gene-header">
+                    <div class="gene-checkbox">选择</div>
+                    <div class="gene-original-name">原始名称</div>
+                    <div class="gene-rename">重命名</div>
+                    <div class="gene-source">来源文件</div>
+                    <div class="gene-sequence">序列长度</div>
+                </div>
+            </div>
+            
+            <!-- 导出文件名设置 -->
+            <div class="export-filename">
+                <label for="output-filename">输出文件名:</label>
+                <input type="text" id="output-filename" value="merged_sequences.fasta" placeholder="输入输出文件名">
+                <p style="margin-top: 5px; font-size: 0.9rem; color: #666;">请输入文件名，确保以.fasta或.fa结尾</p>
+            </div>
+            
+            <div class="selection-controls" style="margin-top: 20px;">
+                <button id="export-button" class="button button-success">导出选中基因</button>
+            </div>
+            
+            <div id="export-result" class="result-box" style="display: none;">
+                <!-- 导出结果将在这里显示 -->
+            </div>
+        </div>
+    </div>
+    
+    <div class="status-bar">
+        江南大学 粮食发酵工艺与技术国家工程实验室
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // 存储所有解析出的基因
+            let allGenes = [];
+            // 存储上传的文件
+            let uploadedFiles = [];
+            
+            // 文件上传处理
+            document.getElementById('file-input').addEventListener('change', function(e) {
+                const files = e.target.files;
+                if (files.length === 0) return;
+                
+                const fileListContainer = document.getElementById('file-list');
+                
+                for (let i = 0; i < files.length; i++) {
+                    const file = files[i];
+                    
+                    // 检查是否已上传同名文件
+                    if (uploadedFiles.some(f => f.name === file.name)) {
+                        alert(`文件 "${file.name}" 已经上传过了`);
+                        continue;
+                    }
+                    
+                    uploadedFiles.push(file);
+                    
+                    // 显示文件项
+                    const fileItem = document.createElement('div');
+                    fileItem.className = 'file-item';
+                    fileItem.innerHTML = `
+                        <span class="file-name">${file.name}</span>
+                        <span class="file-action" data-filename="${file.name}">移除</span>
+                    `;
+                    fileListContainer.appendChild(fileItem);
+                    
+                    // 读取文件内容
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        parseFastaFile(e.target.result, file.name);
+                    };
+                    reader.readAsText(file);
+                }
+                
+                // 为移除按钮添加事件监听
+                document.querySelectorAll('.file-action').forEach(button => {
+                    button.addEventListener('click', function() {
+                        const filename = this.getAttribute('data-filename');
+                        removeFile(filename);
+                    });
+                });
+            });
+            
+            // 解析FASTA文件
+            function parseFastaFile(content, filename) {
+                const lines = content.split('\n');
+                let currentHeader = '';
+                let currentSequence = '';
+                
+                for (let i = 0; i < lines.length; i++) {
+                    const line = lines[i].trim();
+                    
+                    if (line.startsWith('>')) {
+                        // 保存上一个基因（如果有）
+                        if (currentHeader !== '') {
+                            saveGene(currentHeader, currentSequence, filename);
+                        }
+                        
+                        // 开始新基因
+                        currentHeader = line.substring(1).trim(); // 去掉">"
+                        currentSequence = '';
+                    } else if (line !== '' && currentHeader !== '') {
+                        // 添加序列行
+                        currentSequence += line;
+                    }
+                }
+                
+                // 保存最后一个基因
+                if (currentHeader !== '') {
+                    saveGene(currentHeader, currentSequence, filename);
+                }
+                
+                // 更新基因列表显示
+                updateGeneList();
+            }
+            
+            // 保存基因数据
+            function saveGene(header, sequence, filename) {
+                allGenes.push({
+                    id: allGenes.length,
+                    originalName: header,
+                    customName: header, // 默认使用原始名称
+                    sequence: sequence,
+                    sourceFile: filename,
+                    selected: false
+                });
+            }
+            
+            // 更新基因列表显示
+            function updateGeneList() {
+                const geneListContainer = document.getElementById('gene-list');
+                
+                // 清除现有列表（保留标题）
+                const header = geneListContainer.querySelector('.gene-header');
+                geneListContainer.innerHTML = '';
+                geneListContainer.appendChild(header);
+                
+                // 添加所有基因项
+                allGenes.forEach(gene => {
+                    const geneItem = document.createElement('div');
+                    geneItem.className = 'gene-item';
+                    geneItem.innerHTML = `
+                        <div class="gene-checkbox">
+                            <input type="checkbox" class="gene-select" data-id="${gene.id}" ${gene.selected ? 'checked' : ''}>
+                        </div>
+                        <div class="gene-original-name" title="${gene.originalName}">${gene.originalName}</div>
+                        <div class="gene-rename">
+                            <input type="text" class="gene-rename-input" data-id="${gene.id}" value="${gene.customName}" placeholder="输入新名称">
+                        </div>
+                        <div class="gene-source" title="${gene.sourceFile}">${gene.sourceFile}</div>
+                        <div class="gene-sequence" title="${gene.sequence}">${gene.sequence.length} bp</div>
+                    `;
+                    geneListContainer.appendChild(geneItem);
+                });
+                
+                // 为复选框添加事件监听
+                document.querySelectorAll('.gene-select').forEach(checkbox => {
+                    checkbox.addEventListener('change', function() {
+                        const id = parseInt(this.getAttribute('data-id'));
+                        const gene = allGenes.find(g => g.id === id);
+                        if (gene) {
+                            gene.selected = this.checked;
+                        }
+                    });
+                });
+                
+                // 为重命名输入框添加事件监听
+                document.querySelectorAll('.gene-rename-input').forEach(input => {
+                    input.addEventListener('change', function() {
+                        const id = parseInt(this.getAttribute('data-id'));
+                        const gene = allGenes.find(g => g.id === id);
+                        if (gene) {
+                            gene.customName = this.value.trim() || gene.originalName;
+                        }
+                    });
+                });
+            }
+            
+            // 移除文件
+            function removeFile(filename) {
+                // 从上传文件列表中移除
+                uploadedFiles = uploadedFiles.filter(f => f.name !== filename);
+                
+                // 从基因列表中移除相关基因
+                allGenes = allGenes.filter(g => g.sourceFile !== filename);
+                
+                // 更新文件列表显示
+                const fileListContainer = document.getElementById('file-list');
+                fileListContainer.innerHTML = '';
+                
+                uploadedFiles.forEach(file => {
+                    const fileItem = document.createElement('div');
+                    fileItem.className = 'file-item';
+                    fileItem.innerHTML = `
+                        <span class="file-name">${file.name}</span>
+                        <span class="file-action" data-filename="${file.name}">移除</span>
+                    `;
+                    fileListContainer.appendChild(fileItem);
+                });
+                
+                // 为移除按钮添加事件监听
+                document.querySelectorAll('.file-action').forEach(button => {
+                    button.addEventListener('click', function() {
+                        const filename = this.getAttribute('data-filename');
+                        removeFile(filename);
+                    });
+                });
+                
+                // 更新基因列表显示
+                updateGeneList();
+            }
+            
+            // 全选所有基因
+            document.getElementById('select-all').addEventListener('click', function() {
+                allGenes.forEach(gene => {
+                    gene.selected = true;
+                });
+                updateGeneList();
+            });
+            
+            // 取消全选
+            document.getElementById('deselect-all').addEventListener('click', function() {
+                allGenes.forEach(gene => {
+                    gene.selected = false;
+                });
+                updateGeneList();
+            });
+            
+            // 导出选中基因
+            document.getElementById('export-button').addEventListener('click', function() {
+                const selectedGenes = allGenes.filter(gene => gene.selected);
+                
+                if (selectedGenes.length === 0) {
+                    alert('请至少选择一个基因');
+                    return;
+                }
+                
+                // 获取输出文件名
+                let outputFilename = document.getElementById('output-filename').value.trim();
+                if (!outputFilename) {
+                    alert('请输入输出文件名');
+                    return;
+                }
+                
+                // 确保文件名以.fasta或.fa结尾
+                if (!outputFilename.endsWith('.fasta') && !outputFilename.endsWith('.fa')) {
+                    outputFilename += '.fasta';
+                    document.getElementById('output-filename').value = outputFilename;
+                }
+                
+                // 生成FASTA内容
+                let fastaContent = '';
+                selectedGenes.forEach(gene => {
+                    fastaContent += `>${gene.customName}\n`;
+                    
+                    // 每80个字符换行（FASTA标准格式）
+                    for (let i = 0; i < gene.sequence.length; i += 80) {
+                        fastaContent += gene.sequence.substring(i, i + 80) + '\n';
+                    }
+                });
+                
+                // 创建下载链接
+                const blob = new Blob([fastaContent], { type: 'text/plain' });
+                const url = URL.createObjectURL(blob);
+                
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = outputFilename;
+                document.body.appendChild(a);
+                a.click();
+                
+                // 清理
+                setTimeout(() => {
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                }, 100);
+                
+                // 显示导出结果
+                const exportResult = document.getElementById('export-result');
+                exportResult.innerHTML = `
+                    <h3>导出成功</h3>
+                    <p>已导出 ${selectedGenes.length} 个基因序列</p>
+                    <p>文件已下载为: <strong>${outputFilename}</strong></p>
+                `;
+                exportResult.style.display = 'block';
+            });
+        });
+    </script>
+</body>
+</html>
