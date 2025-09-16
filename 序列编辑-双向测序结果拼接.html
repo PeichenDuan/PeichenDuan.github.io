@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>双向测序结果拼接 - 生物信息分析工具包</title>
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --secondary-color: #3498db;
+            --accent-color: #e74c3c;
+            --light-color: #ecf0f1;
+            --dark-color: #2c3e50;
+            --success-color: #27ae60;
+            --warning-color: #f39c12;
+            --border-radius: 8px;
+            --box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            --transition: all 0.3s ease;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            min-height: 100vh;
+        }
+
+        /* 顶部标题栏 */
+        .tool-header {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background-color: var(--primary-color);
+            color: white;
+            padding: 20px;
+            width: 100%;
+            text-align: center;
+        }
+
+        .back-button {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            padding: 8px 16px;
+            border-radius: var(--border-radius);
+            cursor: pointer;
+            transition: var(--transition);
+            font-size: 0.9rem;
+            margin-top: 15px;
+            text-decoration: none;
+        }
+
+        .back-button:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        /* 内容区域样式 */
+        .content {
+            padding: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .section {
+            background: white;
+            border-radius: var(--border-radius);
+            padding: 20px;
+            margin-bottom: 30px;
+            box-shadow: var(--box-shadow);
+        }
+
+        h2 {
+            color: var(--primary-color);
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        h3 {
+            color: var(--secondary-color);
+            margin-bottom: 15px;
+            text-align: center;
+        }
+
+        /* 表单样式 */
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+        }
+
+        input[type="text"], textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: var(--border-radius);
+            font-size: 14px;
+        }
+
+        textarea {
+            min-height: 100px;
+            resize: vertical;
+        }
+
+        /* 按钮样式 */
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .button {
+            padding: 10px 15px;
+            border: none;
+            border-radius: var(--border-radius);
+            cursor: pointer;
+            transition: var(--transition);
+            font-weight: bold;
+        }
+
+        .primary-button {
+            background-color: var(--secondary-color);
+            color: white;
+        }
+
+        .primary-button:hover {
+            background-color: #2980b9;
+        }
+
+        .success-button {
+            background-color: var(--success-color);
+            color: white;
+        }
+
+        .success-button:hover {
+            background-color: #219653;
+        }
+
+        .warning-button {
+            background-color: var(--warning-color);
+            color: white;
+        }
+
+        .warning-button:hover {
+            background-color: #e67e22;
+        }
+
+        /* 基因条目样式 */
+        .gene-entry {
+            border: 1px solid #ddd;
+            border-radius: var(--border-radius);
+            padding: 15px;
+            margin-bottom: 20px;
+            background-color: #f9f9f9;
+        }
+
+        .gene-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .gene-title {
+            font-weight: bold;
+            color: var(--primary-color);
+        }
+
+        .remove-gene {
+            background-color: var(--accent-color);
+            color: white;
+            border: none;
+            border-radius: var(--border-radius);
+            padding: 5px 10px;
+            cursor: pointer;
+        }
+
+        /* 结果区域样式 */
+        .result-box {
+            padding: 15px;
+            background-color: #f9f9f9;
+            border-radius: var(--border-radius);
+            margin-top: 15px;
+            border-left: 4px solid var(--secondary-color);
+        }
+
+        .sequence-display {
+            font-family: monospace;
+            white-space: pre-wrap;
+            word-break: break-all;
+            background-color: #fff;
+            padding: 10px;
+            border-radius: var(--border-radius);
+            border: 1px solid #ddd;
+            margin-top: 10px;
+        }
+
+        .highlight {
+            background-color: #fffacd;
+            padding: 2px 0;
+        }
+
+        /* 状态栏样式 */
+        .status-bar {
+            padding: 10px;
+            background-color: var(--primary-color);
+            color: white;
+            text-align: center;
+            font-weight: bold;
+            width: 100%;
+            margin-top: 20px;
+        }
+
+        @media (max-width: 768px) {
+            .content {
+                padding: 15px;
+            }
+            
+            .button-group {
+                flex-direction: column;
+            }
+            
+            .button {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="tool-header">
+        <h2 style="color: white;">双向测序结果拼接</h2>
+        <a href="index.html" class="back-button">返回主界面</a>
+    </div>
+    
+    <div class="content">
+        <div class="section">
+            <h2>双向测序结果拼接</h2>
+            <p>上传多个基因的正向链和反向互补链序列，系统将自动拼接并生成完整序列。</p>
+            
+            <div id="genes-container">
+                <!-- 基因条目将动态添加到这里 -->
+            </div>
+            
+            <div class="button-group">
+                <button id="add-gene" class="button primary-button">添加基因</button>
+                <button id="process-all" class="button success-button">处理所有基因</button>
+                <button id="export-all" class="button warning-button">导出所有基因(FASTA)</button>
+            </div>
+            
+            <div id="process-result" class="result-box" style="display: none;">
+                <!-- 处理结果将在这里显示 -->
+            </div>
+        </div>
+    </div>
+    
+    <div class="status-bar">
+        江南大学 粮食发酵工艺与技术国家工程实验室
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const genesContainer = document.getElementById('genes-container');
+            const addGeneButton = document.getElementById('add-gene');
+            const processAllButton = document.getElementById('process-all');
+            const exportAllButton = document.getElementById('export-all');
+            const processResult = document.getElementById('process-result');
+            
+            let geneCount = 0;
+            let processedGenes = [];
+            
+            // 添加新的基因输入区域
+            addGeneButton.addEventListener('click', function() {
+                addGeneEntry();
+            });
+            
+            // 处理所有基因
+            processAllButton.addEventListener('click', function() {
+                processAllGenes();
+            });
+            
+            // 导出所有基因
+            exportAllButton.addEventListener('click', function() {
+                exportAllGenes();
+            });
+            
+            // 初始添加一个基因输入区域
+            addGeneEntry();
+            
+            // 添加基因输入区域的函数
+            function addGeneEntry() {
+                geneCount++;
+                const geneId = `gene-${geneCount}`;
+                
+                const geneEntry = document.createElement('div');
+                geneEntry.className = 'gene-entry';
+                geneEntry.id = geneId;
+                
+                geneEntry.innerHTML = `
+                    <div class="gene-header">
+                        <span class="gene-title">基因 ${geneCount}</span>
+                        <button class="remove-gene" onclick="removeGene('${geneId}')">移除</button>
+                    </div>
+                    <div class="form-group">
+                        <label for="gene-name-${geneCount}">基因名称:</label>
+                        <input type="text" id="gene-name-${geneCount}" placeholder="输入基因名称">
+                    </div>
+                    <div class="form-group">
+                        <label for="forward-sequence-${geneCount}">正向链序列:</label>
+                        <textarea id="forward-sequence-${geneCount}" placeholder="输入正向链序列（如ATCGCCCAT）"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="reverse-sequence-${geneCount}">反向互补链序列:</label>
+                        <textarea id="reverse-sequence-${geneCount}" placeholder="输入反向互补链序列（如TTCACGCCCAA）"></textarea>
+                    </div>
+                    <div class="button-group">
+                        <button class="button primary-button" onclick="processGene('${geneId}')">处理此基因</button>
+                    </div>
+                    <div id="result-${geneId}" class="result-box" style="display: none;">
+                        <!-- 单个基因处理结果将在这里显示 -->
+                    </div>
+                `;
+                
+                genesContainer.appendChild(geneEntry);
+            }
+            
+            // 移除基因输入区域
+            window.removeGene = function(geneId) {
+                const geneElement = document.getElementById(geneId);
+                if (geneElement) {
+                    genesContainer.removeChild(geneElement);
+                }
+            }
+            
+            // 处理单个基因
+            window.processGene = function(geneId) {
+                const idParts = geneId.split('-');
+                const geneNum = idParts[1];
+                
+                const name = document.getElementById(`gene-name-${geneNum}`).value.trim();
+                const forwardSeq = cleanSequence(document.getElementById(`forward-sequence-${geneNum}`).value);
+                const reverseSeq = cleanSequence(document.getElementById(`reverse-sequence-${geneNum}`).value);
+                
+                if (!name) {
+                    alert('请输入基因名称');
+                    return;
+                }
+                
+                if (!forwardSeq || !reverseSeq) {
+                    alert('请输入正向链和反向互补链序列');
+                    return;
+                }
+                
+                // 计算反向互补链(X链)
+                const xChain = getReverseComplement(reverseSeq);
+                
+                // 寻找最长相同段落(Y)
+                const longestMatch = findLongestCommonSubstring(forwardSeq, xChain);
+                
+                if (longestMatch.length === 0) {
+                    document.getElementById(`result-${geneId}`).innerHTML = `
+                        <h3>处理结果: ${name}</h3>
+                        <p>未找到正向链和反向互补链之间的相同段落</p>
+                    `;
+                    document.getElementById(`result-${geneId}`).style.display = 'block';
+                    return;
+                }
+                
+                // 拼接完整序列
+                const forwardBeforeY = forwardSeq.substring(0, longestMatch.startInForward);
+                const xAfterY = xChain.substring(longestMatch.startInX + longestMatch.length);
+                const completeSequence = forwardBeforeY + longestMatch.substring + xAfterY;
+                
+                // 存储处理结果
+                const geneData = {
+                    id: geneId,
+                    name: name,
+                    forwardSeq: forwardSeq,
+                    reverseSeq: reverseSeq,
+                    xChain: xChain,
+                    longestMatch: longestMatch,
+                    completeSequence: completeSequence
+                };
+                
+                // 更新或添加处理结果
+                const index = processedGenes.findIndex(g => g.id === geneId);
+                if (index !== -1) {
+                    processedGenes[index] = geneData;
+                } else {
+                    processedGenes.push(geneData);
+                }
+                
+                // 显示处理结果
+                const resultDiv = document.getElementById(`result-${geneId}`);
+                resultDiv.innerHTML = `
+                    <h3>处理结果: ${name}</h3>
+                    <p><strong>最长相同段落(Y):</strong> ${longestMatch.substring} (长度: ${longestMatch.length}bp)</p>
+                    <p><strong>完整序列长度:</strong> ${completeSequence.length}bp</p>
+                    <div class="sequence-display">
+                        ${formatSequenceWithHighlight(forwardBeforeY, longestMatch.substring, xAfterY)}
+                    </div>
+                    <div class="button-group">
+                        <button class="button success-button" onclick="exportSingleGene('${geneId}')">导出此基因(FASTA)</button>
+                    </div>
+                `;
+                resultDiv.style.display = 'block';
+            }
+            
+            // 处理所有基因
+            function processAllGenes() {
+                const geneEntries = document.querySelectorAll('.gene-entry');
+                if (geneEntries.length === 0) {
+                    alert('请至少添加一个基因');
+                    return;
+                }
+                
+                // 处理每个基因
+                geneEntries.forEach(entry => {
+                    const geneId = entry.id;
+                    window.processGene(geneId);
+                });
+                
+                // 显示总体处理结果
+                processResult.innerHTML = `
+                    <h3>批量处理完成</h3>
+                    <p>已成功处理 ${processedGenes.length} 个基因</p>
+                    <p>点击"导出所有基因"按钮下载FASTA文件</p>
+                `;
+                processResult.style.display = 'block';
+            }
+            
+            // 导出单个基因
+            window.exportSingleGene = function(geneId) {
+                const geneData = processedGenes.find(g => g.id === geneId);
+                if (!geneData) {
+                    alert('请先处理此基因');
+                    return;
+                }
+                
+                const fastaContent = `>${geneData.name}\n${formatSequenceForFasta(geneData.completeSequence)}`;
+                downloadFasta(fastaContent, `${geneData.name}.fasta`);
+            }
+            
+            // 导出所有基因
+            function exportAllGenes() {
+                if (processedGenes.length === 0) {
+                    alert('请先处理基因');
+                    return;
+                }
+                
+                let fastaContent = '';
+                processedGenes.forEach(gene => {
+                    fastaContent += `>${gene.name}\n${formatSequenceForFasta(gene.completeSequence)}\n`;
+                });
+                
+                downloadFasta(fastaContent, '双向测序结果.fasta');
+            }
+            
+            // 辅助函数：清理序列（移除空格和换行）
+            function cleanSequence(sequence) {
+                return sequence.replace(/\s/g, '').toUpperCase();
+            }
+            
+            // 辅助函数：获取反向互补链
+            function getReverseComplement(sequence) {
+                const complementMap = {
+                    'A': 'T',
+                    'T': 'A',
+                    'C': 'G',
+                    'G': 'C'
+                };
+                
+                return sequence.split('').reverse().map(base => complementMap[base] || base).join('');
+            }
+            
+            // 辅助函数：寻找最长公共子串
+            function findLongestCommonSubstring(str1, str2) {
+                let longest = '';
+                let startInForward = 0;
+                let startInX = 0;
+                
+                // 创建二维数组记录匹配长度
+                const table = Array(str1.length + 1).fill().map(() => Array(str2.length + 1).fill(0));
+                
+                for (let i = 1; i <= str1.length; i++) {
+                    for (let j = 1; j <= str2.length; j++) {
+                        if (str1[i - 1] === str2[j - 1]) {
+                            table[i][j] = table[i - 1][j - 1] + 1;
+                            if (table[i][j] > longest.length) {
+                                longest = str1.substring(i - table[i][j], i);
+                                startInForward = i - table[i][j];
+                                startInX = j - table[i][j];
+                            }
+                        } else {
+                            table[i][j] = 0;
+                        }
+                    }
+                }
+                
+                return {
+                    substring: longest,
+                    length: longest.length,
+                    startInForward: startInForward,
+                    startInX: startInX
+                };
+            }
+            
+            // 辅助函数：格式化序列用于显示（高亮相同段落）
+            function formatSequenceWithHighlight(beforeY, y, afterY) {
+                // 每80个字符换行
+                const formatPart = (seq) => {
+                    if (!seq) return '';
+                    return seq.match(/.{1,80}/g).join('\n');
+                };
+                
+                return `${formatPart(beforeY)}<span class="highlight">${formatPart(y)}</span>${formatPart(afterY)}`;
+            }
+            
+            // 辅助函数：格式化序列用于FASTA文件（每80个字符换行）
+            function formatSequenceForFasta(sequence) {
+                return sequence.match(/.{1,80}/g).join('\n');
+            }
+            
+            // 辅助函数：下载FASTA文件
+            function downloadFasta(content, fileName) {
+                const blob = new Blob([content], { type: 'text/plain' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = fileName;
+                document.body.appendChild(a);
+                a.click();
+                setTimeout(() => {
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                }, 0);
+            }
+        });
+    </script>
+</body>
+</html>
