@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>生物信息分析工具包</title>
     <style>
-        /* 所有样式保持不变 */
         :root {
             --primary-color: #2c3e50;
             --secondary-color: #3498db;
@@ -60,6 +59,7 @@
             background: rgba(255, 255, 255, 0.9);
             margin: 20px 0;
             box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            transition: var(--transition);
         }
 
         .section-title {
@@ -143,6 +143,22 @@
             padding: 3px 10px;
             border-radius: 12px;
             font-size: 0.8rem;
+        }
+
+        /* 隐藏版块样式 */
+        .hidden-section {
+            display: none;
+            background: linear-gradient(135deg, #fceabb 0%, #f8b500 100%);
+            border: 2px dashed var(--accent-color);
+        }
+
+        .hidden-section .section-title {
+            color: var(--accent-color);
+            border-bottom: 2px dashed var(--accent-color);
+        }
+
+        .hidden-section .tool-card-header {
+            background-color: var(--accent-color);
         }
 
         .footer {
@@ -302,8 +318,90 @@
         </div>
     </div>
     
+    <!-- 隐藏功能版块 -->
+    <div id="hiddenSection" class="section-block hidden-section">
+        <h2 class="section-title">隐藏功能</h2>
+        <div class="tools-grid">
+            <a href="隐藏功能-超级五子棋.html" class="tool-card">
+                <div class="tool-card-header">超级五子棋</div>
+                <div class="tool-card-body">
+                    <p>体验特殊规则的五子棋游戏，放松心情</p>
+                </div>
+                <div class="tool-card-footer">点击进入</div>
+            </a>
+            
+            <div class="tool-card coming-soon">
+                <div class="tool-card-header">更多功能</div>
+                <div class="tool-card-body">
+                    <p>更多隐藏功能开发中</p>
+                </div>
+                <div class="tool-card-footer">开发中</div>
+            </div>
+        </div>
+    </div>
+    
     <div class="footer">
         江南大学 粮食发酵工艺与技术国家工程实验室
     </div>
+
+    <script>
+        // 键盘快捷键监听
+        document.addEventListener('DOMContentLoaded', function() {
+            let keysPressed = {};
+            let requiredKeys = ['Control', 'y', 'c'];
+            let hiddenSection = document.getElementById('hiddenSection');
+            
+            document.addEventListener('keydown', function(event) {
+                // 存储按下的键
+                keysPressed[event.key] = true;
+                
+                // 检查是否同时按下了所有需要的键
+                let allKeysPressed = requiredKeys.every(key => keysPressed[key]);
+                
+                if (allKeysPressed) {
+                    // 切换隐藏版块的显示状态
+                    if (hiddenSection.style.display === 'block') {
+                        hiddenSection.style.display = 'none';
+                    } else {
+                        hiddenSection.style.display = 'block';
+                        
+                        // 添加显示动画
+                        hiddenSection.style.animation = 'highlight 2s';
+                    }
+                    
+                    // 清除按键状态，防止重复触发
+                    keysPressed = {};
+                    
+                    // 阻止默认行为
+                    event.preventDefault();
+                }
+            });
+            
+            document.addEventListener('keyup', function(event) {
+                // 移除松开的键
+                delete keysPressed[event.key];
+            });
+            
+            // 添加高亮动画
+            let style = document.createElement('style');
+            style.textContent = `
+                @keyframes highlight {
+                    0% { 
+                        transform: scale(0.98);
+                        background: linear-gradient(135deg, #fceabb 0%, #f8b500 100%);
+                    }
+                    50% { 
+                        transform: scale(1.01);
+                        background: linear-gradient(135deg, #ffdd9a 0%, #ffa500 100%);
+                    }
+                    100% { 
+                        transform: scale(1);
+                        background: linear-gradient(135deg, #fceabb 0%, #f8b500 100%);
+                    }
+                }
+            `;
+            document.head.appendChild(style);
+        });
+    </script>
 </body>
 </html>
