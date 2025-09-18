@@ -1,0 +1,991 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>五子棋游戏 - 生物信息分析工具包</title>
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --secondary-color: #3498db;
+            --accent-color: #e74c3c;
+            --light-color: #ecf0f1;
+            --dark-color: #2c3e50;
+            --success-color: #27ae60;
+            --warning-color: #f39c12;
+            --border-radius: 8px;
+            --box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            --transition: all 0.3s ease;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        /* 顶部标题栏 */
+        .tool-header {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background-color: var(--primary-color);
+            color: white;
+            padding: 20px;
+            border-radius: var(--border-radius);
+            width: 100%;
+            text-align: center;
+        }
+
+        .back-button {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            padding: 8px 16px;
+            border-radius: var(--border-radius);
+            cursor: pointer;
+            transition: var(--transition);
+            font-size: 0.9rem;
+            margin-top: 15px;
+            text-decoration: none;
+        }
+
+        .back-button:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        /* 内容区域样式 */
+        .content {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .game-section {
+            flex: 1;
+            min-width: 300px;
+            background: white;
+            border-radius: var(--border-radius);
+            padding: 20px;
+            box-shadow: var(--box-shadow);
+        }
+
+        .info-section {
+            flex: 0 0 300px;
+            background: white;
+            border-radius: var(--border-radius);
+            padding: 20px;
+            box-shadow: var(--box-shadow);
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        h2 {
+            color: var(--primary-color);
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        h3 {
+            color: var(--secondary-color);
+            margin-bottom: 15px;
+            text-align: center;
+        }
+
+        /* 棋盘样式 */
+        .board-container {
+            position: relative;
+            margin: 0 auto;
+            width: 500px;
+            height: 500px;
+        }
+
+        #gomoku-board {
+            position: absolute;
+            left: 0;
+            top: 0;
+            border: 2px solid var(--primary-color);
+            border-radius: var(--border-radius);
+            background: #deb887;
+            box-shadow: var(--box-shadow);
+        }
+
+        /* 炸弹按钮区域 */
+        .bomb-section {
+            background: #f9f9f9;
+            padding: 15px;
+            border-radius: var(--border-radius);
+            text-align: center;
+        }
+
+        .bomb-button {
+            background-color: var(--accent-color);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: var(--border-radius);
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 1.2rem;
+            transition: var(--transition);
+            margin: 15px 0;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        .bomb-button:hover:not(:disabled) {
+            background-color: #c0392b;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
+        }
+
+        .bomb-button:disabled {
+            background-color: #95a5a6;
+            cursor: not-allowed;
+        }
+
+        /* 游戏信息 */
+        .game-info {
+            background: #f9f9f9;
+            padding: 15px;
+            border-radius: var(--border-radius);
+        }
+
+        .game-info p {
+            margin: 10px 0;
+            padding: 8px;
+            background: white;
+            border-radius: var(--border-radius);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .info-highlight {
+            font-weight: bold;
+            color: var(--secondary-color);
+        }
+
+        /* 游戏状态信息 */
+        .game-status {
+            text-align: center;
+            font-size: 1.2rem;
+            font-weight: bold;
+            padding: 15px;
+            border-radius: var(--border-radius);
+            background: #e9f7fe;
+            margin-bottom: 20px;
+        }
+
+        /* 按钮样式 */
+        .action-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .action-button {
+            padding: 12px 24px;
+            border: none;
+            border-radius: var(--border-radius);
+            cursor: pointer;
+            font-weight: bold;
+            transition: var(--transition);
+        }
+
+        .start-button {
+            background-color: var(--success-color);
+            color: white;
+        }
+
+        .start-button:hover {
+            background-color: #219653;
+        }
+
+        .reset-button {
+            background-color: var(--warning-color);
+            color: white;
+        }
+
+        .reset-button:hover {
+            background-color: #e67e22;
+        }
+
+        /* 爆炸效果 */
+        .explosion {
+            position: absolute;
+            border-radius: 50%;
+            opacity: 0;
+            pointer-events: none;
+            transform: scale(0);
+            animation: explode 0.8s ease-out;
+        }
+
+        .player-explosion {
+            background: radial-gradient(circle, #ff9900 0%, #ff5500 70%, #ff0000 100%);
+        }
+
+        .ai-explosion {
+            background: radial-gradient(circle, #3498db 0%, #2980b9 70%, #1c6ea4 100%);
+        }
+
+        @keyframes explode {
+            0% {
+                transform: scale(0);
+                opacity: 1;
+            }
+            50% {
+                transform: scale(1);
+                opacity: 0.8;
+            }
+            100% {
+                transform: scale(1.5);
+                opacity: 0;
+            }
+        }
+
+        /* 状态栏样式 */
+        .status-bar {
+            padding: 15px;
+            background-color: var(--primary-color);
+            color: white;
+            text-align: center;
+            font-weight: bold;
+            width: 100%;
+            margin-top: 20px;
+            border-radius: var(--border-radius);
+        }
+
+        @media (max-width: 900px) {
+            .content {
+                flex-direction: column;
+            }
+            
+            .info-section {
+                flex: 1;
+                width: 100%;
+            }
+            
+            .board-container {
+                width: 100%;
+                height: auto;
+                aspect-ratio: 1/1;
+            }
+            
+            #gomoku-board {
+                width: 100%;
+                height: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="tool-header">
+        <h2 style="color: white;">万宁五子棋</h2>
+        <a href="index.html" class="back-button">返回主界面</a>
+    </div>
+    
+    <div class="content">
+        <div class="game-section">
+            <h2>万宁五子棋</h2>
+            
+            <div class="game-status" id="status-message">
+                点击"开始游戏"按钮开始对战
+            </div>
+            
+            <div class="board-container">
+                <canvas id="gomoku-board" width="500" height="500"></canvas>
+            </div>
+            
+            <div class="action-buttons">
+                <button id="start-game" class="action-button start-button">开始游戏</button>
+                <button id="reset-game" class="action-button reset-button">重新开始</button>
+            </div>
+        </div>
+        
+        <div class="info-section">
+            <div class="game-info">
+                <h3>游戏信息</h3>
+                <p><span class="info-highlight" id="player-color">棋子颜色: 等待分配</span></p>
+                <p><span class="info-highlight" id="turn-info">当前回合: 等待开始</span></p>
+                <p><span class="info-highlight" id="round-count">回合数: 0</span></p>
+                <p><span class="info-highlight" id="game-status">状态: 未开始</span></p>
+            </div>
+            
+            <div class="bomb-section">
+                <h3>炸弹</h3>
+                <p>每5回合可以使用一次炸弹，炸掉3×3范围内的棋子</p>
+                <button id="use-bomb" class="bomb-button" disabled>使用炸弹</button>
+                <p><span class="info-highlight" id="player-bomb-status">玩家炸弹: 不可用</span></p>
+                <p><span class="info-highlight" id="player-bomb-cooldown">玩家冷却: 0/5 回合</span></p>
+                <p><span class="info-highlight" id="ai-bomb-status">电脑炸弹: 不可用</span></p>
+                <p><span class="info-highlight" id="ai-bomb-cooldown">电脑冷却: 0/5 回合</span></p>
+            </div>
+            
+            <div class="game-info">
+                <h3>游戏规则</h3>
+                <p>• 黑棋先行，轮流在棋盘上放置棋子</p>
+                <p>• 任意方向连成5子即获胜</p>
+                <p>• 每5回合可以使用一次炸弹</p>
+                <p>• 炸弹可清除3×3区域内的所有棋子</p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="status-bar">
+        江南大学 粮食发酵工艺与技术国家工程实验室
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const canvas = document.getElementById('gomoku-board');
+            const ctx = canvas.getContext('2d');
+            const startButton = document.getElementById('start-game');
+            const resetButton = document.getElementById('reset-game');
+            const useBombButton = document.getElementById('use-bomb');
+            const statusMessage = document.getElementById('status-message');
+            const playerColorElement = document.getElementById('player-color');
+            const playerBombStatusElement = document.getElementById('player-bomb-status');
+            const playerBombCooldownElement = document.getElementById('player-bomb-cooldown');
+            const aiBombStatusElement = document.getElementById('ai-bomb-status');
+            const aiBombCooldownElement = document.getElementById('ai-bomb-cooldown');
+            const turnInfoElement = document.getElementById('turn-info');
+            const roundCountElement = document.getElementById('round-count');
+            const gameStatusElement = document.getElementById('game-status');
+            
+            // 游戏常量
+            const BOARD_SIZE = 15;
+            const CELL_SIZE = canvas.width / BOARD_SIZE;
+            const STONE_RADIUS = CELL_SIZE * 0.4;
+            const BOMB_COOLDOWN = 5; // 炸弹冷却回合数改回5
+            
+            // 游戏状态
+            let gameBoard = [];
+            let playerPiece = '';
+            let aiPiece = '';
+            let currentPlayer = '';
+            let gameActive = false;
+            let roundCount = 0;
+            let playerBombAvailable = false;
+            let playerBombCooldown = 0;
+            let aiBombAvailable = false;
+            let aiBombCooldown = 0;
+            let bombMode = false;
+            
+            // 初始化游戏
+            function initGame() {
+                // 创建空棋盘
+                gameBoard = Array(BOARD_SIZE).fill().map(() => Array(BOARD_SIZE).fill(''));
+                
+                // 随机分配玩家棋子颜色
+                playerPiece = Math.random() > 0.5 ? 'black' : 'white';
+                aiPiece = playerPiece === 'black' ? 'white' : 'black';
+                
+                // 黑子先手
+                currentPlayer = 'black';
+                
+                // 重置游戏状态
+                gameActive = true;
+                roundCount = 0;
+                playerBombAvailable = false;
+                playerBombCooldown = 0;
+                aiBombAvailable = false;
+                aiBombCooldown = 0;
+                bombMode = false;
+                
+                // 更新UI
+                playerColorElement.textContent = `棋子颜色: ${playerPiece === 'black' ? '黑子' : '白子'}`;
+                playerBombStatusElement.textContent = '玩家炸弹: 不可用';
+                playerBombCooldownElement.textContent = `玩家冷却: 0/${BOMB_COOLDOWN} 回合`;
+                aiBombStatusElement.textContent = '电脑炸弹: 不可用';
+                aiBombCooldownElement.textContent = `电脑冷却: 0/${BOMB_COOLDOWN} 回合`;
+                turnInfoElement.textContent = `当前回合: ${currentPlayer === playerPiece ? '玩家' : '电脑'}`;
+                roundCountElement.textContent = `回合数: ${roundCount}`;
+                gameStatusElement.textContent = '状态: 游戏中';
+                statusMessage.textContent = currentPlayer === playerPiece ? '请落子' : '电脑思考中...';
+                statusMessage.style.background = '#e9f7fe';
+                
+                useBombButton.disabled = true;
+                
+                // 绘制棋盘
+                drawBoard();
+                
+                // 如果电脑先手，让电脑下棋
+                if (currentPlayer === aiPiece) {
+                    setTimeout(aiMakeMove, 800);
+                }
+            }
+            
+            // 绘制棋盘
+            function drawBoard() {
+                // 清空画布
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                
+                // 绘制棋盘背景
+                ctx.fillStyle = '#deb887';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                
+                // 绘制网格线
+                ctx.strokeStyle = '#000';
+                ctx.lineWidth = 1;
+                
+                for (let i = 0; i < BOARD_SIZE; i++) {
+                    // 横线
+                    ctx.beginPath();
+                    ctx.moveTo(CELL_SIZE / 2, i * CELL_SIZE + CELL_SIZE / 2);
+                    ctx.lineTo(canvas.width - CELL_SIZE / 2, i * CELL_SIZE + CELL_SIZE / 2);
+                    ctx.stroke();
+                    
+                    // 竖线
+                    ctx.beginPath();
+                    ctx.moveTo(i * CELL_SIZE + CELL_SIZE / 2, CELL_SIZE / 2);
+                    ctx.lineTo(i * CELL_SIZE + CELL_SIZE / 2, canvas.height - CELL_SIZE / 2);
+                    ctx.stroke();
+                }
+                
+                // 绘制天元和星位
+                const starPoints = [3, 7, 11];
+                ctx.fillStyle = '#000';
+                
+                for (let x of starPoints) {
+                    for (let y of starPoints) {
+                        ctx.beginPath();
+                        ctx.arc(
+                            x * CELL_SIZE + CELL_SIZE / 2,
+                            y * CELL_SIZE + CELL_SIZE / 2,
+                            4, 0, Math.PI * 2
+                        );
+                        ctx.fill();
+                    }
+                }
+                
+                // 绘制棋子
+                for (let y = 0; y < BOARD_SIZE; y++) {
+                    for (let x = 0; x < BOARD_SIZE; x++) {
+                        if (gameBoard[y][x] !== '') {
+                            drawPiece(x, y, gameBoard[y][x]);
+                        }
+                    }
+                }
+            }
+            
+            // 绘制棋子
+            function drawPiece(x, y, color) {
+                const centerX = x * CELL_SIZE + CELL_SIZE / 2;
+                const centerY = y * CELL_SIZE + CELL_SIZE / 2;
+                
+                // 绘制棋子阴影
+                ctx.beginPath();
+                ctx.arc(centerX, centerY, STONE_RADIUS, 0, Math.PI * 2);
+                ctx.fillStyle = color === 'black' ? 'rgba(0, 0, 0, 0.6)' : 'rgba(255, 255, 255, 0.6)';
+                ctx.fill();
+                
+                // 绘制棋子
+                ctx.beginPath();
+                ctx.arc(centerX, centerY, STONE_RADIUS, 0, Math.PI * 2);
+                
+                if (color === 'black') {
+                    const gradient = ctx.createRadialGradient(
+                        centerX - 2, centerY - 2, 1,
+                        centerX, centerY, STONE_RADIUS
+                    );
+                    gradient.addColorStop(0, '#666');
+                    gradient.addColorStop(1, '#000');
+                    ctx.fillStyle = gradient;
+                } else {
+                    const gradient = ctx.createRadialGradient(
+                        centerX - 2, centerY - 2, 1,
+                        centerX, centerY, STONE_RADIUS
+                    );
+                    gradient.addColorStop(0, '#fff');
+                    gradient.addColorStop(1, '#ddd');
+                    ctx.fillStyle = gradient;
+                }
+                
+                ctx.fill();
+                
+                // 绘制棋子边框
+                ctx.beginPath();
+                ctx.arc(centerX, centerY, STONE_RADIUS, 0, Math.PI * 2);
+                ctx.strokeStyle = '#555';
+                ctx.lineWidth = 1;
+                ctx.stroke();
+            }
+            
+            // 处理玩家点击
+            function handleClick(event) {
+                if (!gameActive || currentPlayer !== playerPiece) return;
+                
+                if (bombMode) {
+                    handleBombClick(event);
+                    return;
+                }
+                
+                const rect = canvas.getBoundingClientRect();
+                const x = event.clientX - rect.left;
+                const y = event.clientY - rect.top;
+                
+                // 转换为棋盘坐标
+                const boardX = Math.floor(x / CELL_SIZE);
+                const boardY = Math.floor(y / CELL_SIZE);
+                
+                // 检查是否有效移动
+                if (boardX >= 0 && boardX < BOARD_SIZE && 
+                    boardY >= 0 && boardY < BOARD_SIZE && 
+                    gameBoard[boardY][boardX] === '') {
+                    
+                    // 放置棋子
+                    gameBoard[boardY][boardX] = playerPiece;
+                    drawBoard();
+                    
+                    // 检查胜利条件
+                    if (checkWin(boardX, boardY, playerPiece)) {
+                        endGame('玩家胜利!');
+                        return;
+                    }
+                    
+                    // 更新玩家炸弹冷却
+                    updatePlayerBombCooldown();
+                    
+                    // 切换玩家
+                    currentPlayer = aiPiece;
+                    turnInfoElement.textContent = `当前回合: 电脑`;
+                    roundCountElement.textContent = `回合数: ${++roundCount}`;
+                    statusMessage.textContent = '电脑思考中...';
+                    statusMessage.style.background = '#ffeaa7';
+                    
+                    // 电脑下棋
+                    setTimeout(aiMakeMove, 800);
+                }
+            }
+            
+            // AI下棋
+            function aiMakeMove() {
+                if (!gameActive || currentPlayer !== aiPiece) return;
+                
+                // 检查AI是否可以使用炸弹
+                if (aiBombAvailable && shouldAiUseBomb()) {
+                    useAiBomb();
+                    return;
+                }
+                
+                // 简单的AI策略：评估每个空位的分数并选择最高分的位置
+                let bestScore = -Infinity;
+                let bestMove = { x: -1, y: -1 };
+                
+                for (let y = 0; y < BOARD_SIZE; y++) {
+                    for (let x = 0; x < BOARD_SIZE; x++) {
+                        if (gameBoard[y][x] === '') {
+                            // 评估这个位置
+                            let score = evaluatePosition(x, y, aiPiece);
+                            
+                            // 防守：评估如果玩家下在这里的分数
+                            let playerScore = evaluatePosition(x, y, playerPiece);
+                            score = Math.max(score, playerScore * 0.9); // 防守权重略低于进攻
+                            
+                            if (score > bestScore) {
+                                bestScore = score;
+                                bestMove = { x, y };
+                            }
+                        }
+                    }
+                }
+                
+                // 执行最佳移动
+                if (bestMove.x !== -1 && bestMove.y !== -1) {
+                    gameBoard[bestMove.y][bestMove.x] = aiPiece;
+                    drawBoard();
+                    
+                    // 检查胜利条件
+                    if (checkWin(bestMove.x, bestMove.y, aiPiece)) {
+                        endGame('电脑胜利!');
+                        return;
+                    }
+                    
+                    // 更新AI炸弹冷却
+                    updateAiBombCooldown();
+                    
+                    // 切换玩家
+                    currentPlayer = playerPiece;
+                    turnInfoElement.textContent = `当前回合: 玩家`;
+                    roundCountElement.textContent = `回合数: ${++roundCount}`;
+                    statusMessage.textContent = '请落子';
+                    statusMessage.style.background = '#e9f7fe';
+                }
+            }
+            
+            // 评估位置分数
+            function evaluatePosition(x, y, piece) {
+                let score = 0;
+                const directions = [
+                    [1, 0],  // 水平
+                    [0, 1],  // 垂直
+                    [1, 1],  // 对角线
+                    [1, -1]  // 反对角线
+                ];
+                
+                for (let [dx, dy] of directions) {
+                    // 检查这个方向上的连续棋子
+                    let count = 1; // 当前位置算1
+                    let openEnds = 0;
+                    
+                    // 正向检查
+                    for (let i = 1; i <= 4; i++) {
+                        const nx = x + dx * i;
+                        const ny = y + dy * i;
+                        
+                        if (nx >= 0 && nx < BOARD_SIZE && ny >= 0 && ny < BOARD_SIZE) {
+                            if (gameBoard[ny][nx] === piece) {
+                                count++;
+                            } else if (gameBoard[ny][nx] === '') {
+                                openEnds++;
+                                break;
+                            } else {
+                                break;
+                            }
+                        } else {
+                            break;
+                        }
+                    }
+                    
+                    // 反向检查
+                    for (let i = 1; i <= 4; i++) {
+                        const nx = x - dx * i;
+                        const ny = y - dy * i;
+                        
+                        if (nx >= 0 && nx < BOARD_SIZE && ny >= 0 && ny < BOARD_SIZE) {
+                            if (gameBoard[ny][nx] === piece) {
+                                count++;
+                            } else if (gameBoard[ny][nx] === '') {
+                                openEnds++;
+                                break;
+                            } else {
+                                break;
+                            }
+                        } else {
+                            break;
+                        }
+                    }
+                    
+                    // 根据连续棋子和开放端评分
+                    if (count >= 5) {
+                        score += 100000; // 五连
+                    } else if (count === 4) {
+                        if (openEnds === 2) {
+                            score += 10000; // 活四
+                        } else if (openEnds === 1) {
+                            score += 1000; // 冲四
+                        }
+                    } else if (count === 3) {
+                        if (openEnds === 2) {
+                            score += 500; // 活三
+                        } else if (openEnds === 1) {
+                            score += 100; // 冲三
+                        }
+                    } else if (count === 2) {
+                        if (openEnds === 2) {
+                            score += 50; // 活二
+                        } else if (openEnds === 1) {
+                            score += 10; // 冲二
+                        }
+                    }
+                }
+                
+                // 中央位置加分
+                const centerX = BOARD_SIZE / 2;
+                const centerY = BOARD_SIZE / 2;
+                const distanceToCenter = Math.sqrt(Math.pow(x - centerX, 2) + Math.pow(y - centerY, 2));
+                score += (BOARD_SIZE - distanceToCenter) * 2;
+                
+                return score;
+            }
+            
+            // 检查胜利条件
+            function checkWin(x, y, piece) {
+                const directions = [
+                    [1, 0],  // 水平
+                    [0, 1],  // 垂直
+                    [1, 1],  // 对角线
+                    [1, -1]  // 反对角线
+                ];
+                
+                for (let [dx, dy] of directions) {
+                    let count = 1;
+                    
+                    // 正向检查
+                    for (let i = 1; i <= 4; i++) {
+                        const nx = x + dx * i;
+                        const ny = y + dy * i;
+                        
+                        if (nx >= 0 && nx < BOARD_SIZE && ny >= 0 && ny < BOARD_SIZE && 
+                            gameBoard[ny][nx] === piece) {
+                            count++;
+                        } else {
+                            break;
+                        }
+                    }
+                    
+                    // 反向检查
+                    for (let i = 1; i <= 4; i++) {
+                        const nx = x - dx * i;
+                        const ny = y - dy * i;
+                        
+                        if (nx >= 0 && nx < BOARD_SIZE && ny >= 0 && ny < BOARD_SIZE && 
+                            gameBoard[ny][nx] === piece) {
+                            count++;
+                        } else {
+                            break;
+                        }
+                    }
+                    
+                    if (count >= 5) {
+                        return true;
+                    }
+                }
+                
+                return false;
+            }
+            
+            // 更新玩家炸弹冷却
+            function updatePlayerBombCooldown() {
+                playerBombCooldown++;
+                
+                // 确保冷却值不超过最大值
+                playerBombCooldown = Math.min(playerBombCooldown, BOMB_COOLDOWN);
+                
+                if (playerBombCooldown >= BOMB_COOLDOWN) {
+                    playerBombAvailable = true;
+                    playerBombStatusElement.textContent = '玩家炸弹: 可用';
+                    useBombButton.disabled = false;
+                } else {
+                    playerBombAvailable = false;
+                    playerBombStatusElement.textContent = '玩家炸弹: 不可用';
+                    useBombButton.disabled = true;
+                }
+                
+                playerBombCooldownElement.textContent = `玩家冷却: ${playerBombCooldown}/${BOMB_COOLDOWN} 回合`;
+            }
+            
+            // 更新AI炸弹冷却
+            function updateAiBombCooldown() {
+                aiBombCooldown++;
+                
+                // 确保冷却值不超过最大值
+                aiBombCooldown = Math.min(aiBombCooldown, BOMB_COOLDOWN);
+                
+                if (aiBombCooldown >= BOMB_COOLDOWN) {
+                    aiBombAvailable = true;
+                    aiBombStatusElement.textContent = '电脑炸弹: 可用';
+                } else {
+                    aiBombAvailable = false;
+                    aiBombStatusElement.textContent = '电脑炸弹: 不可用';
+                }
+                
+                aiBombCooldownElement.textContent = `电脑冷却: ${aiBombCooldown}/${BOMB_COOLDOWN} 回合`;
+            }
+            
+            // 使用炸弹
+            function useBomb() {
+                if (!playerBombAvailable || !gameActive || currentPlayer !== playerPiece) return;
+                
+                bombMode = true;
+                statusMessage.textContent = '请点击要使用炸弹的位置';
+                statusMessage.style.background = '#ffcccc';
+            }
+            
+            // 处理炸弹点击
+            function handleBombClick(event) {
+                const rect = canvas.getBoundingClientRect();
+                const x = event.clientX - rect.left;
+                const y = event.clientY - rect.top;
+                
+                // 转换为棋盘坐标
+                const boardX = Math.floor(x / CELL_SIZE);
+                const boardY = Math.floor(y / CELL_SIZE);
+                
+                // 检查是否有效位置
+                if (boardX >= 0 && boardX < BOARD_SIZE && boardY >= 0 && boardY < BOARD_SIZE) {
+                    // 创建爆炸效果（玩家炸弹为红色）
+                    createExplosion(boardX, boardY, 'player');
+                    
+                    // 移除3x3区域内的所有棋子
+                    for (let dy = -1; dy <= 1; dy++) {
+                        for (let dx = -1; dx <= 1; dx++) {
+                            const nx = boardX + dx;
+                            const ny = boardY + dy;
+                            
+                            if (nx >= 0 && nx < BOARD_SIZE && ny >= 0 && ny < BOARD_SIZE) {
+                                gameBoard[ny][nx] = '';
+                            }
+                        }
+                    }
+                    
+                    // 重置玩家炸弹冷却
+                    playerBombCooldown = 0;
+                    playerBombAvailable = false;
+                    playerBombStatusElement.textContent = '玩家炸弹: 不可用';
+                    playerBombCooldownElement.textContent = `玩家冷却: 0/${BOMB_COOLDOWN} 回合`;
+                    useBombButton.disabled = true;
+                    
+                    // 重绘棋盘
+                    setTimeout(() => {
+                        drawBoard();
+                        
+                        bombMode = false;
+                        
+                        // 切换玩家
+                        currentPlayer = aiPiece;
+                        turnInfoElement.textContent = `当前回合: 电脑`;
+                        roundCountElement.textContent = `回合数: ${++roundCount}`;
+                        statusMessage.textContent = '电脑思考中...';
+                        statusMessage.style.background = '#ffeaa7';
+                        
+                        // 电脑下棋
+                        setTimeout(aiMakeMove, 800);
+                    }, 800);
+                }
+            }
+            
+            // 创建爆炸效果
+            function createExplosion(x, y, type) {
+                const centerX = x * CELL_SIZE + CELL_SIZE / 2;
+                const centerY = y * CELL_SIZE + CELL_SIZE / 2;
+                
+                const explosion = document.createElement('div');
+                explosion.className = `explosion ${type}-explosion`;
+                explosion.style.width = CELL_SIZE * 3 + 'px';
+                explosion.style.height = CELL_SIZE * 3 + 'px';
+                explosion.style.left = (centerX - CELL_SIZE * 1.5) + 'px';
+                explosion.style.top = (centerY - CELL_SIZE * 1.5) + 'px';
+                
+                document.querySelector('.board-container').appendChild(explosion);
+                
+                // 动画结束后移除元素
+                setTimeout(() => {
+                    explosion.remove();
+                }, 800);
+            }
+            
+            // AI是否应该使用炸弹
+            function shouldAiUseBomb() {
+                // 检查玩家是否有即将连成5子的情况
+                for (let y = 0; y < BOARD_SIZE; y++) {
+                    for (let x = 0; x < BOARD_SIZE; x++) {
+                        if (gameBoard[y][x] === '') {
+                            // 模拟玩家下在这里
+                            gameBoard[y][x] = playerPiece;
+                            const wouldWin = checkWin(x, y, playerPiece);
+                            gameBoard[y][x] = '';
+                            
+                            if (wouldWin) {
+                                return true;
+                            }
+                        }
+                    }
+                }
+                
+                // 随机决定是否使用炸弹（10%概率）
+                return Math.random() < 0.1;
+            }
+            
+            // AI使用炸弹
+            function useAiBomb() {
+                // 寻找最佳炸弹位置（破坏玩家最多的连子）
+                let bestScore = -Infinity;
+                let bestPosition = { x: 7, y: 7 }; // 默认中心位置
+                
+                for (let y = 1; y < BOARD_SIZE - 1; y++) {
+                    for (let x = 1; x < BOARD_SIZE - 1; x++) {
+                        let score = 0;
+                        
+                        // 计算这个位置爆炸会破坏多少玩家棋子
+                        for (let dy = -1; dy <= 1; dy++) {
+                            for (let dx = -1; dx <= 1; dx++) {
+                                const nx = x + dx;
+                                const ny = y + dy;
+                                
+                                if (gameBoard[ny][nx] === playerPiece) {
+                                    score += 10; // 每个玩家棋子值10分
+                                } else if (gameBoard[ny][nx] === aiPiece) {
+                                    score -= 5; // 每个AI棋子减5分（避免炸到自己）
+                                }
+                            }
+                        }
+                        
+                        if (score > bestScore) {
+                            bestScore = score;
+                            bestPosition = { x, y };
+                        }
+                    }
+                }
+                
+                // 创建爆炸效果（电脑炸弹为蓝色）
+                createExplosion(bestPosition.x, bestPosition.y, 'ai');
+                
+                // 移除3x3区域内的所有棋子
+                for (let dy = -1; dy <= 1; dy++) {
+                    for (let dx = -1; dx <= 1; dx++) {
+                        const nx = bestPosition.x + dx;
+                        const ny = bestPosition.y + dy;
+                        
+                        if (nx >= 0 && nx < BOARD_SIZE && ny >= 0 && ny < BOARD_SIZE) {
+                            gameBoard[ny][nx] = '';
+                        }
+                    }
+                }
+                
+                // 重置AI炸弹冷却
+                aiBombCooldown = 0;
+                aiBombAvailable = false;
+                aiBombStatusElement.textContent = '电脑炸弹: 不可用';
+                aiBombCooldownElement.textContent = `电脑冷却: 0/${BOMB_COOLDOWN} 回合`;
+                
+                // 重绘棋盘
+                setTimeout(() => {
+                    drawBoard();
+                    
+                    // 更新回合信息
+                    roundCountElement.textContent = `回合数: ${++roundCount}`;
+                    
+                    // 切换玩家
+                    currentPlayer = playerPiece;
+                    turnInfoElement.textContent = `当前回合: 玩家`;
+                    statusMessage.textContent = '电脑使用了炸弹！请落子';
+                    statusMessage.style.background = '#e9f7fe';
+                }, 800);
+            }
+            
+            // 结束游戏
+            function endGame(message) {
+                gameActive = false;
+                statusMessage.textContent = message;
+                statusMessage.style.background = message.includes('玩家') ? '#d4edda' : '#f8d7da';
+                gameStatusElement.textContent = '状态: 游戏结束';
+                
+                bombMode = false;
+                useBombButton.disabled = true;
+            }
+            
+            // 事件监听器
+            startButton.addEventListener('click', initGame);
+            resetButton.addEventListener('click', initGame);
+            useBombButton.addEventListener('click', useBomb);
+            canvas.addEventListener('click', handleClick);
+            
+            // 初始绘制棋盘
+            drawBoard();
+        });
+    </script>
+</body>
+</html>
