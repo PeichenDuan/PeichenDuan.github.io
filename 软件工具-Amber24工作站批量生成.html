@@ -1,0 +1,735 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Amber24工作站批量生成-md1</title>
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --secondary-color: #3498db;
+            --accent-color: #e74c3c;
+            --light-color: #ecf0f1;
+            --dark-color: #2c3e50;
+            --success-color: #27ae60;
+            --warning-color: #f39c12;
+            --border-radius: 8px;
+            --box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            --transition: all 0.3s ease;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            min-height: 100vh;
+        }
+
+        /* 顶部标题栏 */
+        .tool-header {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background-color: var(--primary-color);
+            color: white;
+            padding: 20px;
+            width: 100%;
+            text-align: center;
+        }
+
+        .back-button {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            padding: 8px 16px;
+            border-radius: var(--border-radius);
+            cursor: pointer;
+            transition: var(--transition);
+            font-size: 0.9rem;
+            margin-top: 15px;
+            text-decoration: none;
+        }
+
+        .back-button:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        /* 内容区域样式 */
+        .content {
+            padding: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .section {
+            background: white;
+            border-radius: var(--border-radius);
+            padding: 20px;
+            margin-bottom: 30px;
+            box-shadow: var(--box-shadow);
+        }
+
+        h2 {
+            color: var(--primary-color);
+            text-align: center;
+        }
+
+        h3 {
+            color: var(--secondary-color);
+            margin-bottom: 15px;
+            text-align: center;
+        }
+
+        /* 表单样式 */
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+        }
+
+        input[type="text"], textarea, select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: var(--border-radius);
+            font-size: 14px;
+        }
+
+        textarea {
+            min-height: 100px;
+            resize: vertical;
+        }
+
+        /* 文件上传样式 */
+        .file-upload {
+            border: 2px dashed #ddd;
+            border-radius: var(--border-radius);
+            padding: 20px;
+            text-align: center;
+            margin-bottom: 20px;
+            background-color: #f9f9f9;
+            transition: var(--transition);
+        }
+
+        .file-upload:hover {
+            border-color: var(--secondary-color);
+        }
+
+        .file-upload input {
+            display: none;
+        }
+
+        .file-upload label {
+            display: inline-block;
+            padding: 10px 20px;
+            background-color: var(--secondary-color);
+            color: white;
+            border-radius: var(--border-radius);
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .file-upload label:hover {
+            background-color: #2980b9;
+        }
+
+        .file-list {
+            margin-top: 15px;
+            text-align: left;
+        }
+
+        .file-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .file-item:last-child {
+            border-bottom: none;
+        }
+
+        .file-name {
+            flex: 1;
+        }
+
+        .file-size {
+            color: #777;
+            font-size: 0.9em;
+        }
+
+        .file-remove {
+            color: var(--accent-color);
+            cursor: pointer;
+            margin-left: 10px;
+        }
+
+        /* 按钮样式 */
+        .generate-button {
+            display: block;
+            width: 100%;
+            padding: 12px;
+            background-color: var(--success-color);
+            color: white;
+            font-weight: bold;
+            border: none;
+            border-radius: var(--border-radius);
+            cursor: pointer;
+            transition: var(--transition);
+            font-size: 16px;
+            margin-top: 20px;
+        }
+
+        .generate-button:hover {
+            background-color: #219955;
+        }
+
+        .generate-button:disabled {
+            background-color: #95a5a6;
+            cursor: not-allowed;
+        }
+
+        /* 结果区域样式 */
+        .result-box {
+            padding: 15px;
+            background-color: #f9f9f9;
+            border-radius: var(--border-radius);
+            margin-top: 15px;
+            border-left: 4px solid var(--secondary-color);
+            display: none;
+        }
+
+        .download-link {
+            display: inline-block;
+            padding: 10px 20px;
+            background-color: var(--secondary-color);
+            color: white;
+            border-radius: var(--border-radius);
+            text-decoration: none;
+            margin-top: 10px;
+            transition: var(--transition);
+        }
+
+        .download-link:hover {
+            background-color: #2980b9;
+        }
+
+        /* 状态栏样式 */
+        .status-bar {
+            padding: 10px;
+            background-color: var(--primary-color);
+            color: white;
+            text-align: center;
+            font-weight: bold;
+            width: 100%;
+            margin-top: 20px;
+        }
+
+        @media (max-width: 768px) {
+            .content {
+                padding: 15px;
+            }
+            
+            .file-item {
+                flex-direction: column;
+            }
+            
+            .file-size {
+                margin-top: 5px;
+            }
+        }
+    </style>
+    <!-- 引入JSZip库 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <!-- 引入FileSaver库 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+</head>
+<body>
+    <div class="tool-header">
+        <h2 style="color: white;">Amber24工作站批量生成-md1</h2>
+        <a href="index.html" class="back-button">返回主界面</a>
+    </div>
+    
+    <div class="content">
+        <!-- 文件上传部分 -->
+        <div class="section">
+            <h2>上传PDB对接文件</h2>
+            
+            <div class="file-upload">
+                <input type="file" id="pdb-files" multiple accept=".pdb">
+                <label for="pdb-files">选择PDB文件</label>
+                <p>支持多文件上传，按住Ctrl可选择多个文件</p>
+                
+                <div id="file-list" class="file-list">
+                    <!-- 文件列表将在这里显示 -->
+                </div>
+            </div>
+        </div>
+        
+        <!-- 参数设置部分 -->
+        <div class="section">
+            <h2>模拟参数设置</h2>
+            
+            <div class="form-group">
+                <label for="temperature">模拟温度 (K):</label>
+                <input type="text" id="temperature" placeholder="输入升温温度，例如300">
+            </div>
+            
+            <div class="form-group">
+                <label for="duration">模拟时间 (ns):</label>
+                <input type="text" id="duration" placeholder="输入目标时长，例如50">
+            </div>
+            
+            <div class="form-group">
+                <label for="experiments">平行实验组数 (个):</label>
+                <input type="text" id="experiments" placeholder="输入平行实验组数，例如3">
+            </div>
+            
+            <div class="form-group">
+                <label for="node-type">平衡阶段节点类型:</label>
+                <select id="node-type">
+                    <option value="gpu">GPU (默认)</option>
+                    <option value="nv4090">NV4090</option>
+                </select>
+            </div>
+            
+            <button id="generate-button" class="generate-button">生成工作站文件包</button>
+            
+            <div id="result-box" class="result-box">
+                <!-- 生成结果将在这里显示 -->
+            </div>
+        </div>
+    </div>
+    
+    <div class="status-bar">
+        江南大学 粮食发酵工艺与技术国家工程实验室
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const pdbFilesInput = document.getElementById('pdb-files');
+            const fileListContainer = document.getElementById('file-list');
+            const generateButton = document.getElementById('generate-button');
+            const resultBox = document.getElementById('result-box');
+            
+            let selectedFiles = [];
+            
+            // 处理文件选择
+            pdbFilesInput.addEventListener('change', function(e) {
+                const files = Array.from(e.target.files);
+                selectedFiles = files;
+                
+                // 更新文件列表显示
+                fileListContainer.innerHTML = '';
+                
+                files.forEach((file, index) => {
+                    const fileItem = document.createElement('div');
+                    fileItem.className = 'file-item';
+                    
+                    const fileName = document.createElement('span');
+                    fileName.className = 'file-name';
+                    fileName.textContent = file.name;
+                    
+                    const fileSize = document.createElement('span');
+                    fileSize.className = 'file-size';
+                    fileSize.textContent = formatFileSize(file.size);
+                    
+                    const fileRemove = document.createElement('span');
+                    fileRemove.className = 'file-remove';
+                    fileRemove.textContent = '移除';
+                    fileRemove.addEventListener('click', function() {
+                        selectedFiles.splice(index, 1);
+                        updateFileList();
+                    });
+                    
+                    fileItem.appendChild(fileName);
+                    fileItem.appendChild(fileSize);
+                    fileItem.appendChild(fileRemove);
+                    
+                    fileListContainer.appendChild(fileItem);
+                });
+            });
+            
+            // 更新文件列表显示
+            function updateFileList() {
+                fileListContainer.innerHTML = '';
+                
+                selectedFiles.forEach((file, index) => {
+                    const fileItem = document.createElement('div');
+                    fileItem.className = 'file-item';
+                    
+                    const fileName = document.createElement('span');
+                    fileName.className = 'file-name';
+                    fileName.textContent = file.name;
+                    
+                    const fileSize = document.createElement('span');
+                    fileSize.className = 'file-size';
+                    fileSize.textContent = formatFileSize(file.size);
+                    
+                    const fileRemove = document.createElement('span');
+                    fileRemove.className = 'file-remove';
+                    fileRemove.textContent = '移除';
+                    fileRemove.addEventListener('click', function() {
+                        selectedFiles.splice(index, 1);
+                        updateFileList();
+                    });
+                    
+                    fileItem.appendChild(fileName);
+                    fileItem.appendChild(fileSize);
+                    fileItem.appendChild(fileRemove);
+                    
+                    fileListContainer.appendChild(fileItem);
+                });
+            }
+            
+            // 格式化文件大小
+            function formatFileSize(bytes) {
+                if (bytes === 0) return '0 Bytes';
+                const k = 1024;
+                const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+                const i = Math.floor(Math.log(bytes) / Math.log(k));
+                return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+            }
+            
+            // 生成工作站文件包
+            generateButton.addEventListener('click', async function() {
+                // 验证输入
+                const temperature = document.getElementById('temperature').value.trim();
+                const duration = document.getElementById('duration').value.trim();
+                const experiments = document.getElementById('experiments').value.trim();
+                const nodeType = document.getElementById('node-type').value;
+                
+                if (!temperature || !duration || !experiments) {
+                    alert('请填写所有必填参数');
+                    return;
+                }
+                
+                if (selectedFiles.length === 0) {
+                    alert('请至少上传一个PDB文件');
+                    return;
+                }
+                
+                // 禁用按钮，显示处理中
+                generateButton.disabled = true;
+                generateButton.textContent = '处理中...';
+                
+                try {
+                    // 创建ZIP文件
+                    const zip = new JSZip();
+                    
+                    // 计算相关参数
+                    const x = duration;
+                    const y = String(parseInt(x) * 500000);
+                    const z = temperature;
+                    
+                    // 处理每个PDB文件
+                    for (const file of selectedFiles) {
+                        const fileName = file.name.replace('.pdb', '');
+                        const fileContent = await readFileAsText(file);
+                        
+                        // 分离ATOM和HETATM行
+                        const lines = fileContent.split('\n');
+                        let atomLines = [];
+                        let hetatmLines = [];
+                        
+                        for (const line of lines) {
+                            if (line.startsWith('ATOM')) {
+                                atomLines.push(line);
+                            } else if (line.startsWith('HETATM')) {
+                                hetatmLines.push(line);
+                            }
+                        }
+                        
+                        // 获取最后一个ATOM行的第六列数字
+                        let sixthColumnValue = '0';
+                        if (atomLines.length > 0) {
+                            const lastAtomLine = atomLines[atomLines.length - 1];
+                            const columns = lastAtomLine.trim().split(/\s+/);
+                            if (columns.length >= 6) {
+                                sixthColumnValue = columns[5];
+                            }
+                        }
+                        
+                        // 为每个平行实验创建目录
+                        for (let i = 1; i <= parseInt(experiments); i++) {
+                            const experimentDir = `${fileName}/${fileName}_${i}/`;
+                            
+                            // 写入protein_0.pdb和ligand.pdb
+                            zip.file(experimentDir + 'protein_0.pdb', atomLines.join('\n'));
+                            zip.file(experimentDir + 'ligand.pdb', hetatmLines.join('\n'));
+                            
+                            // 写入脚本文件
+                            const scripts = {
+                                'amber24-amd.slurm': getAmber24AmdSlurm(),
+                                'leap.in': getLeapIn(),
+                                'min2.in': getMin2In()
+                            };
+                            
+                            // 根据节点类型选择不同的slurm文件
+                            if (nodeType === 'nv4090') {
+                                scripts['amber24-4090.slurm'] = getAmber244090Slurm().replace('#SBATCH -p gpu', '#SBATCH -p nv4090');
+                            } else {
+                                scripts['amber24-4090.slurm'] = getAmber244090Slurm();
+                            }
+                            
+                            // 写入需要修改的文件
+                            const md0Content = getMd0In().replace(/1-AAA/g, `1-${sixthColumnValue}`).replace(/ZZZ/g, z);
+                            const min1Content = getMin1In().replace(/1-AAA/g, `1-${sixthColumnValue}`);
+                            const md1Content = getMd1In().replace(/XXX/g, x).replace(/YYY/g, y).replace(/ZZZ/g, z);
+                            
+                            // 将文件添加到ZIP
+                            for (const [scriptName, content] of Object.entries(scripts)) {
+                                zip.file(experimentDir + scriptName, content);
+                            }
+                            
+                            zip.file(experimentDir + 'md0.in', md0Content);
+                            zip.file(experimentDir + 'min1.in', min1Content);
+                            zip.file(experimentDir + 'md1.in', md1Content);
+                        }
+                    }
+                    
+                    // 生成ZIP文件
+                    const zipContent = await zip.generateAsync({type: 'blob'});
+                    
+                    // 创建下载链接
+                    const downloadLink = document.createElement('a');
+                    downloadLink.href = URL.createObjectURL(zipContent);
+                    downloadLink.download = 'amber24_workstation_files.zip';
+                    downloadLink.className = 'download-link';
+                    downloadLink.textContent = '下载工作站文件包';
+                    
+                    resultBox.innerHTML = '<h3>文件生成完成！</h3><p>点击下方链接下载生成的工作站文件包：</p>';
+                    resultBox.appendChild(downloadLink);
+                    resultBox.style.display = 'block';
+                    
+                } catch (error) {
+                    console.error('处理文件时出错:', error);
+                    resultBox.innerHTML = `<p>处理文件时出错: ${error.message}</p>`;
+                    resultBox.style.display = 'block';
+                } finally {
+                    // 恢复按钮状态
+                    generateButton.disabled = false;
+                    generateButton.textContent = '生成工作站文件包';
+                }
+            });
+            
+            // 读取文件内容为文本
+            function readFileAsText(file) {
+                return new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onload = e => resolve(e.target.result);
+                    reader.onerror = e => reject(e);
+                    reader.readAsText(file);
+                });
+            }
+            
+            // 以下是脚本模板函数
+            function getAmber244090Slurm() {
+                return `#!/bin/bash
+#SBATCH -J sander
+#SBATCH -p gpu
+#SBATCH -N 1
+#SBATCH --gres=gpu:1
+#SBATCH --ntasks-per-node=1
+#SBATCH --cpus-per-task=8
+##SBATCH --mem=200G  
+
+# variables for sander. If you don't need it, just leave it blank.
+# The meanings of the variables can be found in the AMBER's manual.
+
+#--- LSF ---
+echo job runs at the following node:
+echo $SLURM_JOB_NODELIST 
+NP=$(echo $SLURM_JOB_NODELIST | awk '{print NF}')
+##NNODE=$(echo $LSB_HOSTS | sed -e "s/ /g" | uniq - | wc -l)
+echo ""
+echo Number of processor: $NP
+echo ""
+#NGPU=$(expr $NP \\/ 4)
+source /public/software/profile.d/cuda-11.7.sh
+module purge
+module load apps/cmake/3.26.3
+module load compiler/gcc/9.3.0
+module load apps/anaconda3/2019.07 
+module load mpi/openmpi/gnu/4.0.3
+#module load mpi/intelmpi/2021.3.0
+
+source /public/software/apps/amber24/amber.sh
+ulimit -s unlimited
+
+echo $NP
+export I_MPI_PMI_LIBRARY=/opt/gridview/slurm/lib/libpmi.so
+##mpirun -np $NP sander.MPI -O -i min1.in -p pep.top -c pep.crd  -o  min1.out -r min1.rst -ref pep.crd < /dev/null
+##mpirun -np $NP sander.MPI -O -i min2.in -p pep.top -c min1.rst -o  min2.out -r min2.rst  < /dev/null
+mpirun pmemd.cuda.MPI -O -i md0.in  -p pep.top -c min2.rst -o  md0.out  -x md0.crd -r md0.rst -ref min2.rst < /dev/null
+mpirun pmemd.cuda.MPI -O -i md1.in  -o md1-50.out -p pep.top  -c  md0.rst  -r md1-50.rst -x md1-50.crd  < /dev/null
+#srun --mpi=pmix pmemd.cuda.MPI -O -i md0.in  -p pep.top -c min2.rst -o  md0.out  -x md0.crd -r md0.rst -ref min2.rst < /dev/null
+#srun --mpi=pmix pmemd.cuda.MPI -O -i md1.in  -o md1-50.out -p pep.top  -c  md0.rst  -r md1-50.rst -x md1-50.crd  < /dev/null
+
+echo $(date)`;
+            }
+            
+            function getAmber24AmdSlurm() {
+                return `#!/bin/bash
+#SBATCH -J sander
+#SBATCH -p amd
+#SBATCH -N 1
+###SBATCH --gres=gpu:1
+#SBATCH --ntasks-per-node=64
+###SBATCH --cpus-per-task=1
+#SBATCH --mem=200G  
+
+# variables for sander. If you don't need it, just leave it blank.
+# The meanings of the variables can be found in the AMBER's manual.
+
+#--- LSF ---
+echo job runs at the following node:
+echo $SLURM_JOB_NODELIST 
+NP=$(echo $SLURM_JOB_NODELIST | awk '{print NF}')
+##NNODE=$(echo $LSB_HOSTS | sed -e "s/ /g" | uniq - | wc -l)
+echo ""
+echo Number of processor: $NP
+echo ""
+#NGPU=$(expr $NP \\/ 4)
+source /public/software/profile.d/cuda-11.7.sh
+module purge
+module load apps/cmake/3.26.3
+module load compiler/gcc/9.3.0
+module load apps/anaconda3/2019.07 
+module load mpi/openmpi/gnu/4.0.3
+#module load mpi/intelmpi/2021.3.0
+
+source /public/software/apps/amber24_amd/amber.sh
+ulimit -s unlimited
+
+echo $NP
+export I_MPI_PMI_LIBRARY=/opt/gridview/slurm/lib/libpmi.so
+/public/software/apps/amber24_hygon/bin/antechamber -i ligand.pdb -fi pdb -o ligand.mol2 -fo mol2 -c bcc -pf y
+/public/software/apps/amber24_hygon/bin/parmchk2 -i ligand.mol2 -f mol2 -o ligand.frcmod
+python2 /public/software/apps/amber24_src/AmberTools/src/amberlite/pdb4amber05/pdb4amber -i protein_0.pdb -o protein.pdb -y --dry
+/public/software/apps/amber24_hygon/bin/tleap -sf leap.in
+mpirun -np 64 sander.MPI -O -i min1.in -p pep.top -c pep.crd  -o  min1.out -r min1.rst -ref pep.crd < /dev/null
+mpirun -np 64 sander.MPI -O -i min2.in -p pep.top -c min1.rst -o  min2.out -r min2.rst
+##mpirun pmemd.cuda.MPI -O -i md0.in  -p pep.top -c min2.rst -o  md0.out  -x md0.crd -r md0.rst -ref min2.rst < /dev/null
+##mpirun pmemd.cuda.MPI -O -i md1.in  -o md1-50.out -p pep.top  -c  md0.rst  -r md1-50.rst -x md1-50.crd  < /dev/null
+
+echo $(date)`;
+            }
+            
+            function getLeapIn() {
+                return `source leaprc.protein.ff14SB
+source leaprc.water.tip3p
+source leaprc.gaff2
+
+loadamberparams ligand.frcmod
+
+p = loadpdb protein.pdb
+l = loadmol2 ligand.mol2
+c = combine { p l } 
+
+set default PBradii mbondi2
+
+savepdb p pro.pdb
+savepdb l lig.pdb
+savepdb c com.pdb
+saveamberparm p pro.top pro.crd
+saveamberparm l lig.top lig.crd
+saveamberparm c com.top com.crd
+
+solvateoct c   TIP3PBOX 12.0
+
+charge c
+addions c Cl- 0
+addions c Na+ 0
+
+savepdb c pep.pdb
+saveamberparm c pep.top pep.crd
+
+quit
+#####`;
+            }
+            
+            function getMd0In() {
+                return `hot to ZZZk
+ &cntrl
+  imin   = 0,
+  irest  = 0,
+  ntx    = 1,
+  ntb    = 1,
+  cut    = 10,
+  ntr    = 1,
+  ntc    = 2,
+  ntf    = 2,
+  tempi  = 0.0,
+  temp0  = ZZZ,
+  ntt    = 3,
+  gamma_ln = 1.0,
+  nstlim = 150000, dt = 0.002,
+  ntpr = 500, ntwx = 100, ntwr = 500,
+  restraint_wt = 10.0,
+  restraintmask = ':1-AAA',
+ /`;
+            }
+            
+            function getMd1In() {
+                return ` md for XXX ns
+ &cntrl
+  imin = 0, irest = 1, ntx = 7,
+  ntb = 2, pres0 = 1.0, ntp = 1,
+  taup = 2.0,
+  cut = 10, ntr = 0,
+  ntc = 2, ntf = 2,
+  tempi = ZZZ, temp0 = ZZZ,
+  ntt = 3, gamma_ln = 1.0,
+  nstlim = YYY, dt = 0.002,
+  ntpr = 500, ntwx = 500, ntwr = 500,
+ /`;
+            }
+            
+            function getMin1In() {
+                return `min with restrain
+ &cntrl
+  imin   = 1,
+  maxcyc = 10000,
+  ncyc   = 5000,
+  ntb    = 1,
+  ntr    = 1,
+  ntpr   =50,
+  cut    = 10,
+  ioutfm =1,
+  ntxo   =1,
+  restraint_wt = 500.0,
+  restraintmask = ':1-AAA',
+ /`;
+            }
+            
+            function getMin2In() {
+                return `min with no-restrain
+ &cntrl
+  imin   = 1,
+  maxcyc = 60000,
+  ncyc   = 30000,
+  ntb    = 1,
+  ntr    = 0,
+  cut    = 10,
+  ntpr   = 500
+  ioutfm=1,
+  ntxo=1,
+ /`;
+            }
+        });
+    </script>
+</body>
+</html>
