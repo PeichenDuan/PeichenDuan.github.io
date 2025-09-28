@@ -1,0 +1,723 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AlphaFold3输入文件批量生成</title>
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --secondary-color: #3498db;
+            --accent-color: #e74c3c;
+            --light-color: #ecf0f1;
+            --dark-color: #2c3e50;
+            --success-color: #27ae60;
+            --warning-color: #f39c12;
+            --border-radius: 8px;
+            --box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            --transition: all 0.3s ease;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            min-height: 100vh;
+        }
+
+        /* 顶部标题栏 */
+        .tool-header {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background-color: var(--primary-color);
+            color: white;
+            padding: 20px;
+            width: 100%;
+            text-align: center;
+        }
+
+        .back-button {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            padding: 8px 16px;
+            border-radius: var(--border-radius);
+            cursor: pointer;
+            transition: var(--transition);
+            font-size: 0.9rem;
+            margin-top: 15px;
+            text-decoration: none;
+        }
+
+        .back-button:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        /* 内容区域样式 */
+        .content {
+            padding: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .section {
+            background: white;
+            border-radius: var(--border-radius);
+            padding: 20px;
+            margin-bottom: 30px;
+            box-shadow: var(--box-shadow);
+        }
+
+        h2 {
+            color: var(--primary-color);
+            text-align: center;
+        }
+
+        h3 {
+            color: var(--secondary-color);
+            margin-bottom: 15px;
+            text-align: center;
+        }
+
+        /* 表单样式 */
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+        }
+
+        input[type="text"], textarea, select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: var(--border-radius);
+            font-size: 14px;
+        }
+
+        textarea {
+            min-height: 100px;
+            resize: vertical;
+        }
+
+        /* 文件上传样式 */
+        .file-upload {
+            border: 2px dashed #ddd;
+            border-radius: var(--border-radius);
+            padding: 20px;
+            text-align: center;
+            margin-bottom: 20px;
+            background-color: #f9f9f9;
+            transition: var(--transition);
+        }
+
+        .file-upload:hover {
+            border-color: var(--secondary-color);
+        }
+
+        .file-upload input {
+            display: none;
+        }
+
+        .file-upload label {
+            display: inline-block;
+            padding: 10px 20px;
+            background-color: var(--secondary-color);
+            color: white;
+            border-radius: var(--border-radius);
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .file-upload label:hover {
+            background-color: #2980b9;
+        }
+
+        .file-list {
+            margin-top: 15px;
+            text-align: left;
+        }
+
+        .file-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .file-item:last-child {
+            border-bottom: none;
+        }
+
+        .file-name {
+            flex: 1;
+        }
+
+        .file-size {
+            color: #777;
+            font-size: 0.9em;
+        }
+
+        .file-remove {
+            color: var(--accent-color);
+            cursor: pointer;
+            margin-left: 10px;
+        }
+
+        /* 功能选择样式 */
+        .function-selector {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 20px;
+            gap: 15px;
+        }
+
+        .function-option {
+            padding: 12px 24px;
+            background-color: #f1f1f1;
+            border-radius: var(--border-radius);
+            cursor: pointer;
+            transition: var(--transition);
+            font-weight: 600;
+            text-align: center;
+            flex: 1;
+            max-width: 200px;
+        }
+
+        .function-option.active {
+            background-color: var(--secondary-color);
+            color: white;
+        }
+
+        /* 按钮样式 */
+        .generate-button {
+            display: block;
+            width: 100%;
+            padding: 12px;
+            background-color: var(--success-color);
+            color: white;
+            font-weight: bold;
+            border: none;
+            border-radius: var(--border-radius);
+            cursor: pointer;
+            transition: var(--transition);
+            font-size: 16px;
+            margin-top: 20px;
+        }
+
+        .generate-button:hover {
+            background-color: #219955;
+        }
+
+        .generate-button:disabled {
+            background-color: #95a5a6;
+            cursor: not-allowed;
+        }
+
+        /* 结果区域样式 */
+        .result-box {
+            padding: 15px;
+            background-color: #f9f9f9;
+            border-radius: var(--border-radius);
+            margin-top: 15px;
+            border-left: 4px solid var(--secondary-color);
+            display: none;
+        }
+
+        .download-link {
+            display: inline-block;
+            padding: 10px 20px;
+            background-color: var(--secondary-color);
+            color: white;
+            border-radius: var(--border-radius);
+            text-decoration: none;
+            margin-top: 10px;
+            transition: var(--transition);
+        }
+
+        .download-link:hover {
+            background-color: #2980b9;
+        }
+
+        /* 隐藏类 */
+        .hidden {
+            display: none;
+        }
+
+        /* 状态栏样式 */
+        .status-bar {
+            padding: 10px;
+            background-color: var(--primary-color);
+            color: white;
+            text-align: center;
+            font-weight: bold;
+            width: 100%;
+            margin-top: 20px;
+        }
+
+        @media (max-width: 768px) {
+            .content {
+                padding: 15px;
+            }
+            
+            .file-item {
+                flex-direction: column;
+            }
+            
+            .file-size {
+                margin-top: 5px;
+            }
+            
+            .function-selector {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .function-option {
+                max-width: 100%;
+            }
+        }
+    </style>
+    <!-- 引入JSZip库 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <!-- 引入FileSaver库 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+</head>
+<body>
+    <div class="tool-header">
+        <h2 style="color: white;">AlphaFold3输入文件批量生成</h2>
+        <a href="index.html" class="back-button">返回主界面</a>
+    </div>
+    
+    <div class="content">
+        <!-- 功能选择部分 -->
+        <div class="section">
+            <h2>选择功能</h2>
+            
+            <div class="function-selector">
+                <div class="function-option active" data-function="structure">结构预测</div>
+                <div class="function-option" data-function="docking">分子对接</div>
+            </div>
+        </div>
+        
+        <!-- 结构预测部分 -->
+        <div id="structure-prediction-section" class="section">
+            <h2>结构预测</h2>
+            
+            <div class="file-upload">
+                <input type="file" id="fasta-files" multiple accept=".fasta,.fa,.faa">
+                <label for="fasta-files">选择FASTA文件</label>
+                <p>支持多文件上传，按住Ctrl可选择多个文件</p>
+                
+                <div id="fasta-file-list" class="file-list">
+                    <!-- FASTA文件列表将在这里显示 -->
+                </div>
+            </div>
+            
+            <button id="generate-structure-button" class="generate-button">生成结构预测输入文件包</button>
+            
+            <div id="structure-result-box" class="result-box">
+                <!-- 结构预测结果将在这里显示 -->
+            </div>
+        </div>
+        
+        <!-- 分子对接部分 -->
+        <div id="docking-section" class="section hidden">
+            <h2>分子对接</h2>
+            
+            <div class="form-group">
+                <label>目标序列文件 (FASTA格式)</label>
+                <div class="file-upload">
+                    <input type="file" id="docking-fasta-files" multiple accept=".fasta,.fa,.faa">
+                    <label for="docking-fasta-files">选择FASTA文件</label>
+                    <p>支持多文件上传，按住Ctrl可选择多个文件</p>
+                    
+                    <div id="docking-fasta-file-list" class="file-list">
+                        <!-- 分子对接FASTA文件列表将在这里显示 -->
+                    </div>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label>底物文件 (TXT格式)</label>
+                <div class="file-upload">
+                    <input type="file" id="substrate-files" multiple accept=".txt">
+                    <label for="substrate-files">选择底物文件</label>
+                    <p>支持多文件上传，按住Ctrl可选择多个文件</p>
+                    
+                    <div id="substrate-file-list" class="file-list">
+                        <!-- 底物文件列表将在这里显示 -->
+                    </div>
+                </div>
+            </div>
+            
+            <button id="generate-docking-button" class="generate-button">生成分子对接输入文件包</button>
+            
+            <div id="docking-result-box" class="result-box">
+                <!-- 分子对接结果将在这里显示 -->
+            </div>
+        </div>
+    </div>
+    
+    <div class="status-bar">
+        江南大学 粮食发酵工艺与技术国家工程实验室
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // 功能选择
+            const functionOptions = document.querySelectorAll('.function-option');
+            const structureSection = document.getElementById('structure-prediction-section');
+            const dockingSection = document.getElementById('docking-section');
+            
+            functionOptions.forEach(option => {
+                option.addEventListener('click', function() {
+                    // 移除所有选项的active类
+                    functionOptions.forEach(opt => opt.classList.remove('active'));
+                    // 添加当前选项的active类
+                    this.classList.add('active');
+                    
+                    // 显示对应的功能部分
+                    const functionType = this.getAttribute('data-function');
+                    if (functionType === 'structure') {
+                        structureSection.classList.remove('hidden');
+                        dockingSection.classList.add('hidden');
+                    } else {
+                        structureSection.classList.add('hidden');
+                        dockingSection.classList.remove('hidden');
+                    }
+                });
+            });
+            
+            // 结构预测文件处理
+            const fastaFilesInput = document.getElementById('fasta-files');
+            const fastaFileListContainer = document.getElementById('fasta-file-list');
+            const generateStructureButton = document.getElementById('generate-structure-button');
+            const structureResultBox = document.getElementById('structure-result-box');
+            
+            let selectedFastaFiles = [];
+            
+            // 处理FASTA文件选择 - 结构预测
+            fastaFilesInput.addEventListener('change', function(e) {
+                const files = Array.from(e.target.files);
+                selectedFastaFiles = files;
+                updateFileList(fastaFileListContainer, selectedFastaFiles);
+            });
+            
+            // 分子对接文件处理
+            const dockingFastaFilesInput = document.getElementById('docking-fasta-files');
+            const dockingFastaFileListContainer = document.getElementById('docking-fasta-file-list');
+            const substrateFilesInput = document.getElementById('substrate-files');
+            const substrateFileListContainer = document.getElementById('substrate-file-list');
+            const generateDockingButton = document.getElementById('generate-docking-button');
+            const dockingResultBox = document.getElementById('docking-result-box');
+            
+            let selectedDockingFastaFiles = [];
+            let selectedSubstrateFiles = [];
+            
+            // 处理FASTA文件选择 - 分子对接
+            dockingFastaFilesInput.addEventListener('change', function(e) {
+                const files = Array.from(e.target.files);
+                selectedDockingFastaFiles = files;
+                updateFileList(dockingFastaFileListContainer, selectedDockingFastaFiles);
+            });
+            
+            // 处理底物文件选择
+            substrateFilesInput.addEventListener('change', function(e) {
+                const files = Array.from(e.target.files);
+                selectedSubstrateFiles = files;
+                updateFileList(substrateFileListContainer, selectedSubstrateFiles);
+            });
+            
+            // 更新文件列表显示
+            function updateFileList(container, files) {
+                container.innerHTML = '';
+                
+                files.forEach((file, index) => {
+                    const fileItem = document.createElement('div');
+                    fileItem.className = 'file-item';
+                    
+                    const fileName = document.createElement('span');
+                    fileName.className = 'file-name';
+                    fileName.textContent = file.name;
+                    
+                    const fileSize = document.createElement('span');
+                    fileSize.className = 'file-size';
+                    fileSize.textContent = formatFileSize(file.size);
+                    
+                    const fileRemove = document.createElement('span');
+                    fileRemove.className = 'file-remove';
+                    fileRemove.textContent = '移除';
+                    fileRemove.addEventListener('click', function() {
+                        files.splice(index, 1);
+                        updateFileList(container, files);
+                    });
+                    
+                    fileItem.appendChild(fileName);
+                    fileItem.appendChild(fileSize);
+                    fileItem.appendChild(fileRemove);
+                    
+                    container.appendChild(fileItem);
+                });
+            }
+            
+            // 格式化文件大小
+            function formatFileSize(bytes) {
+                if (bytes === 0) return '0 Bytes';
+                const k = 1024;
+                const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+                const i = Math.floor(Math.log(bytes) / Math.log(k));
+                return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+            }
+            
+            // 生成结构预测文件包
+            generateStructureButton.addEventListener('click', async function() {
+                if (selectedFastaFiles.length === 0) {
+                    alert('请至少上传一个FASTA文件');
+                    return;
+                }
+                
+                // 禁用按钮，显示处理中
+                generateStructureButton.disabled = true;
+                generateStructureButton.textContent = '处理中...';
+                
+                try {
+                    // 创建ZIP文件
+                    const zip = new JSZip();
+                    const jsonFolder = zip.folder("json文件");
+                    const idList = [];
+                    
+                    // 处理每个FASTA文件
+                    for (const file of selectedFastaFiles) {
+                        const fileContent = await readFileAsText(file);
+                        const enzymes = parseFasta(fileContent);
+                        
+                        // 处理每个序列
+                        for (const [enzName, enzSeq] of Object.entries(enzymes)) {
+                            const safeName = sanitizeFilename(enzName);
+                            
+                            // 构建JSON数据结构 - 结构预测
+                            const jsonData = {
+                                "name": safeName,
+                                "sequences": [
+                                    {
+                                        "protein": {
+                                            "id": ["A"],
+                                            "sequence": enzSeq
+                                        }
+                                    }
+                                ],
+                                "modelSeeds": [1],
+                                "dialect": "alphafold3",
+                                "version": 1
+                            };
+                            
+                            // 将JSON文件添加到ZIP
+                            jsonFolder.file(`${safeName}.json`, JSON.stringify(jsonData, null, 2));
+                            idList.push(safeName);
+                        }
+                    }
+                    
+                    // 添加id文件
+                    zip.file("id", idList.join('\n'));
+                    
+                    // 生成ZIP文件
+                    const zipContent = await zip.generateAsync({type: 'blob'});
+                    
+                    // 创建下载链接
+                    const downloadLink = document.createElement('a');
+                    downloadLink.href = URL.createObjectURL(zipContent);
+                    downloadLink.download = 'alphafold3_structure_prediction_files.zip';
+                    downloadLink.className = 'download-link';
+                    downloadLink.textContent = '下载结构预测文件包';
+                    
+                    structureResultBox.innerHTML = '<h3>文件生成完成！</h3><p>点击下方链接下载生成的文件包：</p>';
+                    structureResultBox.appendChild(downloadLink);
+                    structureResultBox.style.display = 'block';
+                    
+                } catch (error) {
+                    console.error('处理文件时出错:', error);
+                    structureResultBox.innerHTML = `<p>处理文件时出错: ${error.message}</p>`;
+                    structureResultBox.style.display = 'block';
+                } finally {
+                    // 恢复按钮状态
+                    generateStructureButton.disabled = false;
+                    generateStructureButton.textContent = '生成结构预测文件包';
+                }
+            });
+            
+            // 生成分子对接文件包
+            generateDockingButton.addEventListener('click', async function() {
+                if (selectedDockingFastaFiles.length === 0) {
+                    alert('请至少上传一个FASTA文件');
+                    return;
+                }
+                
+                if (selectedSubstrateFiles.length === 0) {
+                    alert('请至少上传一个底物文件');
+                    return;
+                }
+                
+                // 禁用按钮，显示处理中
+                generateDockingButton.disabled = true;
+                generateDockingButton.textContent = '处理中...';
+                
+                try {
+                    // 创建ZIP文件
+                    const zip = new JSZip();
+                    const jsonFolder = zip.folder("json文件");
+                    const idList = [];
+                    
+                    // 读取所有FASTA文件
+                    const allEnzymes = {};
+                    for (const file of selectedDockingFastaFiles) {
+                        const fileContent = await readFileAsText(file);
+                        const enzymes = parseFasta(fileContent);
+                        
+                        for (const [enzName, enzSeq] of Object.entries(enzymes)) {
+                            allEnzymes[enzName] = {
+                                'sequence': enzSeq,
+                                'source_file': file.name
+                            };
+                        }
+                    }
+                    
+                    // 读取所有底物文件
+                    const allSubstrates = {};
+                    for (const file of selectedSubstrateFiles) {
+                        const fileContent = await readFileAsText(file);
+                        const substrates = parseFasta(fileContent);
+                        
+                        for (const [subName, subSmiles] of Object.entries(substrates)) {
+                            allSubstrates[subName] = {
+                                'smiles': subSmiles,
+                                'source_file': file.name
+                            };
+                        }
+                    }
+                    
+                    // 生成所有组合
+                    for (const [enzName, enzData] of Object.entries(allEnzymes)) {
+                        for (const [subName, subData] of Object.entries(allSubstrates)) {
+                            const safeEnz = sanitizeFilename(enzName);
+                            const safeSub = sanitizeFilename(subName);
+                            const combination = `${safeEnz}_${safeSub}`;
+                            
+                            // 构建JSON数据结构 - 分子对接
+                            const jsonData = {
+                                "name": combination,
+                                "sequences": [
+                                    {
+                                        "protein": {
+                                            "id": "A",
+                                            "sequence": enzData.sequence
+                                        }
+                                    },
+                                    {
+                                        "ligand": {
+                                            "id": "B",
+                                            "smiles": subData.smiles
+                                        }
+                                    }
+                                ],
+                                "modelSeeds": [1],
+                                "dialect": "alphafold3",
+                                "version": 1
+                            };
+                            
+                            // 将JSON文件添加到ZIP
+                            jsonFolder.file(`${combination}.json`, JSON.stringify(jsonData, null, 2));
+                            idList.push(combination);
+                        }
+                    }
+                    
+                    // 添加id文件
+                    zip.file("id", idList.join('\n'));
+                    
+                    // 生成ZIP文件
+                    const zipContent = await zip.generateAsync({type: 'blob'});
+                    
+                    // 创建下载链接
+                    const downloadLink = document.createElement('a');
+                    downloadLink.href = URL.createObjectURL(zipContent);
+                    downloadLink.download = 'alphafold3_docking_files.zip';
+                    downloadLink.className = 'download-link';
+                    downloadLink.textContent = '下载分子对接文件包';
+                    
+                    dockingResultBox.innerHTML = '<h3>文件生成完成！</h3><p>点击下方链接下载生成的文件包：</p>';
+                    dockingResultBox.appendChild(downloadLink);
+                    dockingResultBox.style.display = 'block';
+                    
+                } catch (error) {
+                    console.error('处理文件时出错:', error);
+                    dockingResultBox.innerHTML = `<p>处理文件时出错: ${error.message}</p>`;
+                    dockingResultBox.style.display = 'block';
+                } finally {
+                    // 恢复按钮状态
+                    generateDockingButton.disabled = false;
+                    generateDockingButton.textContent = '生成分子对接文件包';
+                }
+            });
+            
+            // 读取文件内容为文本
+            function readFileAsText(file) {
+                return new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onload = e => resolve(e.target.result);
+                    reader.onerror = e => reject(e);
+                    reader.readAsText(file);
+                });
+            }
+            
+            // 解析FASTA格式内容
+            function parseFasta(content) {
+                const entries = {};
+                let currentId = null;
+                const lines = content.split('\n');
+                
+                for (const line of lines) {
+                    const trimmedLine = line.trim();
+                    if (trimmedLine.startsWith('>')) {
+                        currentId = trimmedLine.substring(1); // 去除'>'符号
+                        entries[currentId] = [];
+                    } else {
+                        if (currentId !== null && trimmedLine) {
+                            entries[currentId].push(trimmedLine);
+                        }
+                    }
+                }
+                
+                // 合并多行内容
+                for (const key in entries) {
+                    entries[key] = entries[key].join('');
+                }
+                
+                return entries;
+            }
+            
+            // 清理名称中的非法字符
+            function sanitizeFilename(name) {
+                // 替换特殊字符为下划线
+                let safeName = name.replace(/[<>:"/\\|?*]/g, '_');
+                // 替换空格为下划线
+                safeName = safeName.replace(/\s+/g, '_');
+                // 去除连续下划线并去除首尾下划线
+                safeName = safeName.replace(/_+/g, '_').replace(/^_+|_+$/g, '');
+                return safeName;
+            }
+        });
+    </script>
+</body>
+</html>
