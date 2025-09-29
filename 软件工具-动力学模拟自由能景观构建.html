@@ -1,0 +1,857 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>分子动力学模拟自由能景观构建 - 生物信息分析工具包</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --secondary-color: #3498db;
+            --accent-color: #e74c3c;
+            --light-color: #ecf0f1;
+            --dark-color: #2c3e50;
+            --success-color: #27ae60;
+            --warning-color: #f39c12;
+            --border-radius: 8px;
+            --box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            --transition: all 0.3s ease;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            min-height: 100vh;
+        }
+
+        /* 顶部标题栏 */
+        .tool-header {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background-color: var(--primary-color);
+            color: white;
+            padding: 20px;
+            width: 100%;
+            text-align: center;
+        }
+
+        .back-button {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            padding: 8px 16px;
+            border-radius: var(--border-radius);
+            cursor: pointer;
+            transition: var(--transition);
+            font-size: 0.9rem;
+            margin-top: 15px;
+            text-decoration: none;
+        }
+
+        .back-button:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        /* 内容区域样式 */
+        .content {
+            padding: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .section {
+            background: white;
+            border-radius: var(--border-radius);
+            padding: 20px;
+            margin-bottom: 30px;
+            box-shadow: var(--box-shadow);
+        }
+
+        h2 {
+            color: var(--primary-color);
+            text-align: center;
+        }
+
+        h3 {
+            color: var(--secondary-color);
+            margin-bottom: 15px;
+            text-align: center;
+        }
+
+        /* 表单样式 */
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+        }
+
+        input[type="text"], input[type="number"], textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: var(--border-radius);
+            font-size: 14px;
+        }
+
+        textarea {
+            min-height: 100px;
+            resize: vertical;
+        }
+
+        /* 文件上传区域 */
+        .file-upload-area {
+            border: 2px dashed #ddd;
+            border-radius: var(--border-radius);
+            padding: 20px;
+            text-align: center;
+            margin-bottom: 20px;
+            transition: var(--transition);
+        }
+
+        .file-upload-area:hover {
+            border-color: var(--secondary-color);
+        }
+
+        .file-upload-area.dragover {
+            border-color: var(--secondary-color);
+            background-color: rgba(52, 152, 219, 0.1);
+        }
+
+        .file-list {
+            margin-top: 15px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .file-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 12px;
+            background-color: #f9f9f9;
+            border-radius: var(--border-radius);
+            margin-bottom: 5px;
+        }
+
+        .file-name {
+            flex: 1;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .file-size {
+            color: #777;
+            font-size: 0.8rem;
+            margin-left: 10px;
+        }
+
+        .remove-file {
+            color: var(--accent-color);
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 1.2rem;
+            margin-left: 10px;
+        }
+
+        /* 按钮样式 */
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .action-button {
+            padding: 12px 20px;
+            font-weight: bold;
+            border: none;
+            border-radius: var(--border-radius);
+            cursor: pointer;
+            transition: var(--transition);
+            flex: 1;
+        }
+
+        .primary-button {
+            background-color: var(--secondary-color);
+            color: white;
+        }
+
+        .primary-button:hover {
+            background-color: #2980b9;
+        }
+
+        .secondary-button {
+            background-color: var(--accent-color);
+            color: white;
+        }
+
+        .secondary-button:hover {
+            background-color: #c0392b;
+        }
+
+        .success-button {
+            background-color: var(--success-color);
+            color: white;
+        }
+
+        .success-button:hover {
+            background-color: #219955;
+        }
+
+        /* 结果区域样式 */
+        .result-box {
+            padding: 15px;
+            background-color: #f9f9f9;
+            border-radius: var(--border-radius);
+            margin-top: 15px;
+            border-left: 4px solid var(--secondary-color);
+        }
+
+        .result-box h4 {
+            color: var(--primary-color);
+            margin-bottom: 10px;
+        }
+
+        .download-link {
+            display: inline-block;
+            padding: 10px 15px;
+            background-color: var(--success-color);
+            color: white;
+            text-decoration: none;
+            border-radius: var(--border-radius);
+            margin-top: 10px;
+            transition: var(--transition);
+        }
+
+        .download-link:hover {
+            background-color: #219955;
+        }
+
+        /* 进度条样式 */
+        .progress-container {
+            width: 100%;
+            background-color: #f0f0f0;
+            border-radius: var(--border-radius);
+            margin: 15px 0;
+            overflow: hidden;
+            display: none;
+        }
+
+        .progress-bar {
+            height: 20px;
+            background-color: var(--secondary-color);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+
+        /* 状态栏样式 */
+        .status-bar {
+            padding: 10px;
+            background-color: var(--primary-color);
+            color: white;
+            text-align: center;
+            font-weight: bold;
+            width: 100%;
+            margin-top: 20px;
+        }
+
+        /* 响应式设计 */
+        @media (max-width: 768px) {
+            .content {
+                padding: 15px;
+            }
+            
+            .button-group {
+                flex-direction: column;
+            }
+            
+            .action-button {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="tool-header">
+        <h2 style="color: white;">分子动力学模拟自由能景观构建</h2>
+        <a href="index.html" class="back-button">返回主界面</a>
+    </div>
+    
+    <div class="content">
+        <!-- 自由能景观绘图文件生成部分 -->
+        <div class="section">
+            <h2>自由能景观绘图文件生成</h2>
+            
+            <div class="form-group">
+                <label for="temperature-input">体系温度 (K):</label>
+                <input type="number" id="temperature-input" placeholder="请输入动力学模拟时的体系温度" step="0.1" min="0">
+            </div>
+            
+            <div class="file-upload-area" id="tsv-upload-area">
+                <p>拖放TSV文件到这里或点击上传</p>
+                <input type="file" id="tsv-files" multiple accept=".tsv" style="display: none;">
+                <button type="button" class="action-button primary-button" id="browse-tsv-files">选择TSV文件</button>
+                
+                <div class="file-list" id="tsv-file-list">
+                    <!-- 上传的文件将在这里显示 -->
+                </div>
+            </div>
+            
+            <div class="progress-container" id="progress-container">
+                <div class="progress-bar" id="progress-bar"></div>
+            </div>
+            
+            <div class="button-group">
+                <button id="generate-fel" class="action-button primary-button">生成自由能景观绘图文件</button>
+                <button id="reset-fel" class="action-button secondary-button">重置</button>
+            </div>
+            
+            <div id="fel-result" class="result-box" style="display: none;">
+                <!-- 生成结果将在这里显示 -->
+            </div>
+        </div>
+        
+        <!-- 代表性构象提取部分 -->
+        <div class="section">
+            <h2>代表性构象提取</h2>
+            
+            <div class="form-group">
+                <label for="fel-file">FEL绘图文件:</label>
+                <input type="file" id="fel-file" accept=".tsv">
+            </div>
+            
+            <div class="form-group">
+                <label for="rmsd-file">RMSD文件:</label>
+                <input type="file" id="rmsd-file" accept=".tsv">
+            </div>
+            
+            <div class="form-group">
+                <label for="rg-file">Rg文件:</label>
+                <input type="file" id="rg-file" accept=".tsv">
+            </div>
+            
+            <div class="form-group">
+                <label>提取构象区域范围:</label>
+                <div style="display: flex; gap: 10px; margin-top: 5px;">
+                    <input type="number" id="min-rmsd" placeholder="最小RMSD" step="0.01" min="0">
+                    <input type="number" id="max-rmsd" placeholder="最大RMSD" step="0.01" min="0">
+                    <input type="number" id="min-rg" placeholder="最小Rg" step="0.01" min="0">
+                    <input type="number" id="max-rg" placeholder="最大Rg" step="0.01" min="0">
+                </div>
+            </div>
+            
+            <div class="button-group">
+                <button id="extract-conformation" class="action-button primary-button">提取代表性构象</button>
+                <button id="reset-extraction" class="action-button secondary-button">重置</button>
+            </div>
+            
+            <div id="extraction-result" class="result-box" style="display: none;">
+                <!-- 提取结果将在这里显示 -->
+            </div>
+        </div>
+    </div>
+    
+    <div class="status-bar">
+        江南大学 粮食发酵工艺与技术国家工程实验室
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // 文件上传相关功能
+            const tsvUploadArea = document.getElementById('tsv-upload-area');
+            const tsvFilesInput = document.getElementById('tsv-files');
+            const browseTsvFilesButton = document.getElementById('browse-tsv-files');
+            const tsvFileList = document.getElementById('tsv-file-list');
+            const progressContainer = document.getElementById('progress-container');
+            const progressBar = document.getElementById('progress-bar');
+            
+            let uploadedFiles = [];
+            
+            // 点击浏览按钮触发文件选择
+            browseTsvFilesButton.addEventListener('click', function() {
+                tsvFilesInput.click();
+            });
+            
+            // 处理文件选择
+            tsvFilesInput.addEventListener('change', function(e) {
+                handleFiles(e.target.files);
+            });
+            
+            // 拖放功能
+            tsvUploadArea.addEventListener('dragover', function(e) {
+                e.preventDefault();
+                tsvUploadArea.classList.add('dragover');
+            });
+            
+            tsvUploadArea.addEventListener('dragleave', function() {
+                tsvUploadArea.classList.remove('dragover');
+            });
+            
+            tsvUploadArea.addEventListener('drop', function(e) {
+                e.preventDefault();
+                tsvUploadArea.classList.remove('dragover');
+                handleFiles(e.dataTransfer.files);
+            });
+            
+            // 处理上传的文件
+            function handleFiles(files) {
+                for (let i = 0; i < files.length; i++) {
+                    const file = files[i];
+                    
+                    // 只处理TSV文件
+                    if (file.name.endsWith('.tsv')) {
+                        uploadedFiles.push(file);
+                        addFileToList(file);
+                    }
+                }
+            }
+            
+            // 添加文件到列表
+            function addFileToList(file) {
+                const fileItem = document.createElement('div');
+                fileItem.className = 'file-item';
+                
+                const fileName = document.createElement('span');
+                fileName.className = 'file-name';
+                fileName.textContent = file.name;
+                
+                const fileSize = document.createElement('span');
+                fileSize.className = 'file-size';
+                fileSize.textContent = formatFileSize(file.size);
+                
+                const removeButton = document.createElement('button');
+                removeButton.className = 'remove-file';
+                removeButton.innerHTML = '&times;';
+                removeButton.addEventListener('click', function() {
+                    fileItem.remove();
+                    uploadedFiles = uploadedFiles.filter(f => f !== file);
+                });
+                
+                fileItem.appendChild(fileName);
+                fileItem.appendChild(fileSize);
+                fileItem.appendChild(removeButton);
+                
+                tsvFileList.appendChild(fileItem);
+            }
+            
+            // 格式化文件大小
+            function formatFileSize(bytes) {
+                if (bytes === 0) return '0 Bytes';
+                const k = 1024;
+                const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+                const i = Math.floor(Math.log(bytes) / Math.log(k));
+                return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+            }
+            
+            // 生成自由能景观绘图文件
+            document.getElementById('generate-fel').addEventListener('click', async function() {
+                const temperature = parseFloat(document.getElementById('temperature-input').value);
+                
+                if (!temperature || temperature <= 0) {
+                    alert('请输入有效的体系温度');
+                    return;
+                }
+                
+                if (uploadedFiles.length === 0) {
+                    alert('请至少上传一个TSV文件');
+                    return;
+                }
+                
+                progressContainer.style.display = 'block';
+                progressBar.style.width = '0%';
+                
+                // 处理每个文件
+                const resultFiles = [];
+                const totalFiles = uploadedFiles.length;
+                
+                for (let i = 0; i < uploadedFiles.length; i++) {
+                    const file = uploadedFiles[i];
+                    const content = await readFileAsText(file);
+                    
+                    // 第一步：处理原始TSV文件（第一个脚本功能）
+                    const step1Result = processStep1(content);
+                    
+                    // 第二步：转换为概率分布绘图文件（第二个脚本功能）
+                    const step2Result = processStep2(step1Result);
+                    
+                    // 第三步：计算相对自由能（第三个脚本功能）
+                    const step3Result = processStep3(step2Result, temperature);
+                    
+                    // 创建下载文件
+                    const blob = new Blob([step3Result], { type: 'text/tab-separated-values' });
+                    const baseName = file.name.replace('.tsv', '');
+                    const fileName = `${baseName}-FEL绘图.tsv`;
+                    
+                    resultFiles.push({
+                        name: fileName,
+                        blob: blob
+                    });
+                    
+                    // 更新进度条
+                    progressBar.style.width = `${((i + 1) / totalFiles) * 100}%`;
+                }
+                
+                // 显示结果
+                displayFELResult(resultFiles);
+            });
+            
+            // 第一步：处理原始TSV文件（第一个脚本功能）
+            function processStep1(content) {
+                const lines = content.split('\n');
+                const result = [];
+                
+                for (let line of lines) {
+                    if (line.trim() === '') continue;
+                    
+                    const columns = line.trim().split(/\s+/);
+                    result.push(columns);
+                }
+                
+                return result;
+            }
+            
+            // 第二步：转换为概率分布绘图文件（第二个脚本功能）
+            function processStep2(data) {
+                if (data.length === 0) return [];
+                
+                const result = [];
+                const header = ["RMSD", "Rg", "Gibbs free energy"];
+                result.push(header);
+                
+                const numRows = data.length;
+                const numCols = data[0].length;
+                
+                // 第一行是列标题（从第二列开始）
+                const colHeaders = data[0].slice(1);
+                
+                // 从第二行开始处理数据
+                for (let i = 1; i < numRows; i++) {
+                    const row = data[i];
+                    const rowHeader = row[0]; // 第一列是行标题
+                    
+                    // 从第二列开始处理
+                    for (let j = 1; j < numCols; j++) {
+                        if (j-1 < colHeaders.length) {
+                            const newRow = [
+                                rowHeader,
+                                colHeaders[j-1],
+                                row[j]
+                            ];
+                            result.push(newRow);
+                        }
+                    }
+                }
+                
+                return result;
+            }
+            
+            // 第三步：计算相对自由能（第三个脚本功能）
+            function processStep3(data, temperature) {
+                if (data.length <= 1) return ''; // 只有标题行
+                
+                const result = [];
+                // 保留标题行
+                result.push(data[0].join('\t'));
+                
+                // 收集所有不为0的第三列值
+                const thirdColValues = [];
+                for (let i = 1; i < data.length; i++) {
+                    if (data[i].length >= 3) {
+                        const val = parseFloat(data[i][2]);
+                        if (val !== 0) {
+                            thirdColValues.push(val);
+                        }
+                    }
+                }
+                
+                // 计算新的第三列值
+                const newThirdColValues = [];
+                for (let i = 1; i < data.length; i++) {
+                    if (data[i].length >= 3) {
+                        const y = parseFloat(data[i][2]);
+                        let newY;
+                        
+                        if (y !== 0) {
+                            newY = temperature * -Math.log(y) * 0.00198654;
+                            newY = Math.round(newY * 10000) / 10000; // 四舍五入到4位小数
+                        } else {
+                            newY = 0;
+                        }
+                        
+                        newThirdColValues.push(newY);
+                    } else {
+                        newThirdColValues.push(0);
+                    }
+                }
+                
+                // 取所有y中的最大值+1后四舍五入取整
+                let maxY = 0;
+                for (let val of newThirdColValues) {
+                    if (val > maxY) maxY = val;
+                }
+                const maxYRounded = Math.round(maxY + 1);
+                
+                // 构建输出数据
+                for (let i = 1; i < data.length; i++) {
+                    if (data[i].length >= 3) {
+                        const newRow = [
+                            data[i][0],
+                            data[i][1],
+                            newThirdColValues[i-1] === 0 ? maxYRounded.toString() : newThirdColValues[i-1].toString()
+                        ];
+                        result.push(newRow.join('\t'));
+                    }
+                }
+                
+                return result.join('\n');
+            }
+            
+            // 显示FEL生成结果
+            function displayFELResult(files) {
+                const resultDiv = document.getElementById('fel-result');
+                
+                let html = '<h4>自由能景观绘图文件生成完成</h4>';
+                
+                if (files.length === 1) {
+                    // 单个文件直接提供下载链接
+                    const file = files[0];
+                    const url = URL.createObjectURL(file.blob);
+                    html += `<p>已生成文件：</p>`;
+                    html += `<a href="${url}" download="${file.name}" class="download-link">${file.name}</a>`;
+                } else {
+                    // 多个文件打包成ZIP
+                    html += `<p>已生成 ${files.length} 个文件，已打包为ZIP文件：</p>`;
+                    html += `<button id="download-zip" class="download-link">下载所有文件 (ZIP)</button>`;
+                    
+                    // 添加ZIP下载事件
+                    setTimeout(() => {
+                        document.getElementById('download-zip').addEventListener('click', function() {
+                            downloadAsZip(files);
+                        });
+                    }, 100);
+                }
+                
+                resultDiv.innerHTML = html;
+                resultDiv.style.display = 'block';
+                
+                // 滚动到结果区域
+                resultDiv.scrollIntoView({ behavior: 'smooth' });
+            }
+            
+            // 下载为ZIP文件
+            function downloadAsZip(files) {
+                const zip = new JSZip();
+                
+                // 添加所有文件到ZIP
+                files.forEach(file => {
+                    zip.file(file.name, file.blob);
+                });
+                
+                // 生成ZIP文件并下载
+                zip.generateAsync({type: "blob"}).then(function(content) {
+                    saveAs(content, "FEL绘图文件.zip");
+                });
+            }
+            
+            // 读取文件为文本
+            function readFileAsText(file) {
+                return new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onload = e => resolve(e.target.result);
+                    reader.onerror = e => reject(e);
+                    reader.readAsText(file);
+                });
+            }
+            
+            // 重置FEL生成
+            document.getElementById('reset-fel').addEventListener('click', function() {
+                document.getElementById('temperature-input').value = '';
+                uploadedFiles = [];
+                tsvFileList.innerHTML = '';
+                document.getElementById('fel-result').style.display = 'none';
+                progressContainer.style.display = 'none';
+            });
+            
+            // 代表性构象提取功能
+            document.getElementById('extract-conformation').addEventListener('click', async function() {
+                const felFile = document.getElementById('fel-file').files[0];
+                const rmsdFile = document.getElementById('rmsd-file').files[0];
+                const rgFile = document.getElementById('rg-file').files[0];
+                
+                const minRmsd = parseFloat(document.getElementById('min-rmsd').value);
+                const maxRmsd = parseFloat(document.getElementById('max-rmsd').value);
+                const minRg = parseFloat(document.getElementById('min-rg').value);
+                const maxRg = parseFloat(document.getElementById('max-rg').value);
+                
+                if (!felFile || !rmsdFile || !rgFile) {
+                    alert('请上传所有必需的文件');
+                    return;
+                }
+                
+                if (isNaN(minRmsd) || isNaN(maxRmsd) || isNaN(minRg) || isNaN(maxRg)) {
+                    alert('请输入有效的范围值');
+                    return;
+                }
+                
+                try {
+                    // 读取所有文件
+                    const [felContent, rmsdContent, rgContent] = await Promise.all([
+                        readFileAsText(felFile),
+                        readFileAsText(rmsdFile),
+                        readFileAsText(rgFile)
+                    ]);
+                    
+                    // 处理文件并生成结果
+                    const result = await processExtraction(felContent, rmsdContent, rgContent, minRmsd, maxRmsd, minRg, maxRg);
+                    
+                    // 创建下载链接
+                    const blob = new Blob([result], { type: 'text/tab-separated-values' });
+                    const url = URL.createObjectURL(blob);
+                    
+                    // 显示结果
+                    const resultDiv = document.getElementById('extraction-result');
+                    resultDiv.innerHTML = `
+                        <h4>代表性构象提取完成</h4>
+                        <p>已生成代表性构象提取结果文件</p>
+                        <a href="${url}" download="out.tsv" class="download-link">下载out.tsv</a>
+                    `;
+                    resultDiv.style.display = 'block';
+                    
+                    // 滚动到结果区域
+                    resultDiv.scrollIntoView({ behavior: 'smooth' });
+                } catch (error) {
+                    alert('文件处理出错: ' + error.message);
+                }
+            });
+            
+            // 处理代表性构象提取
+            async function processExtraction(felContent, rmsdContent, rgContent, minRmsd, maxRmsd, minRg, maxRg) {
+                // 处理RMSD和RG文件（移除第一行和第三列）
+                const rmsdLines = processFileContent(rmsdContent, false);
+                const rgLines = processFileContent(rgContent, true);
+                
+                // 合并RMSD和RG数据
+                const mergedData = [];
+                for (let i = 0; i < Math.min(rmsdLines.length, rgLines.length); i++) {
+                    const rmsdCols = rmsdLines[i].trim().split('\t');
+                    const rgCols = rgLines[i].trim().split('\t');
+                    
+                    if (rmsdCols.length >= 2 && rgCols.length >= 2) {
+                        mergedData.push({
+                            col1: rmsdCols[0],
+                            col2: rmsdCols[1],
+                            col3: rgCols[1]
+                        });
+                    }
+                }
+                
+                // 筛选FEL文件中的数据
+                const felLines = felContent.split('\n');
+                const filteredData = [];
+                
+                for (let i = 1; i < felLines.length; i++) {
+                    const line = felLines[i].trim();
+                    if (line === '') continue;
+                    
+                    const cols = line.split('\t');
+                    if (cols.length < 3) continue;
+                    
+                    const x = parseFloat(cols[0]);
+                    const y = parseFloat(cols[1]);
+                    
+                    if (x >= minRmsd && x <= maxRmsd && y >= minRg && y <= maxRg) {
+                        filteredData.push({
+                            x: x,
+                            y: y,
+                            z: parseFloat(cols[2]),
+                            line: line
+                        });
+                    }
+                }
+                
+                // 找到最小的z值
+                let minZ = Infinity;
+                for (const item of filteredData) {
+                    if (item.z < minZ) {
+                        minZ = item.z;
+                    }
+                }
+                
+                // 筛选具有最小z值的行
+                const minZData = filteredData.filter(item => item.z === minZ);
+                
+                // 计算z值并找到最接近的行
+                let bestLine = null;
+                let minDistance = Infinity;
+                
+                for (const felItem of minZData) {
+                    for (const mergedItem of mergedData) {
+                        const col2 = parseFloat(mergedItem.col2);
+                        const col3 = parseFloat(mergedItem.col3);
+                        
+                        const distance = Math.abs(col2 - felItem.x) + Math.abs(col3 - felItem.y);
+                        
+                        if (distance < minDistance) {
+                            minDistance = distance;
+                            bestLine = `${mergedItem.col1}\t${mergedItem.col2}\t${mergedItem.col3}`;
+                        }
+                    }
+                }
+                
+                // 返回结果
+                return bestLine || '';
+            }
+            
+            // 处理文件内容（移除第一行和可选的第三列）
+            function processFileContent(content, removeThirdColumn) {
+                const lines = content.split('\n');
+                const result = [];
+                
+                // 跳过第一行
+                for (let i = 1; i < lines.length; i++) {
+                    const line = lines[i].trim();
+                    if (line === '') continue;
+                    
+                    let columns = line.split('\t');
+                    if (removeThirdColumn && columns.length >= 3) {
+                        columns.splice(2, 1); // 移除第三列
+                    }
+                    
+                    result.push(columns.join('\t'));
+                }
+                
+                return result;
+            }
+            
+            // 重置代表性构象提取
+            document.getElementById('reset-extraction').addEventListener('click', function() {
+                document.getElementById('fel-file').value = '';
+                document.getElementById('rmsd-file').value = '';
+                document.getElementById('rg-file').value = '';
+                document.getElementById('min-rmsd').value = '';
+                document.getElementById('max-rmsd').value = '';
+                document.getElementById('min-rg').value = '';
+                document.getElementById('max-rg').value = '';
+                document.getElementById('extraction-result').style.display = 'none';
+            });
+        });
+    </script>
+</body>
+</html>
