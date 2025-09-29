@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DLKcat输入文件批量生成</title>
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --secondary-color: #3498db;
+            --accent-color: #e74c3c;
+            --light-color: #ecf0f1;
+            --dark-color: #2c3e50;
+            --success-color: #27ae60;
+            --warning-color: #f39c12;
+            --border-radius: 8px;
+            --box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            --transition: all 0.3s ease;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            min-height: 100vh;
+        }
+
+        /* 顶部标题栏 */
+        .tool-header {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background-color: var(--primary-color);
+            color: white;
+            padding: 20px;
+            width: 100%;
+            text-align: center;
+        }
+
+        .back-button {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            padding: 8px 16px;
+            border-radius: var(--border-radius);
+            cursor: pointer;
+            transition: var(--transition);
+            font-size: 0.9rem;
+            margin-top: 15px;
+            text-decoration: none;
+        }
+
+        .back-button:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        /* 内容区域样式 */
+        .content {
+            padding: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .section {
+            background: white;
+            border-radius: var(--border-radius);
+            padding: 20px;
+            margin-bottom: 30px;
+            box-shadow: var(--box-shadow);
+        }
+
+        h2 {
+            color: var(--primary-color);
+            text-align: center;
+        }
+
+        h3 {
+            color: var(--secondary-color);
+            margin-bottom: 15px;
+            text-align: center;
+        }
+
+        /* 表单样式 */
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+        }
+
+        input[type="text"], textarea, select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: var(--border-radius);
+            font-size: 14px;
+        }
+
+        textarea {
+            min-height: 100px;
+            resize: vertical;
+        }
+
+        /* 功能选择样式 */
+        .function-selector {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 20px;
+            gap: 15px;
+        }
+
+        .function-option {
+            padding: 12px 24px;
+            background-color: #f1f1f1;
+            border-radius: var(--border-radius);
+            cursor: pointer;
+            transition: var(--transition);
+            font-weight: 600;
+            text-align: center;
+            flex: 1;
+            max-width: 200px;
+        }
+
+        .function-option.active {
+            background-color: var(--secondary-color);
+            color: white;
+        }
+
+        /* 按钮样式 */
+        .generate-button {
+            display: block;
+            width: 100%;
+            padding: 12px;
+            background-color: var(--success-color);
+            color: white;
+            font-weight: bold;
+            border: none;
+            border-radius: var(--border-radius);
+            cursor: pointer;
+            transition: var(--transition);
+            font-size: 16px;
+            margin-top: 20px;
+        }
+
+        .generate-button:hover {
+            background-color: #219955;
+        }
+
+        .generate-button:disabled {
+            background-color: #95a5a6;
+            cursor: not-allowed;
+        }
+
+        /* 结果区域样式 */
+        .result-box {
+            padding: 15px;
+            background-color: #f9f9f9;
+            border-radius: var(--border-radius);
+            margin-top: 15px;
+            border-left: 4px solid var(--secondary-color);
+            display: none;
+        }
+
+        .download-link {
+            display: inline-block;
+            padding: 10px 20px;
+            background-color: var(--secondary-color);
+            color: white;
+            border-radius: var(--border-radius);
+            text-decoration: none;
+            margin-top: 10px;
+            transition: var(--transition);
+        }
+
+        .download-link:hover {
+            background-color: #2980b9;
+        }
+
+        /* 隐藏类 */
+        .hidden {
+            display: none;
+        }
+
+        /* 状态栏样式 */
+        .status-bar {
+            padding: 10px;
+            background-color: var(--primary-color);
+            color: white;
+            text-align: center;
+            font-weight: bold;
+            width: 100%;
+            margin-top: 20px;
+        }
+
+        /* 氨基酸示例样式 */
+        .amino-acids {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+            margin-top: 10px;
+        }
+
+        .amino-acid {
+            padding: 5px 10px;
+            background-color: #e9f7fe;
+            border-radius: 4px;
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+
+        @media (max-width: 768px) {
+            .content {
+                padding: 15px;
+            }
+            
+            .function-selector {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .function-option {
+                max-width: 100%;
+            }
+            
+            .amino-acids {
+                justify-content: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="tool-header">
+        <h2 style="color: white;">DLKcat输入文件批量生成</h2>
+        <a href="index.html" class="back-button">返回主界面</a>
+    </div>
+    
+    <div class="content">
+        <div class="section">
+            <h2>输入文件批量生成</h2>
+            
+            <div class="form-group">
+                <label for="enzyme-sequence">酶序列:</label>
+                <input type="text" id="enzyme-sequence" placeholder="请输入原始序列（例如：MASNDYTQQ...）">
+            </div>
+            
+            <div class="form-group">
+                <label for="substrate-smiles">底物SMILES号:</label>
+                <input type="text" id="substrate-smiles" placeholder="输入您的底物SMILES号">
+            </div>
+            
+            <!-- 功能选择部分 -->
+            <div class="form-group">
+                <label>突变类型:</label>
+                <div class="function-selector">
+                    <div class="function-option active" data-function="saturation">饱和突变</div>
+                    <div class="function-option" data-function="random">随机位点突变</div>
+                </div>
+            </div>
+            
+            <!-- 饱和突变部分 -->
+            <div id="saturation-section" class="form-group">
+                <label for="saturation-sites">饱和突变位点:</label>
+                <input type="text" id="saturation-sites" placeholder="输入您想进行饱和突变的位点，用空格分隔（例如：S516 S517）">
+                <p><small>注意：每个位点将生成19种突变体（排除原始氨基酸）</small></p>
+            </div>
+            
+            <!-- 随机位点突变部分 -->
+            <div id="random-section" class="form-group hidden">
+                <label for="random-mutations">随机位点突变:</label>
+                <textarea id="random-mutations" placeholder="输入你想突变的位点及新氨基酸，不同突变可用空格或换行分隔（例如：S516M S517A）"></textarea>
+                <p><small>格式：原始氨基酸+位置+新氨基酸，例如：S516M</small></p>
+            </div>
+            
+            <button id="generate-button" class="generate-button">生成突变序列</button>
+            
+            <div id="result-box" class="result-box">
+                <!-- 生成结果将在这里显示 -->
+            </div>
+        </div>
+    </div>
+    
+    <div class="status-bar">
+        江南大学 粮食发酵工艺与技术国家工程实验室
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // 功能选择
+            const functionOptions = document.querySelectorAll('.function-option');
+            const saturationSection = document.getElementById('saturation-section');
+            const randomSection = document.getElementById('random-section');
+            
+            functionOptions.forEach(option => {
+                option.addEventListener('click', function() {
+                    // 移除所有选项的active类
+                    functionOptions.forEach(opt => opt.classList.remove('active'));
+                    // 添加当前选项的active类
+                    this.classList.add('active');
+                    
+                    // 显示对应的功能部分
+                    const functionType = this.getAttribute('data-function');
+                    if (functionType === 'saturation') {
+                        saturationSection.classList.remove('hidden');
+                        randomSection.classList.add('hidden');
+                    } else {
+                        saturationSection.classList.add('hidden');
+                        randomSection.classList.remove('hidden');
+                    }
+                });
+            });
+            
+            // 定义所有20种氨基酸
+            const aminoAcids = ['G', 'A', 'V', 'L', 'I', 'S', 'T', 'C', 'M', 'D', 'E', 'N', 'Q', 'K', 'R', 'H', 'F', 'Y', 'W', 'P'];
+            
+            // 生成突变序列
+            const generateButton = document.getElementById('generate-button');
+            const resultBox = document.getElementById('result-box');
+            
+            generateButton.addEventListener('click', function() {
+                // 获取用户输入
+                const enzymeSequence = document.getElementById('enzyme-sequence').value.trim().toUpperCase();
+                const substrateSmiles = document.getElementById('substrate-smiles').value.trim();
+                const isSaturation = document.querySelector('.function-option.active').getAttribute('data-function') === 'saturation';
+                
+                // 验证输入
+                if (!enzymeSequence) {
+                    alert('请输入酶序列');
+                    return;
+                }
+                
+                if (!substrateSmiles) {
+                    alert('请输入底物SMILES号');
+                    return;
+                }
+                
+                // 禁用按钮，显示处理中
+                generateButton.disabled = true;
+                generateButton.textContent = '处理中...';
+                
+                try {
+                    let output = "Substrate Name\tSubstrate SMILES\tProtein Sequence\n";
+                    output += `WT\t${substrateSmiles}\t${enzymeSequence}\n`;
+                    
+                    if (isSaturation) {
+                        // 饱和突变处理
+                        const saturationSitesInput = document.getElementById('saturation-sites').value.trim();
+                        if (!saturationSitesInput) {
+                            throw new Error('请输入饱和突变位点');
+                        }
+                        
+                        const saturationSites = saturationSitesInput.split(/\s+/);
+                        
+                        // 验证每个位点格式
+                        for (const site of saturationSites) {
+                            if (site.length < 2) {
+                                throw new Error(`位点格式错误: ${site}`);
+                            }
+                            
+                            const originalAA = site[0].toUpperCase();
+                            const positionStr = site.substring(1);
+                            const position = parseInt(positionStr);
+                            
+                            if (isNaN(position) || position < 1 || position > enzymeSequence.length) {
+                                throw new Error(`位点位置无效: ${site}`);
+                            }
+                            
+                            // 检查原始氨基酸是否匹配
+                            if (enzymeSequence[position-1] !== originalAA) {
+                                alert(`警告: 序列中位置${position}的氨基酸是${enzymeSequence[position-1]}，不是${originalAA}`);
+                            }
+                            
+                            // 为每个位点生成所有可能的突变
+                            for (const aa of aminoAcids) {
+                                if (aa !== originalAA) {
+                                    const mutatedSequence = enzymeSequence.substring(0, position-1) + aa + enzymeSequence.substring(position);
+                                    const mutationFormula = `${originalAA}${position}${aa}`;
+                                    output += `${mutationFormula}\t${substrateSmiles}\t${mutatedSequence}\n`;
+                                }
+                            }
+                        }
+                    } else {
+                        // 随机位点突变处理
+                        const randomMutationsInput = document.getElementById('random-mutations').value.trim();
+                        if (!randomMutationsInput) {
+                            throw new Error('请输入随机位点突变');
+                        }
+                        
+                        const randomMutations = randomMutationsInput.split(/\s+/);
+                        
+                        // 验证每个突变格式并生成突变序列
+                        for (const mutation of randomMutations) {
+                            if (mutation.length < 3) {
+                                throw new Error(`突变格式错误: ${mutation}`);
+                            }
+                            
+                            const originalAA = mutation[0].toUpperCase();
+                            const newAA = mutation[mutation.length-1].toUpperCase();
+                            const positionStr = mutation.substring(1, mutation.length-1);
+                            const position = parseInt(positionStr);
+                            
+                            if (isNaN(position) || position < 1 || position > enzymeSequence.length) {
+                                throw new Error(`突变位置无效: ${mutation}`);
+                            }
+                            
+                            // 检查原始氨基酸是否匹配
+                            if (enzymeSequence[position-1] !== originalAA) {
+                                alert(`警告: 序列中位置${position}的氨基酸是${enzymeSequence[position-1]}，不是${originalAA}`);
+                            }
+                            
+                            // 生成突变序列
+                            const mutatedSequence = enzymeSequence.substring(0, position-1) + newAA + enzymeSequence.substring(position);
+                            output += `${mutation.toUpperCase()}\t${substrateSmiles}\t${mutatedSequence}\n`;
+                        }
+                    }
+                    
+                    // 创建Blob对象并生成下载链接
+                    const blob = new Blob([output], { type: 'text/tab-separated-values' });
+                    const url = URL.createObjectURL(blob);
+                    
+                    const downloadLink = document.createElement('a');
+                    downloadLink.href = url;
+                    downloadLink.download = 'input.tsv';
+                    downloadLink.className = 'download-link';
+                    downloadLink.textContent = '下载input.tsv文件 (input.tsv)';
+                    
+                    resultBox.innerHTML = '<h3>输入文件input.tsv已生成！</h3><p>点击下方链接下载文件：</p>';
+                    resultBox.appendChild(downloadLink);
+                    resultBox.style.display = 'block';
+                    
+                } catch (error) {
+                    console.error('生成input.tsv时出错:', error);
+                    resultBox.innerHTML = `<p>生成input.tsv时出错: ${error.message}</p>`;
+                    resultBox.style.display = 'block';
+                } finally {
+                    // 恢复按钮状态
+                    generateButton.disabled = false;
+                    generateButton.textContent = '生成input.tsv文件';
+                }
+            });
+        });
+    </script>
+</body>
+</html>
