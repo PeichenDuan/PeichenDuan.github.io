@@ -127,6 +127,17 @@
             flex-shrink: 0;
         }
 
+        /* 受限工具样式 */
+        .restricted-tool .tool-card-footer {
+            background-color: #fff3cd;
+            color: #856404;
+            font-weight: bold;
+        }
+
+        .restricted-tool .tool-card-footer::before {
+            content: "🔒 ";
+        }
+
         .coming-soon {
             position: relative;
             opacity: 0.7;
@@ -169,6 +180,96 @@
             background: var(--primary-color);
             color: white;
             margin-top: 40px;
+        }
+
+        /* 登录模态框样式 */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-content {
+            background-color: white;
+            padding: 30px;
+            border-radius: var(--border-radius);
+            box-shadow: var(--box-shadow);
+            width: 90%;
+            max-width: 400px;
+            text-align: center;
+        }
+
+        .modal-title {
+            margin-bottom: 20px;
+            color: var(--primary-color);
+            font-size: 1.5rem;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+            text-align: left;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: var(--border-radius);
+            font-size: 1rem;
+        }
+
+        .modal-buttons {
+            display: flex;
+            justify-content: space-between;
+            gap: 10px;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: var(--border-radius);
+            cursor: pointer;
+            font-size: 1rem;
+            transition: var(--transition);
+            flex: 1;
+        }
+
+        .btn-primary {
+            background-color: var(--secondary-color);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background-color: #2980b9;
+        }
+
+        .btn-secondary {
+            background-color: #95a5a6;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background-color: #7f8c8d;
+        }
+
+        .error-message {
+            color: var(--accent-color);
+            margin-top: 10px;
+            font-size: 0.9rem;
+            display: none;
         }
 
         @media (max-width: 768px) {
@@ -322,28 +423,28 @@
                 <div class="tool-card-footer">点击进入</div>
             </a>
             
-            <a href="软件工具-Amber24工作站批量生成.html" class="tool-card">
+            <a href="软件工具-Amber24工作站批量生成.html" class="tool-card restricted-tool" data-restricted="true">
                 <div class="tool-card-header">Amber24工作站批量生成</div>
                 <div class="tool-card-body">
                     <p>搭配高性能计算平台进行分子动力学模拟，仅限江南大学国工实验室内部使用</p>
                 </div>
-                <div class="tool-card-footer">点击进入</div>
+                <div class="tool-card-footer">仅限国工实验室</div>
             </a>
 
-            <a href="软件工具-自由能景观构建.html" class="tool-card">
+            <a href="软件工具-自由能景观构建.html" class="tool-card restricted-tool" data-restricted="true">
                 <div class="tool-card-header">自由能景观构建</div>
                 <div class="tool-card-body">
                     <p>对分子动力学模拟结果进行自由能景观分析，仅限江南大学国工实验室内部使用</p>
                 </div>
-                <div class="tool-card-footer">点击进入</div>
+                <div class="tool-card-footer">仅限国工实验室</div>
             </a>
             
-            <a href="软件工具-AlphaFold3输入文件批量生成.html" class="tool-card">
+            <a href="软件工具-AlphaFold3输入文件批量生成.html" class="tool-card restricted-tool" data-restricted="true">
                 <div class="tool-card-header">AlphaFold3输入文件生成</div>
                 <div class="tool-card-body">
                     <p>搭配高性能计算平台进行蛋白同源建模及分子对接，仅限江南大学国工实验室内部使用</p>
                 </div>
-                <div class="tool-card-footer">点击进入</div>
+                <div class="tool-card-footer">仅限国工实验室</div>
             </a>
             
             <div class="tool-card coming-soon">
@@ -357,7 +458,6 @@
         </div>
     </div>
 
-    
     <!-- 隐藏功能版块 -->
     <div id="hiddenSection" class="section-block hidden-section">
         <h2 class="section-title">隐藏功能</h2>
@@ -380,11 +480,42 @@
         </div>
     </div>
     
+    <!-- 登录模态框 -->
+    <div id="loginModal" class="modal-overlay">
+        <div class="modal-content">
+            <h2 class="modal-title">国工实验室认证</h2>
+            <p>本功能仅限国工实验室使用，请输入用户名及密码</p>
+            <form id="loginForm">
+                <div class="form-group">
+                    <label for="username">用户名</label>
+                    <input type="text" id="username" name="username" required>
+                </div>
+                <div class="form-group">
+                    <label for="password">密码</label>
+                    <input type="password" id="password" name="password" required>
+                </div>
+                <div class="error-message" id="errorMessage">用户名或密码错误，请重试</div>
+                <div class="modal-buttons">
+                    <button type="button" class="btn btn-secondary" id="cancelBtn">取消</button>
+                    <button type="submit" class="btn btn-primary">登录</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
     <div class="footer">
         江南大学 粮食发酵工艺与技术国家工程实验室
     </div>
 
     <script>
+        // 用户认证配置 - 您可以在这里编辑用户名和密码
+        const VALID_USERS = {
+            "admin": "123456", // 用户名: 密码
+        };
+
+        // 会话超时时间（分钟）
+        const SESSION_TIMEOUT = 30;
+
         // 键盘快捷键监听
         document.addEventListener('DOMContentLoaded', function() {
             let keysPressed = {};
@@ -441,7 +572,125 @@
                 }
             `;
             document.head.appendChild(style);
+            
+            // 用户认证功能
+            initAuthentication();
         });
+
+        // 用户认证功能
+        function initAuthentication() {
+            const loginModal = document.getElementById('loginModal');
+            const loginForm = document.getElementById('loginForm');
+            const cancelBtn = document.getElementById('cancelBtn');
+            const errorMessage = document.getElementById('errorMessage');
+            const restrictedTools = document.querySelectorAll('.tool-card[data-restricted="true"]');
+            
+            let targetUrl = '';
+            
+            // 检查是否已有有效的登录会话
+            checkSession();
+            
+            // 为受限工具添加点击事件
+            restrictedTools.forEach(tool => {
+                tool.addEventListener('click', function(e) {
+                    // 如果用户未登录，显示登录模态框
+                    if (!isLoggedIn()) {
+                        e.preventDefault();
+                        targetUrl = this.getAttribute('href');
+                        loginModal.style.display = 'flex';
+                    }
+                    // 如果已登录，直接跳转
+                });
+            });
+            
+            // 登录表单提交事件
+            loginForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                const username = document.getElementById('username').value;
+                const password = document.getElementById('password').value;
+                
+                if (authenticateUser(username, password)) {
+                    // 登录成功
+                    loginModal.style.display = 'none';
+                    errorMessage.style.display = 'none';
+                    loginForm.reset();
+                    
+                    // 保存登录状态
+                    saveLoginState(username);
+                    
+                    // 跳转到目标页面
+                    if (targetUrl) {
+                        window.location.href = targetUrl;
+                    }
+                } else {
+                    // 登录失败
+                    errorMessage.style.display = 'block';
+                }
+            });
+            
+            // 取消按钮事件
+            cancelBtn.addEventListener('click', function() {
+                loginModal.style.display = 'none';
+                errorMessage.style.display = 'none';
+                loginForm.reset();
+                targetUrl = '';
+            });
+            
+            // 点击模态框外部关闭
+            loginModal.addEventListener('click', function(e) {
+                if (e.target === loginModal) {
+                    loginModal.style.display = 'none';
+                    errorMessage.style.display = 'none';
+                    loginForm.reset();
+                    targetUrl = '';
+                }
+            });
+        }
+        
+        // 验证用户名和密码
+        function authenticateUser(username, password) {
+            return VALID_USERS[username] === password;
+        }
+        
+        // 检查用户是否已登录
+        function isLoggedIn() {
+            const loginData = getLoginData();
+            if (!loginData) return false;
+            
+            // 检查会话是否过期
+            const now = new Date().getTime();
+            if (now - loginData.loginTime > SESSION_TIMEOUT * 60 * 1000) {
+                // 会话已过期
+                localStorage.removeItem('labLoginData');
+                return false;
+            }
+            
+            return true;
+        }
+        
+        // 保存登录状态
+        function saveLoginState(username) {
+            const loginData = {
+                username: username,
+                loginTime: new Date().getTime()
+            };
+            localStorage.setItem('labLoginData', JSON.stringify(loginData));
+        }
+        
+        // 获取登录数据
+        function getLoginData() {
+            const data = localStorage.getItem('labLoginData');
+            return data ? JSON.parse(data) : null;
+        }
+        
+        // 检查会话状态
+        function checkSession() {
+            if (isLoggedIn()) {
+                console.log('用户已登录');
+            } else {
+                console.log('用户未登录或会话已过期');
+            }
+        }
     </script>
 </body>
 </html>
