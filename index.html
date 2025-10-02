@@ -484,7 +484,7 @@
     <div id="loginModal" class="modal-overlay">
         <div class="modal-content">
             <h2 class="modal-title">国工实验室认证</h2>
-            <p>本功能仅限国工实验室，请输入用户名及密码</p>
+            <p>本功能仅限国工实验室使用，请输入用户名及密码</p>
             <form id="loginForm">
                 <div class="form-group">
                     <label for="username">用户名</label>
@@ -513,7 +513,7 @@
             "admin": "123456", // 用户名: 密码
         };
 
-        // 会话超时时间（分钟）
+        // 会话超时时间（分钟）- 现在仅在同一会话中有效
         const SESSION_TIMEOUT = 30;
 
         // 键盘快捷键监听
@@ -615,7 +615,7 @@
                     errorMessage.style.display = 'none';
                     loginForm.reset();
                     
-                    // 保存登录状态
+                    // 保存登录状态（使用sessionStorage，关闭页面后失效）
                     saveLoginState(username);
                     
                     // 跳转到目标页面
@@ -661,7 +661,7 @@
             const now = new Date().getTime();
             if (now - loginData.loginTime > SESSION_TIMEOUT * 60 * 1000) {
                 // 会话已过期
-                localStorage.removeItem('labLoginData');
+                sessionStorage.removeItem('labLoginData');
                 return false;
             }
             
@@ -674,19 +674,20 @@
                 username: username,
                 loginTime: new Date().getTime()
             };
-            localStorage.setItem('labLoginData', JSON.stringify(loginData));
+            // 使用sessionStorage替代localStorage，关闭页面后自动清除
+            sessionStorage.setItem('labLoginData', JSON.stringify(loginData));
         }
         
         // 获取登录数据
         function getLoginData() {
-            const data = localStorage.getItem('labLoginData');
+            const data = sessionStorage.getItem('labLoginData');
             return data ? JSON.parse(data) : null;
         }
         
         // 检查会话状态
         function checkSession() {
             if (isLoggedIn()) {
-                console.log('用户已登录');
+                console.log('用户已登录（当前会话）');
             } else {
                 console.log('用户未登录或会话已过期');
             }
