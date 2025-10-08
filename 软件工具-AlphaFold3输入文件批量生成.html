@@ -598,11 +598,11 @@
                     const allSubstrates = {};
                     for (const file of selectedSubstrateFiles) {
                         const fileContent = await readFileAsText(file);
-                        const substrates = parseFasta(fileContent);
+                        const substrates = parseSubstrateFasta(fileContent);
                         
-                        for (const [subName, subSmiles] of Object.entries(substrates)) {
+                        for (const [subName, subSmilesArray] of Object.entries(substrates)) {
                             allSubstrates[subName] = {
-                                'smiles': subSmiles,
+                                'smiles': subSmilesArray,
                                 'source_file': file.name
                             };
                         }
@@ -616,22 +616,29 @@
                             const combination = `${safeEnz}_${safeSub}`;
                             
                             // 构建JSON数据结构 - 分子对接
+                            const sequences = [
+                                {
+                                    "protein": {
+                                        "id": "A",
+                                        "sequence": enzData.sequence
+                                    }
+                                }
+                            ];
+                            
+                            // 添加多个配体
+                            for (let i = 0; i < subData.smiles.length; i++) {
+                                const ligandId = String.fromCharCode(66 + i); // 从B开始
+                                sequences.push({
+                                    "ligand": {
+                                        "id": ligandId,
+                                        "smiles": subData.smiles[i]
+                                    }
+                                });
+                            }
+                            
                             const jsonData = {
                                 "name": combination,
-                                "sequences": [
-                                    {
-                                        "protein": {
-                                            "id": "A",
-                                            "sequence": enzData.sequence
-                                        }
-                                    },
-                                    {
-                                        "ligand": {
-                                            "id": "B",
-                                            "smiles": subData.smiles
-                                        }
-                                    }
-                                ],
+                                "sequences": sequences,
                                 "modelSeeds": [1],
                                 "dialect": "alphafold3",
                                 "version": 1
@@ -681,7 +688,7 @@
                 });
             }
             
-            // 解析FASTA格式内容
+            // 解析FASTA格式内容 - 蛋白序列
             function parseFasta(content) {
                 const entries = {};
                 let currentId = null;
@@ -694,7 +701,9 @@
                         entries[currentId] = [];
                     } else {
                         if (currentId !== null && trimmedLine) {
-                            entries[currentId].push(trimmedLine);
+                            // 跳过空格和换行，只保留有效字符
+                            const cleanLine = trimmedLine.replace(/\s/g, '');
+                            entries[currentId].push(cleanLine);
                         }
                     }
                 }
@@ -702,6 +711,28 @@
                 // 合并多行内容
                 for (const key in entries) {
                     entries[key] = entries[key].join('');
+                }
+                
+                return entries;
+            }
+            
+            // 解析底物FASTA格式内容 - 一个底物名称下可以有多个SMILES
+            function parseSubstrateFasta(content) {
+                const entries = {};
+                let currentId = null;
+                const lines = content.split('\n');
+                
+                for (const line of lines) {
+                    const trimmedLine = line.trim();
+                    if (trimmedLine.startsWith('>')) {
+                        currentId = trimmedLine.substring(1); // 去除'>'符号
+                        entries[currentId] = [];
+                    } else {
+                        if (currentId !== null && trimmedLine) {
+                            // 保留每一行的SMILES，不合并
+                            entries[currentId].push(trimmedLine);
+                        }
+                    }
                 }
                 
                 return entries;
