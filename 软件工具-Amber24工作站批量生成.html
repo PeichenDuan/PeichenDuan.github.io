@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Amber24工作站批量生成-md1</title>
+    <title>Amber24工作站批量生成-多底物MD</title>
     <style>
         :root {
             --primary-color: #2c3e50;
@@ -237,6 +237,57 @@
             margin-top: 20px;
         }
 
+        /* 模式选择器样式 */
+        .mode-selector {
+            display: flex;
+            margin-bottom: 20px;
+            border-radius: var(--border-radius);
+            overflow: hidden;
+            box-shadow: var(--box-shadow);
+        }
+
+        .mode-option {
+            flex: 1;
+            padding: 12px;
+            text-align: center;
+            background-color: #f8f9fa;
+            cursor: pointer;
+            transition: var(--transition);
+            border: 1px solid #ddd;
+        }
+
+        .mode-option:first-child {
+            border-right: none;
+        }
+
+        .mode-option.active {
+            background-color: var(--secondary-color);
+            color: white;
+        }
+
+        .mode-option:hover:not(.active) {
+            background-color: #e9ecef;
+        }
+
+        /* 配体信息样式 */
+        .ligand-info {
+            background-color: #f8f9fa;
+            border-radius: var(--border-radius);
+            padding: 15px;
+            margin-bottom: 15px;
+            border-left: 4px solid var(--warning-color);
+        }
+
+        .ligand-info h4 {
+            margin-bottom: 10px;
+            color: var(--dark-color);
+        }
+
+        .ligand-details {
+            font-size: 0.9em;
+            color: #666;
+        }
+
         @media (max-width: 768px) {
             .content {
                 padding: 15px;
@@ -258,11 +309,31 @@
 </head>
 <body>
     <div class="tool-header">
-        <h2 style="color: white;">Amber24工作站批量生成-md1</h2>
+        <h2 style="color: white;">Amber24工作站批量生成-多底物MD</h2>
         <a href="index.html" class="back-button">返回主界面</a>
     </div>
     
     <div class="content">
+        <!-- 模式选择部分 -->
+        <div class="section">
+            <h2>模拟模式选择</h2>
+            
+            <div class="mode-selector">
+                <div class="mode-option active" data-mode="single">单底物模式</div>
+                <div class="mode-option" data-mode="multi">多底物模式</div>
+            </div>
+            
+            <div id="single-mode-info" class="ligand-info">
+                <h4>单底物模式</h4>
+                <p class="ligand-details">适用于蛋白与单个配体分子的动力学模拟。上传的PDB文件应包含蛋白和单个配体分子。</p>
+            </div>
+            
+            <div id="multi-mode-info" class="ligand-info" style="display: none;">
+                <h4>多底物模式</h4>
+                <p class="ligand-details">适用于蛋白与多个配体分子的动力学模拟。上传的PDB文件应包含蛋白和多个配体分子，系统会自动识别并分离不同的配体。</p>
+            </div>
+        </div>
+        
         <!-- 文件上传部分 -->
         <div class="section">
             <h2>上传PDB对接文件</h2>
@@ -274,6 +345,13 @@
                 
                 <div id="file-list" class="file-list">
                     <!-- 文件列表将在这里显示 -->
+                </div>
+            </div>
+            
+            <div id="multi-ligand-info" style="display: none; margin-top: 20px;">
+                <h4>多底物检测结果</h4>
+                <div id="ligand-list" class="file-list">
+                    <!-- 配体列表将在这里显示 -->
                 </div>
             </div>
         </div>
@@ -321,10 +399,40 @@
         document.addEventListener('DOMContentLoaded', function() {
             const pdbFilesInput = document.getElementById('pdb-files');
             const fileListContainer = document.getElementById('file-list');
+            const ligandListContainer = document.getElementById('ligand-list');
             const generateButton = document.getElementById('generate-button');
             const resultBox = document.getElementById('result-box');
+            const modeOptions = document.querySelectorAll('.mode-option');
+            const singleModeInfo = document.getElementById('single-mode-info');
+            const multiModeInfo = document.getElementById('multi-mode-info');
+            const multiLigandInfo = document.getElementById('multi-ligand-info');
             
             let selectedFiles = [];
+            let currentMode = 'single'; // 默认单底物模式
+            let detectedLigands = []; // 检测到的配体信息
+            
+            // 模式选择处理
+            modeOptions.forEach(option => {
+                option.addEventListener('click', function() {
+                    modeOptions.forEach(opt => opt.classList.remove('active'));
+                    this.classList.add('active');
+                    currentMode = this.dataset.mode;
+                    
+                    // 更新模式信息显示
+                    if (currentMode === 'single') {
+                        singleModeInfo.style.display = 'block';
+                        multiModeInfo.style.display = 'none';
+                        multiLigandInfo.style.display = 'none';
+                    } else {
+                        singleModeInfo.style.display = 'none';
+                        multiModeInfo.style.display = 'block';
+                        // 如果已经有文件上传，重新分析配体
+                        if (selectedFiles.length > 0) {
+                            analyzeLigands();
+                        }
+                    }
+                });
+            });
             
             // 处理文件选择
             pdbFilesInput.addEventListener('change', function(e) {
@@ -332,34 +440,12 @@
                 selectedFiles = files;
                 
                 // 更新文件列表显示
-                fileListContainer.innerHTML = '';
+                updateFileList();
                 
-                files.forEach((file, index) => {
-                    const fileItem = document.createElement('div');
-                    fileItem.className = 'file-item';
-                    
-                    const fileName = document.createElement('span');
-                    fileName.className = 'file-name';
-                    fileName.textContent = file.name;
-                    
-                    const fileSize = document.createElement('span');
-                    fileSize.className = 'file-size';
-                    fileSize.textContent = formatFileSize(file.size);
-                    
-                    const fileRemove = document.createElement('span');
-                    fileRemove.className = 'file-remove';
-                    fileRemove.textContent = '移除';
-                    fileRemove.addEventListener('click', function() {
-                        selectedFiles.splice(index, 1);
-                        updateFileList();
-                    });
-                    
-                    fileItem.appendChild(fileName);
-                    fileItem.appendChild(fileSize);
-                    fileItem.appendChild(fileRemove);
-                    
-                    fileListContainer.appendChild(fileItem);
-                });
+                // 如果处于多底物模式，分析配体
+                if (currentMode === 'multi' && files.length > 0) {
+                    analyzeLigands();
+                }
             });
             
             // 更新文件列表显示
@@ -384,6 +470,9 @@
                     fileRemove.addEventListener('click', function() {
                         selectedFiles.splice(index, 1);
                         updateFileList();
+                        if (currentMode === 'multi') {
+                            analyzeLigands();
+                        }
                     });
                     
                     fileItem.appendChild(fileName);
@@ -392,6 +481,84 @@
                     
                     fileListContainer.appendChild(fileItem);
                 });
+            }
+            
+            // 分析多底物模式下的配体
+            async function analyzeLigands() {
+                if (selectedFiles.length === 0) return;
+                
+                multiLigandInfo.style.display = 'block';
+                ligandListContainer.innerHTML = '<p>正在分析配体信息...</p>';
+                
+                try {
+                    const file = selectedFiles[0]; // 暂时只处理第一个文件
+                    const fileContent = await readFileAsText(file);
+                    
+                    // 解析PDB文件，识别不同的配体
+                    const ligands = parseLigandsFromPDB(fileContent);
+                    detectedLigands = ligands;
+                    
+                    // 更新配体列表显示
+                    ligandListContainer.innerHTML = '';
+                    
+                    if (ligands.length === 0) {
+                        ligandListContainer.innerHTML = '<p>未检测到配体分子</p>';
+                    } else {
+                        ligands.forEach((ligand, index) => {
+                            const ligandItem = document.createElement('div');
+                            ligandItem.className = 'file-item';
+                            
+                            const ligandName = document.createElement('span');
+                            ligandName.className = 'file-name';
+                            ligandName.textContent = `配体${index+1} (残基名: ${ligand.resName}, 残基号: ${ligand.resSeq}, 链: ${ligand.chainID})`;
+                            
+                            const ligandCount = document.createElement('span');
+                            ligandCount.className = 'file-size';
+                            ligandCount.textContent = `${ligand.atoms.length} 个原子`;
+                            
+                            ligandItem.appendChild(ligandName);
+                            ligandItem.appendChild(ligandCount);
+                            
+                            ligandListContainer.appendChild(ligandItem);
+                        });
+                    }
+                } catch (error) {
+                    console.error('分析配体时出错:', error);
+                    ligandListContainer.innerHTML = `<p>分析配体时出错: ${error.message}</p>`;
+                }
+            }
+            
+            // 从PDB内容中解析配体
+            function parseLigandsFromPDB(pdbContent) {
+                const lines = pdbContent.split('\n');
+                const ligands = {};
+                
+                for (const line of lines) {
+                    if (line.startsWith('HETATM')) {
+                        const recordName = line.substring(0, 6).trim();
+                        const atomSerial = parseInt(line.substring(6, 11)) || 0;
+                        const atomName = line.substring(12, 16).trim();
+                        const resName = line.substring(17, 20).trim();
+                        const chainID = line.substring(21, 22).trim();
+                        const resSeq = parseInt(line.substring(22, 26)) || 0;
+                        
+                        // 使用残基名+残基号+链ID作为配体的唯一标识
+                        const ligandKey = `${resName}_${resSeq}_${chainID}`;
+                        
+                        if (!ligands[ligandKey]) {
+                            ligands[ligandKey] = {
+                                resName: resName,
+                                resSeq: resSeq,
+                                chainID: chainID,
+                                atoms: []
+                            };
+                        }
+                        
+                        ligands[ligandKey].atoms.push(line);
+                    }
+                }
+                
+                return Object.values(ligands);
             }
             
             // 格式化文件大小
@@ -466,14 +633,26 @@
                         for (let i = 1; i <= parseInt(experiments); i++) {
                             const experimentDir = `${fileName}/${fileName}_${i}/`;
                             
-                            // 写入protein_0.pdb和ligand.pdb
+                            // 写入protein_0.pdb
                             zip.file(experimentDir + 'protein_0.pdb', atomLines.join('\n'));
-                            zip.file(experimentDir + 'ligand.pdb', hetatmLines.join('\n'));
+                            
+                            // 根据模式写入配体文件
+                            if (currentMode === 'single') {
+                                // 单底物模式：写入ligand.pdb
+                                zip.file(experimentDir + 'ligand.pdb', hetatmLines.join('\n'));
+                            } else {
+                                // 多底物模式：写入多个ligand文件
+                                const ligands = parseLigandsFromPDB(fileContent);
+                                for (let j = 0; j < ligands.length; j++) {
+                                    const ligand = ligands[j];
+                                    zip.file(experimentDir + `ligand${j+1}.pdb`, ligand.atoms.join('\n'));
+                                }
+                            }
                             
                             // 写入脚本文件
                             const scripts = {
-                                'amber24-amd.slurm': getAmber24AmdSlurm(),
-                                'leap.in': getLeapIn(),
+                                'amber24-amd.slurm': getAmber24AmdSlurm(currentMode),
+                                'leap.in': getLeapIn(currentMode),
                                 'min2.in': getMin2In()
                             };
                             
@@ -535,7 +714,7 @@
                 });
             }
             
-            // 以下是脚本模板函数
+            // 以下是修复后的脚本模板函数
             function getAmber244090Slurm() {
                 return `#!/bin/bash
 #SBATCH -J sander
@@ -581,7 +760,29 @@ mpirun pmemd.cuda.MPI -O -i md1.in  -o md1-50.out -p pep.top  -c  md0.rst  -r md
 echo $(date)`;
             }
             
-            function getAmber24AmdSlurm() {
+            function getAmber24AmdSlurm(mode) {
+                let ligandCommands = '';
+                
+                if (mode === 'multi') {
+                    // 多底物模式：为每个配体生成参数化命令
+                    ligandCommands = `
+# 处理多个配体分子
+/public/software/apps/amber24_hygon/bin/antechamber -i ligand1.pdb -fi pdb -o ligand1.mol2 -fo mol2 -c bcc -pf y
+/public/software/apps/amber24_hygon/bin/parmchk2 -i ligand1.mol2 -f mol2 -o ligand1.frcmod
+
+/public/software/apps/amber24_hygon/bin/antechamber -i ligand2.pdb -fi pdb -o ligand2.mol2 -fo mol2 -c bcc -pf y
+/public/software/apps/amber24_hygon/bin/parmchk2 -i ligand2.mol2 -f mol2 -o ligand2.frcmod
+
+# 如果有更多配体，继续添加...
+`;
+                } else {
+                    // 单底物模式
+                    ligandCommands = `
+/public/software/apps/amber24_hygon/bin/antechamber -i ligand.pdb -fi pdb -o ligand.mol2 -fo mol2 -c bcc -pf y
+/public/software/apps/amber24_hygon/bin/parmchk2 -i ligand.mol2 -f mol2 -o ligand.frcmod
+`;
+                }
+                
                 return `#!/bin/bash
 #SBATCH -J sander
 #SBATCH -p amd
@@ -591,45 +792,77 @@ echo $(date)`;
 ###SBATCH --cpus-per-task=1
 #SBATCH --mem=200G  
 
-# variables for sander. If you don't need it, just leave it blank.
-# The meanings of the variables can be found in the AMBER's manual.
-
-#--- LSF ---
 echo job runs at the following node:
 echo $SLURM_JOB_NODELIST 
 NP=$(echo $SLURM_JOB_NODELIST | awk '{print NF}')
-##NNODE=$(echo $LSB_HOSTS | sed -e "s/ /g" | uniq - | wc -l)
 echo ""
 echo Number of processor: $NP
 echo ""
-#NGPU=$(expr $NP \\/ 4)
+
 source /public/software/profile.d/cuda-11.7.sh
 module purge
 module load apps/cmake/3.26.3
 module load compiler/gcc/9.3.0
 module load apps/anaconda3/2019.07 
 module load mpi/openmpi/gnu/4.0.3
-#module load mpi/intelmpi/2021.3.0
 
 source /public/software/apps/amber24_amd/amber.sh
 ulimit -s unlimited
 
 echo $NP
 export I_MPI_PMI_LIBRARY=/opt/gridview/slurm/lib/libpmi.so
-/public/software/apps/amber24_hygon/bin/antechamber -i ligand.pdb -fi pdb -o ligand.mol2 -fo mol2 -c bcc -pf y
-/public/software/apps/amber24_hygon/bin/parmchk2 -i ligand.mol2 -f mol2 -o ligand.frcmod
+${ligandCommands}
 python2 /public/software/apps/amber24_src/AmberTools/src/amberlite/pdb4amber05/pdb4amber -i protein_0.pdb -o protein.pdb -y --dry
 /public/software/apps/amber24_hygon/bin/tleap -sf leap.in
-mpirun -np 64 sander.MPI -O -i min1.in -p pep.top -c pep.crd  -o  min1.out -r min1.rst -ref pep.crd < /dev/null
-mpirun -np 64 sander.MPI -O -i min2.in -p pep.top -c min1.rst -o  min2.out -r min2.rst
-##mpirun pmemd.cuda.MPI -O -i md0.in  -p pep.top -c min2.rst -o  md0.out  -x md0.crd -r md0.rst -ref min2.rst < /dev/null
-##mpirun pmemd.cuda.MPI -O -i md1.in  -o md1-50.out -p pep.top  -c  md0.rst  -r md1-50.rst -x md1-50.crd  < /dev/null
+mpirun -np 64 sander.MPI -O -i min1.in -p pep.top -c pep.crd -o min1.out -r min1.rst -ref pep.crd
+mpirun -np 64 sander.MPI -O -i min2.in -p pep.top -c min1.rst -o min2.out -r min2.rst
 
 echo $(date)`;
             }
             
-            function getLeapIn() {
-                return `source leaprc.protein.ff14SB
+            function getLeapIn(mode) {
+                if (mode === 'multi') {
+                    // 多底物模式
+                    return `source leaprc.protein.ff14SB
+source leaprc.water.tip3p
+source leaprc.gaff2
+
+# 加载多个配体参数
+loadamberparams ligand1.frcmod
+loadamberparams ligand2.frcmod
+
+p = loadpdb protein.pdb
+l1 = loadmol2 ligand1.mol2
+l2 = loadmol2 ligand2.mol2
+
+# 组合蛋白和所有配体
+c = combine { p l1 l2 } 
+
+set default PBradii mbondi2
+
+savepdb p pro.pdb
+savepdb l1 lig1.pdb
+savepdb l2 lig2.pdb
+savepdb c com.pdb
+saveamberparm p pro.top pro.crd
+saveamberparm l1 lig1.top lig1.crd
+saveamberparm l2 lig2.top lig2.crd
+saveamberparm c com.top com.crd
+
+solvateoct c   TIP3PBOX 12.0
+
+charge c
+addions c Cl- 0
+addions c Na+ 0
+
+savepdb c pep.pdb
+saveamberparm c pep.top pep.crd
+
+quit
+#####`;
+                } else {
+                    // 单底物模式
+                    return `source leaprc.protein.ff14SB
 source leaprc.water.tip3p
 source leaprc.gaff2
 
@@ -659,6 +892,7 @@ saveamberparm c pep.top pep.crd
 
 quit
 #####`;
+                }
             }
             
             function getMd0In() {
@@ -706,13 +940,14 @@ quit
   ncyc   = 5000,
   ntb    = 1,
   ntr    = 1,
-  ntpr   =50,
+  ntpr   = 50,
   cut    = 10,
-  ioutfm =1,
-  ntxo   =1,
+  ioutfm = 1,
+  ntxo   = 1,
   restraint_wt = 500.0,
   restraintmask = ':1-AAA',
- /`;
+ /
+`;
             }
             
             function getMin2In() {
@@ -724,10 +959,11 @@ quit
   ntb    = 1,
   ntr    = 0,
   cut    = 10,
-  ntpr   = 500
-  ioutfm=1,
-  ntxo=1,
- /`;
+  ntpr   = 500,
+  ioutfm = 1,
+  ntxo   = 1,
+ /
+`;
             }
         });
     </script>
