@@ -663,7 +663,7 @@
                                 scripts['amber24-4090.slurm'] = getAmber244090Slurm();
                             }
                             
-                            // 写入需要修改的文件
+                            // 写入需要修改的文件 - 修复了md0.in和md1.in的格式问题
                             const md0Content = getMd0In().replace(/1-AAA/g, `1-${sixthColumnValue}`).replace(/ZZZ/g, z);
                             const min1Content = getMin1In().replace(/1-AAA/g, `1-${sixthColumnValue}`);
                             const md1Content = getMd1In().replace(/XXX/g, x).replace(/YYY/g, y).replace(/ZZZ/g, z);
@@ -910,26 +910,42 @@ quit
   temp0  = ZZZ,
   ntt    = 3,
   gamma_ln = 1.0,
-  nstlim = 150000, dt = 0.002,
-  ntpr = 500, ntwx = 100, ntwr = 500,
+  nstlim = 150000,
+  dt     = 0.002,
+  ntpr   = 500,
+  ntwx   = 100,
+  ntwr   = 500,
   restraint_wt = 10.0,
   restraintmask = ':1-AAA',
- /`;
+ /
+`;
             }
             
             function getMd1In() {
                 return ` md for XXX ns
  &cntrl
-  imin = 0, irest = 1, ntx = 7,
-  ntb = 2, pres0 = 1.0, ntp = 1,
+  imin = 0,
+  irest = 1,
+  ntx = 7,
+  ntb = 2,
+  pres0 = 1.0,
+  ntp = 1,
   taup = 2.0,
-  cut = 10, ntr = 0,
-  ntc = 2, ntf = 2,
-  tempi = ZZZ, temp0 = ZZZ,
-  ntt = 3, gamma_ln = 1.0,
-  nstlim = YYY, dt = 0.002,
-  ntpr = 500, ntwx = 500, ntwr = 500,
- /`;
+  cut = 10,
+  ntr = 0,
+  ntc = 2,
+  ntf = 2,
+  tempi = ZZZ,
+  temp0 = ZZZ,
+  ntt = 3,
+  gamma_ln = 1.0,
+  nstlim = YYY,
+  dt = 0.002,
+  ntpr = 500,
+  ntwx = 500,
+  ntwr = 500,
+ /
+`;
             }
             
             function getMin1In() {
