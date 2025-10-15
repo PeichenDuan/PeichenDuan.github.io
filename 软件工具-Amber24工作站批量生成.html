@@ -256,7 +256,7 @@
             border: 1px solid #ddd;
         }
 
-        .mode-option:first-child {
+        .mode-option:not(:last-child) {
             border-right: none;
         }
 
@@ -300,6 +300,15 @@
             .file-size {
                 margin-top: 5px;
             }
+            
+            .mode-selector {
+                flex-direction: column;
+            }
+            
+            .mode-option:not(:last-child) {
+                border-right: 1px solid #ddd;
+                border-bottom: none;
+            }
         }
     </style>
     <!-- 引入JSZip库 -->
@@ -319,11 +328,17 @@
             <h2>模拟模式选择</h2>
             
             <div class="mode-selector">
-                <div class="mode-option active" data-mode="single">单底物模式</div>
+                <div class="mode-option active" data-mode="protein-only">单一蛋白分子</div>
+                <div class="mode-option" data-mode="single">单底物模式</div>
                 <div class="mode-option" data-mode="multi">多底物模式</div>
             </div>
             
-            <div id="single-mode-info" class="ligand-info">
+            <div id="protein-only-info" class="ligand-info">
+                <h4>单一蛋白分子模式</h4>
+                <p class="ligand-details">适用于仅包含蛋白分子的动力学模拟。上传的PDB文件应仅包含蛋白结构，不含配体分子。</p>
+            </div>
+            
+            <div id="single-mode-info" class="ligand-info" style="display: none;">
                 <h4>单底物模式</h4>
                 <p class="ligand-details">适用于蛋白与单个配体分子的动力学模拟。上传的PDB文件应包含蛋白和单个配体分子。</p>
             </div>
@@ -403,12 +418,13 @@
             const generateButton = document.getElementById('generate-button');
             const resultBox = document.getElementById('result-box');
             const modeOptions = document.querySelectorAll('.mode-option');
+            const proteinOnlyInfo = document.getElementById('protein-only-info');
             const singleModeInfo = document.getElementById('single-mode-info');
             const multiModeInfo = document.getElementById('multi-mode-info');
             const multiLigandInfo = document.getElementById('multi-ligand-info');
             
             let selectedFiles = [];
-            let currentMode = 'single'; // 默认单底物模式
+            let currentMode = 'protein-only'; // 默认单一蛋白分子模式
             let detectedLigands = []; // 检测到的配体信息
             
             // 模式选择处理
@@ -419,17 +435,15 @@
                     currentMode = this.dataset.mode;
                     
                     // 更新模式信息显示
-                    if (currentMode === 'single') {
-                        singleModeInfo.style.display = 'block';
-                        multiModeInfo.style.display = 'none';
-                        multiLigandInfo.style.display = 'none';
+                    proteinOnlyInfo.style.display = currentMode === 'protein-only' ? 'block' : 'none';
+                    singleModeInfo.style.display = currentMode === 'single' ? 'block' : 'none';
+                    multiModeInfo.style.display = currentMode === 'multi' ? 'block' : 'none';
+                    
+                    // 如果是多底物模式且已经有文件上传，重新分析配体
+                    if (currentMode === 'multi' && selectedFiles.length > 0) {
+                        analyzeLigands();
                     } else {
-                        singleModeInfo.style.display = 'none';
-                        multiModeInfo.style.display = 'block';
-                        // 如果已经有文件上传，重新分析配体
-                        if (selectedFiles.length > 0) {
-                            analyzeLigands();
-                        }
+                        multiLigandInfo.style.display = 'none';
                     }
                 });
             });
@@ -640,7 +654,7 @@
                             if (currentMode === 'single') {
                                 // 单底物模式：写入ligand.pdb
                                 zip.file(experimentDir + 'ligand.pdb', hetatmLines.join('\n'));
-                            } else {
+                            } else if (currentMode === 'multi') {
                                 // 多底物模式：写入多个ligand文件
                                 const ligands = parseLigandsFromPDB(fileContent);
                                 for (let j = 0; j < ligands.length; j++) {
@@ -648,6 +662,7 @@
                                     zip.file(experimentDir + `ligand${j+1}.pdb`, ligand.atoms.join('\n'));
                                 }
                             }
+                            // 单一蛋白分子模式：不写入任何配体文件
                             
                             // 写入脚本文件
                             const scripts = {
@@ -775,13 +790,14 @@ echo $(date)`;
 
 # 如果有更多配体，继续添加...
 `;
-                } else {
+                } else if (mode === 'single') {
                     // 单底物模式
                     ligandCommands = `
 /public/software/apps/amber24_hygon/bin/antechamber -i ligand.pdb -fi pdb -o ligand.mol2 -fo mol2 -c bcc -pf y
 /public/software/apps/amber24_hygon/bin/parmchk2 -i ligand.mol2 -f mol2 -o ligand.frcmod
 `;
                 }
+                // 单一蛋白分子模式：不添加任何配体参数化命令
                 
                 return `#!/bin/bash
 #SBATCH -J sander
@@ -860,7 +876,7 @@ saveamberparm c pep.top pep.crd
 
 quit
 #####`;
-                } else {
+                } else if (mode === 'single') {
                     // 单底物模式
                     return `source leaprc.protein.ff14SB
 source leaprc.water.tip3p
@@ -889,6 +905,29 @@ addions c Na+ 0
 
 savepdb c pep.pdb
 saveamberparm c pep.top pep.crd
+
+quit
+#####`;
+                } else {
+                    // 单一蛋白分子模式
+                    return `source leaprc.protein.ff14SB
+source leaprc.water.tip3p
+
+p = loadpdb protein.pdb
+
+set default PBradii mbondi2
+
+savepdb p pro.pdb
+saveamberparm p pro.top pro.crd
+
+solvateoct p   TIP3PBOX 12.0
+
+charge p
+addions p Cl- 0
+addions p Na+ 0
+
+savepdb p pep.pdb
+saveamberparm p pep.top pep.crd
 
 quit
 #####`;
