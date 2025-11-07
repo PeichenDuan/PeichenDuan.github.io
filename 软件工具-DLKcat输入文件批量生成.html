@@ -219,6 +219,64 @@
             font-weight: 500;
         }
 
+        /* 自由编辑表格样式 */
+        .enzyme-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+
+        .enzyme-table th, .enzyme-table td {
+            border: 1px solid #ddd;
+            padding: 10px;
+            text-align: left;
+        }
+
+        .enzyme-table th {
+            background-color: #f2f2f2;
+            font-weight: 600;
+        }
+
+        .enzyme-table input {
+            width: 100%;
+            border: none;
+            padding: 5px;
+            font-size: 14px;
+        }
+
+        .enzyme-table input:focus {
+            outline: 1px solid var(--secondary-color);
+        }
+
+        .add-row-btn {
+            background-color: var(--secondary-color);
+            color: white;
+            border: none;
+            border-radius: var(--border-radius);
+            padding: 8px 15px;
+            cursor: pointer;
+            margin-top: 10px;
+            transition: var(--transition);
+        }
+
+        .add-row-btn:hover {
+            background-color: #2980b9;
+        }
+
+        .delete-row-btn {
+            background-color: var(--accent-color);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 25px;
+            height: 25px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+        }
+
         @media (max-width: 768px) {
             .content {
                 padding: 15px;
@@ -236,6 +294,14 @@
             .amino-acids {
                 justify-content: center;
             }
+            
+            .enzyme-table {
+                font-size: 14px;
+            }
+            
+            .enzyme-table th, .enzyme-table td {
+                padding: 5px;
+            }
         }
     </style>
 </head>
@@ -249,40 +315,79 @@
         <div class="section">
             <h2>输入文件批量生成</h2>
             
-            <div class="form-group">
-                <label for="enzyme-sequence">酶序列:</label>
-                <input type="text" id="enzyme-sequence" placeholder="请输入原始序列（例如：MASNDYTQQ...）">
-            </div>
-            
-            <div class="form-group">
-                <label for="substrate-smiles">底物SMILES号:</label>
-                <input type="text" id="substrate-smiles" placeholder="输入您的底物SMILES号">
-            </div>
-            
             <!-- 功能选择部分 -->
             <div class="form-group">
-                <label>突变类型:</label>
+                <label>选择功能:</label>
                 <div class="function-selector">
-                    <div class="function-option active" data-function="saturation">饱和突变</div>
-                    <div class="function-option" data-function="random">随机位点突变</div>
+                    <div class="function-option active" data-function="mutation">酶突变序列生成</div>
+                    <div class="function-option" data-function="free-edit">自由编辑酶-底物组合</div>
                 </div>
             </div>
             
-            <!-- 饱和突变部分 -->
-            <div id="saturation-section" class="form-group">
-                <label for="saturation-sites">饱和突变位点:</label>
-                <input type="text" id="saturation-sites" placeholder="输入您想进行饱和突变的位点，用空格分隔（例如：S516 S517）">
-                <p><small>注意：每个位点将生成19种突变体（排除原始氨基酸）</small></p>
+            <!-- 酶突变序列生成部分 -->
+            <div id="mutation-section">
+                <div class="form-group">
+                    <label for="enzyme-sequence">酶序列:</label>
+                    <input type="text" id="enzyme-sequence" placeholder="请输入原始序列（例如：MASNDYTQQ...）">
+                </div>
+                
+                <div class="form-group">
+                    <label for="substrate-smiles">底物SMILES号:</label>
+                    <input type="text" id="substrate-smiles" placeholder="输入您的底物SMILES号">
+                </div>
+                
+                <div class="form-group">
+                    <label>突变类型:</label>
+                    <div class="function-selector">
+                        <div class="function-option active" data-mutation-type="saturation">饱和突变</div>
+                        <div class="function-option" data-mutation-type="random">随机位点突变</div>
+                    </div>
+                </div>
+                
+                <!-- 饱和突变部分 -->
+                <div id="saturation-section" class="form-group">
+                    <label for="saturation-sites">饱和突变位点:</label>
+                    <input type="text" id="saturation-sites" placeholder="输入您想进行饱和突变的位点，用空格分隔（例如：S516 S517）">
+                    <p><small>注意：每个位点将生成19种突变体（排除原始氨基酸）</small></p>
+                </div>
+                
+                <!-- 随机位点突变部分 -->
+                <div id="random-section" class="form-group hidden">
+                    <label for="random-mutations">随机位点突变:</label>
+                    <textarea id="random-mutations" placeholder="输入你想突变的位点及新氨基酸，不同突变可用空格或换行分隔（例如：S516M S517A）"></textarea>
+                    <p><small>格式：原始氨基酸+位置+新氨基酸，例如：S516M</small></p>
+                </div>
+                
+                <button id="generate-mutation-button" class="generate-button">生成突变序列</button>
             </div>
             
-            <!-- 随机位点突变部分 -->
-            <div id="random-section" class="form-group hidden">
-                <label for="random-mutations">随机位点突变:</label>
-                <textarea id="random-mutations" placeholder="输入你想突变的位点及新氨基酸，不同突变可用空格或换行分隔（例如：S516M S517A）"></textarea>
-                <p><small>格式：原始氨基酸+位置+新氨基酸，例如：S516M</small></p>
+            <!-- 自由编辑序列-底物组合部分 -->
+            <div id="free-edit-section" class="hidden">
+                <div class="form-group">
+                    <label>酶-底物组合列表:</label>
+                    <table class="enzyme-table">
+                        <thead>
+                            <tr>
+                                <th>酶名称</th>
+                                <th>底物SMILES号</th>
+                                <th>酶序列</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="enzyme-table-body">
+                            <tr>
+                                <td><input type="text" placeholder="例如：WT"></td>
+                                <td><input type="text" placeholder="例如：C1=CC=CC=C1"></td>
+                                <td><input type="text" placeholder="例如：MASNDYTQQ..."></td>
+                                <td><button class="delete-row-btn">×</button></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    <button id="add-row-btn" class="add-row-btn">添加一行</button>
+                </div>
+                
+                <button id="generate-free-edit-button" class="generate-button">生成输入文件</button>
             </div>
-            
-            <button id="generate-button" class="generate-button">生成突变序列</button>
             
             <div id="result-box" class="result-box">
                 <!-- 生成结果将在这里显示 -->
@@ -296,10 +401,10 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            // 功能选择
-            const functionOptions = document.querySelectorAll('.function-option');
-            const saturationSection = document.getElementById('saturation-section');
-            const randomSection = document.getElementById('random-section');
+            // 主功能选择
+            const functionOptions = document.querySelectorAll('.function-option[data-function]');
+            const mutationSection = document.getElementById('mutation-section');
+            const freeEditSection = document.getElementById('free-edit-section');
             
             functionOptions.forEach(option => {
                 option.addEventListener('click', function() {
@@ -310,7 +415,31 @@
                     
                     // 显示对应的功能部分
                     const functionType = this.getAttribute('data-function');
-                    if (functionType === 'saturation') {
+                    if (functionType === 'mutation') {
+                        mutationSection.classList.remove('hidden');
+                        freeEditSection.classList.add('hidden');
+                    } else {
+                        mutationSection.classList.add('hidden');
+                        freeEditSection.classList.remove('hidden');
+                    }
+                });
+            });
+            
+            // 突变类型选择
+            const mutationTypeOptions = document.querySelectorAll('.function-option[data-mutation-type]');
+            const saturationSection = document.getElementById('saturation-section');
+            const randomSection = document.getElementById('random-section');
+            
+            mutationTypeOptions.forEach(option => {
+                option.addEventListener('click', function() {
+                    // 移除所有选项的active类
+                    mutationTypeOptions.forEach(opt => opt.classList.remove('active'));
+                    // 添加当前选项的active类
+                    this.classList.add('active');
+                    
+                    // 显示对应的功能部分
+                    const mutationType = this.getAttribute('data-mutation-type');
+                    if (mutationType === 'saturation') {
                         saturationSection.classList.remove('hidden');
                         randomSection.classList.add('hidden');
                     } else {
@@ -324,14 +453,14 @@
             const aminoAcids = ['G', 'A', 'V', 'L', 'I', 'S', 'T', 'C', 'M', 'D', 'E', 'N', 'Q', 'K', 'R', 'H', 'F', 'Y', 'W', 'P'];
             
             // 生成突变序列
-            const generateButton = document.getElementById('generate-button');
+            const generateMutationButton = document.getElementById('generate-mutation-button');
             const resultBox = document.getElementById('result-box');
             
-            generateButton.addEventListener('click', function() {
+            generateMutationButton.addEventListener('click', function() {
                 // 获取用户输入
                 const enzymeSequence = document.getElementById('enzyme-sequence').value.trim().toUpperCase();
                 const substrateSmiles = document.getElementById('substrate-smiles').value.trim();
-                const isSaturation = document.querySelector('.function-option.active').getAttribute('data-function') === 'saturation';
+                const isSaturation = document.querySelector('.function-option[data-mutation-type].active').getAttribute('data-mutation-type') === 'saturation';
                 
                 // 验证输入
                 if (!enzymeSequence) {
@@ -345,8 +474,8 @@
                 }
                 
                 // 禁用按钮，显示处理中
-                generateButton.disabled = true;
-                generateButton.textContent = '处理中...';
+                generateMutationButton.disabled = true;
+                generateMutationButton.textContent = '处理中...';
                 
                 try {
                     let output = "Substrate Name\tSubstrate SMILES\tProtein Sequence\n";
@@ -444,8 +573,99 @@
                     resultBox.style.display = 'block';
                 } finally {
                     // 恢复按钮状态
-                    generateButton.disabled = false;
-                    generateButton.textContent = '生成input.tsv文件';
+                    generateMutationButton.disabled = false;
+                    generateMutationButton.textContent = '生成突变序列';
+                }
+            });
+            
+            // 自由编辑功能
+            const enzymeTableBody = document.getElementById('enzyme-table-body');
+            const addRowBtn = document.getElementById('add-row-btn');
+            const generateFreeEditButton = document.getElementById('generate-free-edit-button');
+            
+            // 添加新行
+            addRowBtn.addEventListener('click', function() {
+                const newRow = document.createElement('tr');
+                newRow.innerHTML = `
+                    <td><input type="text" placeholder="例如：WT"></td>
+                    <td><input type="text" placeholder="例如：C1=CC=CC=C1"></td>
+                    <td><input type="text" placeholder="例如：MASNDYTQQ..."></td>
+                    <td><button class="delete-row-btn">×</button></td>
+                `;
+                enzymeTableBody.appendChild(newRow);
+                
+                // 为新行的删除按钮添加事件监听器
+                newRow.querySelector('.delete-row-btn').addEventListener('click', function() {
+                    enzymeTableBody.removeChild(newRow);
+                });
+            });
+            
+            // 为初始行的删除按钮添加事件监听器
+            document.querySelector('.delete-row-btn').addEventListener('click', function() {
+                const row = this.closest('tr');
+                // 如果表格中只有一行，则不清除，而是重置输入
+                if (enzymeTableBody.children.length === 1) {
+                    const inputs = row.querySelectorAll('input');
+                    inputs.forEach(input => input.value = '');
+                } else {
+                    enzymeTableBody.removeChild(row);
+                }
+            });
+            
+            // 生成自由编辑输入文件
+            generateFreeEditButton.addEventListener('click', function() {
+                // 禁用按钮，显示处理中
+                generateFreeEditButton.disabled = true;
+                generateFreeEditButton.textContent = '处理中...';
+                
+                try {
+                    let output = "Substrate Name\tSubstrate SMILES\tProtein Sequence\n";
+                    const rows = enzymeTableBody.querySelectorAll('tr');
+                    
+                    // 验证并收集数据
+                    for (const row of rows) {
+                        const inputs = row.querySelectorAll('input');
+                        const enzymeName = inputs[0].value.trim();
+                        const substrateSmiles = inputs[1].value.trim();
+                        const enzymeSequence = inputs[2].value.trim();
+                        
+                        if (!enzymeName) {
+                            throw new Error('请填写所有酶名称');
+                        }
+                        
+                        if (!substrateSmiles) {
+                            throw new Error('请填写所有底物SMILES号');
+                        }
+                        
+                        if (!enzymeSequence) {
+                            throw new Error('请填写所有酶序列');
+                        }
+                        
+                        output += `${enzymeName}\t${substrateSmiles}\t${enzymeSequence}\n`;
+                    }
+                    
+                    // 创建Blob对象并生成下载链接
+                    const blob = new Blob([output], { type: 'text/tab-separated-values' });
+                    const url = URL.createObjectURL(blob);
+                    
+                    const downloadLink = document.createElement('a');
+                    downloadLink.href = url;
+                    downloadLink.download = 'input.tsv';
+                    downloadLink.className = 'download-link';
+                    downloadLink.textContent = '下载input.tsv文件 (input.tsv)';
+                    
+                    resultBox.innerHTML = '<h3>输入文件input.tsv已生成！</h3><p>点击下方链接下载文件：</p>';
+                    resultBox.appendChild(downloadLink);
+                    resultBox.style.display = 'block';
+                    
+                } catch (error) {
+                    console.error('生成input.tsv时出错:', error);
+                    resultBox.innerHTML = `<p>生成input.tsv时出错: ${error.message}</p>`;
+                    resultBox.style.display = 'block';
+                } finally {
+                    // 恢复按钮状态
+                    generateFreeEditButton.disabled = false;
+                    generateFreeEditButton.textContent = '生成输入文件';
                 }
             });
         });
