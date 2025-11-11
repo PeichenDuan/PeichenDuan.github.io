@@ -13,6 +13,7 @@
             --dark-color: #2c3e50;
             --success-color: #27ae60;
             --warning-color: #f39c12;
+            --protein-protein-color: #9b59b6;
             --border-radius: 8px;
             --box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
             --transition: all 0.3s ease;
@@ -112,15 +113,54 @@
             resize: vertical;
         }
 
-        /* 功能选择样式 */
-        .function-selector {
+        /* 模式选择器样式 - 与Amber24一致 */
+        .mode-selector {
+            display: flex;
+            margin-bottom: 20px;
+            border-radius: var(--border-radius);
+            overflow: hidden;
+            box-shadow: var(--box-shadow);
+        }
+
+        .mode-option {
+            flex: 1;
+            padding: 12px;
+            text-align: center;
+            background-color: #f8f9fa;
+            cursor: pointer;
+            transition: var(--transition);
+            border: 1px solid #ddd;
+        }
+
+        .mode-option:not(:last-child) {
+            border-right: none;
+        }
+
+        .mode-option.active {
+            color: white;
+        }
+
+        .mode-option[data-function="mutation"].active {
+            background-color: var(--secondary-color);
+        }
+
+        .mode-option[data-function="free-edit"].active {
+            background-color: var(--warning-color);
+        }
+
+        .mode-option:hover:not(.active) {
+            background-color: #e9ecef;
+        }
+
+        /* 突变类型选择样式 - 与顶部区分开 */
+        .mutation-type-selector {
             display: flex;
             justify-content: center;
             margin-bottom: 20px;
             gap: 15px;
         }
 
-        .function-option {
+        .mutation-type-option {
             padding: 12px 24px;
             background-color: #f1f1f1;
             border-radius: var(--border-radius);
@@ -132,8 +172,8 @@
             max-width: 200px;
         }
 
-        .function-option.active {
-            background-color: var(--secondary-color);
+        .mutation-type-option.active {
+            background-color: var(--success-color);
             color: white;
         }
 
@@ -282,12 +322,21 @@
                 padding: 15px;
             }
             
-            .function-selector {
+            .mode-selector {
+                flex-direction: column;
+            }
+            
+            .mode-option:not(:last-child) {
+                border-right: 1px solid #ddd;
+                border-bottom: none;
+            }
+            
+            .mutation-type-selector {
                 flex-direction: column;
                 align-items: center;
             }
             
-            .function-option {
+            .mutation-type-option {
                 max-width: 100%;
             }
             
@@ -315,12 +364,12 @@
         <div class="section">
             <h2>输入文件批量生成</h2>
             
-            <!-- 功能选择部分 -->
+            <!-- 功能选择部分 - 使用与Amber24相同的样式 -->
             <div class="form-group">
                 <label>选择功能:</label>
-                <div class="function-selector">
-                    <div class="function-option active" data-function="mutation">酶突变序列生成</div>
-                    <div class="function-option" data-function="free-edit">自由编辑酶-底物组合</div>
+                <div class="mode-selector">
+                    <div class="mode-option active" data-function="mutation">酶突变序列生成</div>
+                    <div class="mode-option" data-function="free-edit">自由编辑酶-底物组合</div>
                 </div>
             </div>
             
@@ -338,17 +387,17 @@
                 
                 <div class="form-group">
                     <label>突变类型:</label>
-                    <div class="function-selector">
-                        <div class="function-option active" data-mutation-type="saturation">饱和突变</div>
-                        <div class="function-option" data-mutation-type="random">随机位点突变</div>
+                    <div class="mutation-type-selector">
+                        <div class="mutation-type-option active" data-mutation-type="saturation">饱和突变</div>
+                        <div class="mutation-type-option" data-mutation-type="random">随机位点突变</div>
                     </div>
                 </div>
                 
                 <!-- 饱和突变部分 -->
                 <div id="saturation-section" class="form-group">
                     <label for="saturation-sites">饱和突变位点:</label>
-                    <input type="text" id="saturation-sites" placeholder="输入您想进行饱和突变的位点，用空格分隔（例如：S516 S517）">
-                    <p><small>注意：每个位点将生成19种突变体（排除原始氨基酸）</small></p>
+                    <input type="text" id="saturation-sites" placeholder="输入您想进行饱和突变的位点，用空格分隔（例如：V500 S516-V529）">
+                    <p><small>支持单个位点（如V500）和连续位点范围（如S516-V529），每个位点将生成19种突变体（排除原始氨基酸）</small></p>
                 </div>
                 
                 <!-- 随机位点突变部分 -->
@@ -402,7 +451,7 @@
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             // 主功能选择
-            const functionOptions = document.querySelectorAll('.function-option[data-function]');
+            const functionOptions = document.querySelectorAll('.mode-option[data-function]');
             const mutationSection = document.getElementById('mutation-section');
             const freeEditSection = document.getElementById('free-edit-section');
             
@@ -426,7 +475,7 @@
             });
             
             // 突变类型选择
-            const mutationTypeOptions = document.querySelectorAll('.function-option[data-mutation-type]');
+            const mutationTypeOptions = document.querySelectorAll('.mutation-type-option[data-mutation-type]');
             const saturationSection = document.getElementById('saturation-section');
             const randomSection = document.getElementById('random-section');
             
@@ -452,6 +501,45 @@
             // 定义所有20种氨基酸
             const aminoAcids = ['G', 'A', 'V', 'L', 'I', 'S', 'T', 'C', 'M', 'D', 'E', 'N', 'Q', 'K', 'R', 'H', 'F', 'Y', 'W', 'P'];
             
+            // 解析位点输入，支持单个位点和连续范围
+            function parseMutationSites(input) {
+                const sites = [];
+                const tokens = input.split(/\s+/);
+                
+                for (const token of tokens) {
+                    if (!token) continue;
+                    
+                    // 检查是否是连续位点范围（如 S516-V529）
+                    const rangeMatch = token.match(/^([A-Z])(\d+)-([A-Z])(\d+)$/);
+                    if (rangeMatch) {
+                        const startAA = rangeMatch[1];
+                        const startPos = parseInt(rangeMatch[2]);
+                        const endAA = rangeMatch[3];
+                        const endPos = parseInt(rangeMatch[4]);
+                        
+                        // 验证起始和结束氨基酸是否相同
+                        if (startAA !== endAA) {
+                            throw new Error(`连续位点范围的起始和结束氨基酸必须相同: ${token}`);
+                        }
+                        
+                        // 验证位置是否有效
+                        if (startPos >= endPos) {
+                            throw new Error(`连续位点范围的起始位置必须小于结束位置: ${token}`);
+                        }
+                        
+                        // 生成范围内的所有位点
+                        for (let pos = startPos; pos <= endPos; pos++) {
+                            sites.push(`${startAA}${pos}`);
+                        }
+                    } else {
+                        // 单个位点
+                        sites.push(token);
+                    }
+                }
+                
+                return sites;
+            }
+            
             // 生成突变序列
             const generateMutationButton = document.getElementById('generate-mutation-button');
             const resultBox = document.getElementById('result-box');
@@ -460,7 +548,7 @@
                 // 获取用户输入
                 const enzymeSequence = document.getElementById('enzyme-sequence').value.trim().toUpperCase();
                 const substrateSmiles = document.getElementById('substrate-smiles').value.trim();
-                const isSaturation = document.querySelector('.function-option[data-mutation-type].active').getAttribute('data-mutation-type') === 'saturation';
+                const isSaturation = document.querySelector('.mutation-type-option[data-mutation-type].active').getAttribute('data-mutation-type') === 'saturation';
                 
                 // 验证输入
                 if (!enzymeSequence) {
@@ -488,7 +576,8 @@
                             throw new Error('请输入饱和突变位点');
                         }
                         
-                        const saturationSites = saturationSitesInput.split(/\s+/);
+                        // 解析位点输入（支持单个位点和连续范围）
+                        const saturationSites = parseMutationSites(saturationSitesInput);
                         
                         // 验证每个位点格式
                         for (const site of saturationSites) {
@@ -501,7 +590,7 @@
                             const position = parseInt(positionStr);
                             
                             if (isNaN(position) || position < 1 || position > enzymeSequence.length) {
-                                throw new Error(`位点位置无效: ${site}`);
+                                throw new Error(`位点位置无效: ${site} (序列长度: ${enzymeSequence.length})`);
                             }
                             
                             // 检查原始氨基酸是否匹配
@@ -539,7 +628,7 @@
                             const position = parseInt(positionStr);
                             
                             if (isNaN(position) || position < 1 || position > enzymeSequence.length) {
-                                throw new Error(`突变位置无效: ${mutation}`);
+                                throw new Error(`突变位置无效: ${mutation} (序列长度: ${enzymeSequence.length})`);
                             }
                             
                             // 检查原始氨基酸是否匹配
