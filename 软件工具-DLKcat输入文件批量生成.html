@@ -502,7 +502,7 @@
             const aminoAcids = ['G', 'A', 'V', 'L', 'I', 'S', 'T', 'C', 'M', 'D', 'E', 'N', 'Q', 'K', 'R', 'H', 'F', 'Y', 'W', 'P'];
             
             // 解析位点输入，支持单个位点和连续范围
-            function parseMutationSites(input) {
+            function parseMutationSites(input, enzymeSequence) {
                 const sites = [];
                 const tokens = input.split(/\s+/);
                 
@@ -517,19 +517,20 @@
                         const endAA = rangeMatch[3];
                         const endPos = parseInt(rangeMatch[4]);
                         
-                        // 验证起始和结束氨基酸是否相同
-                        if (startAA !== endAA) {
-                            throw new Error(`连续位点范围的起始和结束氨基酸必须相同: ${token}`);
-                        }
-                        
                         // 验证位置是否有效
                         if (startPos >= endPos) {
                             throw new Error(`连续位点范围的起始位置必须小于结束位置: ${token}`);
                         }
                         
+                        // 验证位置是否在序列范围内
+                        if (startPos < 1 || endPos > enzymeSequence.length) {
+                            throw new Error(`连续位点范围超出序列范围: ${token} (序列长度: ${enzymeSequence.length})`);
+                        }
+                        
                         // 生成范围内的所有位点
                         for (let pos = startPos; pos <= endPos; pos++) {
-                            sites.push(`${startAA}${pos}`);
+                            const originalAA = enzymeSequence[pos-1];
+                            sites.push(`${originalAA}${pos}`);
                         }
                     } else {
                         // 单个位点
@@ -577,9 +578,9 @@
                         }
                         
                         // 解析位点输入（支持单个位点和连续范围）
-                        const saturationSites = parseMutationSites(saturationSitesInput);
+                        const saturationSites = parseMutationSites(saturationSitesInput, enzymeSequence);
                         
-                        // 验证每个位点格式
+                        // 验证每个位点格式并生成突变
                         for (const site of saturationSites) {
                             if (site.length < 2) {
                                 throw new Error(`位点格式错误: ${site}`);
@@ -594,15 +595,16 @@
                             }
                             
                             // 检查原始氨基酸是否匹配
-                            if (enzymeSequence[position-1] !== originalAA) {
-                                alert(`警告: 序列中位置${position}的氨基酸是${enzymeSequence[position-1]}，不是${originalAA}`);
+                            const actualAA = enzymeSequence[position-1];
+                            if (actualAA !== originalAA) {
+                                alert(`警告: 序列中位置${position}的氨基酸是${actualAA}，不是${originalAA}。将使用实际氨基酸${actualAA}进行突变。`);
                             }
                             
                             // 为每个位点生成所有可能的突变
                             for (const aa of aminoAcids) {
-                                if (aa !== originalAA) {
+                                if (aa !== actualAA) {
                                     const mutatedSequence = enzymeSequence.substring(0, position-1) + aa + enzymeSequence.substring(position);
-                                    const mutationFormula = `${originalAA}${position}${aa}`;
+                                    const mutationFormula = `${actualAA}${position}${aa}`;
                                     output += `${mutationFormula}\t${substrateSmiles}\t${mutatedSequence}\n`;
                                 }
                             }
@@ -632,13 +634,14 @@
                             }
                             
                             // 检查原始氨基酸是否匹配
-                            if (enzymeSequence[position-1] !== originalAA) {
-                                alert(`警告: 序列中位置${position}的氨基酸是${enzymeSequence[position-1]}，不是${originalAA}`);
+                            const actualAA = enzymeSequence[position-1];
+                            if (actualAA !== originalAA) {
+                                alert(`警告: 序列中位置${position}的氨基酸是${actualAA}，不是${originalAA}。将使用实际氨基酸${actualAA}进行突变。`);
                             }
                             
                             // 生成突变序列
                             const mutatedSequence = enzymeSequence.substring(0, position-1) + newAA + enzymeSequence.substring(position);
-                            output += `${mutation.toUpperCase()}\t${substrateSmiles}\t${mutatedSequence}\n`;
+                            output += `${actualAA}${position}${newAA}\t${substrateSmiles}\t${mutatedSequence}\n`;
                         }
                     }
                     
