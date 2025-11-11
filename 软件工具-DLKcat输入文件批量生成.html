@@ -397,7 +397,7 @@
                 <div id="saturation-section" class="form-group">
                     <label for="saturation-sites">饱和突变位点:</label>
                     <input type="text" id="saturation-sites" placeholder="输入您想进行饱和突变的位点，用空格分隔（例如：V500 S516-V529）">
-                    <p><small>支持单个位点（如V500）和连续位点范围（如S516-V529），每个位点将生成19种突变体（排除原始氨基酸）</small></p>
+                    <p><small>支持单个位点（如V500）和连续位点范围（如S516-V529），每个位点将生成19种突变体</small></p>
                 </div>
                 
                 <!-- 随机位点突变部分 -->
@@ -653,7 +653,7 @@
                     downloadLink.href = url;
                     downloadLink.download = 'input.tsv';
                     downloadLink.className = 'download-link';
-                    downloadLink.textContent = '下载input.tsv文件 (input.tsv)';
+                    downloadLink.textContent = '下载input.tsv文件';
                     
                     resultBox.innerHTML = '<h3>输入文件input.tsv已生成！</h3><p>点击下方链接下载文件：</p>';
                     resultBox.appendChild(downloadLink);
@@ -744,7 +744,7 @@
                     downloadLink.href = url;
                     downloadLink.download = 'input.tsv';
                     downloadLink.className = 'download-link';
-                    downloadLink.textContent = '下载input.tsv文件 (input.tsv)';
+                    downloadLink.textContent = '下载input.tsv文件';
                     
                     resultBox.innerHTML = '<h3>输入文件input.tsv已生成！</h3><p>点击下方链接下载文件：</p>';
                     resultBox.appendChild(downloadLink);
@@ -757,7 +757,7 @@
                 } finally {
                     // 恢复按钮状态
                     generateFreeEditButton.disabled = false;
-                    generateFreeEditButton.textContent = '生成输入文件';
+                    generateFreeEditButton.textContent = '生成input.tsv';
                 }
             });
         });
