@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bioinformation Analysis Toolkit</title>
+    <title>Bioinformatics Analysis Toolkit</title>
     <style>
         :root {
             --primary-color: #2c3e50;
@@ -40,6 +40,7 @@
             text-align: center;
             width: 100%;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            position: relative;
         }
 
         .main-header h1 {
@@ -50,6 +51,69 @@
         .main-header p {
             opacity: 0.9;
             font-size: 1.1rem;
+        }
+
+        /* 左上角蝙蝠图标和BAT文字 */
+        .logo-container {
+            position: absolute;
+            left: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .bat-icon {
+            font-size: 2rem;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .bat-icon:hover {
+            transform: scale(1.1);
+            filter: brightness(1.2);
+        }
+
+        .logo-text {
+            font-size: 1.8rem;
+            font-weight: bold;
+        }
+
+        /* 右上角关于按钮 */
+        .about-container {
+            position: absolute;
+            right: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .about-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background-color: rgba(255, 255, 255, 0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: var(--transition);
+            font-weight: bold;
+            font-size: 1.2rem;
+            border: 2px solid rgba(255, 255, 255, 0.5);
+        }
+
+        .about-btn:hover {
+            background-color: rgba(255, 255, 255, 0.3);
+            transform: scale(1.1);
+        }
+
+        .about-text {
+            color: white;
+            font-weight: 500;
         }
 
         /* 版块样式 */
@@ -272,6 +336,69 @@
             display: none;
         }
 
+        /* 关于模态框样式 */
+        .about-modal-content {
+            background-color: white;
+            padding: 30px;
+            border-radius: var(--border-radius);
+            box-shadow: var(--box-shadow);
+            width: 90%;
+            max-width: 500px;
+            text-align: left;
+        }
+
+        .about-modal-title {
+            margin-bottom: 20px;
+            color: var(--primary-color);
+            font-size: 1.8rem;
+            text-align: center;
+        }
+
+        .about-section {
+            margin-bottom: 20px;
+        }
+
+        .about-section h3 {
+            color: var(--secondary-color);
+            margin-bottom: 10px;
+            font-size: 1.2rem;
+        }
+
+        .about-section p {
+            margin-bottom: 10px;
+            line-height: 1.6;
+        }
+
+        .contributors {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .contributor-tag {
+            background-color: var(--light-color);
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+        }
+
+        .close-about-btn {
+            display: block;
+            margin: 20px auto 0;
+            padding: 8px 20px;
+            background-color: var(--secondary-color);
+            color: white;
+            border: none;
+            border-radius: var(--border-radius);
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .close-about-btn:hover {
+            background-color: #2980b9;
+        }
+
         @media (max-width: 768px) {
             .tools-grid {
                 grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
@@ -280,13 +407,40 @@
             .tool-card-body p {
                 font-size: 0.9rem;
             }
+            
+            .logo-container, .about-container {
+                position: static;
+                transform: none;
+                justify-content: center;
+                margin: 10px 0;
+            }
+            
+            .main-header {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                padding: 10px 0;
+            }
         }
     </style>
 </head>
 <body>
     <header class="main-header">
-        <h1>Bioinformation Analysis Toolkit</h1>
+        <!-- 左上角蝙蝠图标和BAT文字 -->
+        <div class="logo-container">
+            <div class="bat-icon">🦇</div>
+            <span class="logo-text">BAT</span>
+        </div>
+        
+        <!-- 标题和描述 -->
+        <h1>Bioinformatics Analysis Toolkit</h1>
         <p>高效、准确的生物信息分析解决方案</p>
+        
+        <!-- 右上角关于按钮 -->
+        <div class="about-container">
+            <button class="about-btn" id="aboutBtn">!</button>
+            <span class="about-text">关于</span>
+        </div>
     </header>
 
     <div class="section-block">
@@ -503,6 +657,34 @@
         </div>
     </div>
     
+    <!-- 关于模态框 -->
+    <div id="aboutModal" class="modal-overlay">
+        <div class="about-modal-content">
+            <h2 class="about-modal-title">关于我们</h2>
+            
+            <div class="about-section">
+                <h3>团队信息</h3>
+                <p>本平台由江南大学粮食发酵工艺与技术国家工程实验室开发，致力于为生物信息学研究提供高效、便捷的分析工具。</p>
+            </div>
+            
+            <div class="about-section">
+                <h3>网站贡献者</h3>
+                <div class="contributors">
+                    <span class="contributor-tag">段沛辰</span>
+                    <span class="contributor-tag">张中强</span>
+                    <span class="contributor-tag">何锐宇</span>
+                </div>
+            </div>
+            
+            <div class="about-section">
+                <h3>功能简介</h3>
+                <p>Bioinformatics Analysis Toolkit (BAT) 是一个综合性生物信息学分析平台，提供蛋白质工程、序列编辑、科研助手和软件工具四大功能模块。平台集成了模拟突变、序列比对表格导出、基因名称批量修改、生物信息学工具汇总等实用模块，旨在简化生物信息分析流程，提高科研效率。</p>
+            </div>
+            
+            <button class="close-about-btn" id="closeAboutBtn">关闭</button>
+        </div>
+    </div>
+    
     <div class="footer">
         江南大学 粮食发酵工艺与技术国家工程实验室
     </div>
@@ -575,7 +757,31 @@
             
             // 用户认证功能
             initAuthentication();
+            
+            // 关于模态框功能
+            initAboutModal();
         });
+
+        // 关于模态框功能
+        function initAboutModal() {
+            const aboutBtn = document.getElementById('aboutBtn');
+            const aboutModal = document.getElementById('aboutModal');
+            const closeAboutBtn = document.getElementById('closeAboutBtn');
+            
+            aboutBtn.addEventListener('click', function() {
+                aboutModal.style.display = 'flex';
+            });
+            
+            closeAboutBtn.addEventListener('click', function() {
+                aboutModal.style.display = 'none';
+            });
+            
+            aboutModal.addEventListener('click', function(e) {
+                if (e.target === aboutModal) {
+                    aboutModal.style.display = 'none';
+                }
+            });
+        }
 
         // 用户认证功能
         function initAuthentication() {
