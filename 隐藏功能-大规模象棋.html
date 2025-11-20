@@ -17,9 +17,7 @@
             --box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
             --transition: all 0.3s ease;
         }
-
         * { box-sizing: border-box; margin: 0; padding: 0; }
-
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             line-height: 1.6;
@@ -29,7 +27,6 @@
             display: flex;
             flex-direction: column;
         }
-
         .tool-header {
             display: flex;
             flex-direction: column;
@@ -41,7 +38,6 @@
             width: 100%;
             text-align: center;
         }
-
         .back-button {
             background: rgba(255, 255, 255, 0.2);
             border: none;
@@ -54,11 +50,8 @@
             margin-top: 15px;
             text-decoration: none;
         }
-
         .back-button:hover { background: rgba(255, 255, 255, 0.3); }
-
         .content { padding: 20px; flex: 1; display: flex; flex-direction: column; align-items: center; }
-
         .section {
             background: white;
             border-radius: var(--border-radius);
@@ -68,10 +61,8 @@
             width: 100%;
             max-width: 1200px;
         }
-
         h2 { color: var(--primary-color); text-align: center; }
         h3 { color: var(--secondary-color); margin-bottom: 15px; text-align: center; }
-
         .control-panel {
             display: flex;
             justify-content: center;
@@ -79,7 +70,6 @@
             flex-wrap: wrap;
             gap: 15px;
         }
-
         .control-button {
             padding: 12px 28px;
             background-color: var(--secondary-color);
@@ -91,15 +81,11 @@
             font-weight: bold;
             font-size: 1rem;
         }
-
         .control-button:hover { background-color: #2980b9; }
-
         .control-button.reset {
             background-color: var(--accent-color);
         }
-
         .control-button.reset:hover { background-color: #c0392b; }
-
         .chess-container {
             display: flex;
             justify-content: center;
@@ -107,7 +93,6 @@
             width: 100%;
             overflow-x: auto;
         }
-
         .chessboard {
             display: grid;
             grid-template-columns: repeat(17, 35px);
@@ -117,7 +102,6 @@
             position: relative;
             background-color: #e8cda2;
         }
-
         .river {
             position: absolute;
             top: 50%;
@@ -134,7 +118,6 @@
             transform: translateY(-50%);
             z-index: 1;
         }
-
         .cell {
             width: 35px;
             height: 35px;
@@ -145,9 +128,7 @@
             border: 1px solid #aaa;
             box-sizing: border-box;
         }
-
         .cell.dark { background-color: #c9a87a; }
-
         .camp {
             position: absolute;
             width: 175px;
@@ -156,10 +137,8 @@
             z-index: 2;
             pointer-events: none;
         }
-
         .camp.red { top: 490px; left: 210px; }
         .camp.black { top: 0px; left: 210px; }
-
         .piece {
             width: 32px;
             height: 32px;
@@ -175,22 +154,17 @@
             user-select: none;
             font-size: 16px;
         }
-
         .piece.red { background-color: #e74c3c; color: white; border: 2px solid #c0392b; }
         .piece.black { background-color: var(--dark-color); color: white; border: 2px solid #1a252f; }
         .piece.selected { box-shadow: 0 0 0 3px var(--warning-color); }
-
-        /* 可吃子发光特效 */
         .cell.can-capture .piece.black {
             animation: glow 1.5s infinite alternate;
             box-shadow: 0 0 20px gold, 0 0 30px orange !important;
         }
-
         @keyframes glow {
             from { box-shadow: 0 0 15px gold; }
             to { box-shadow: 0 0 35px red; }
         }
-
         .cell.valid-move::after {
             content: "";
             position: absolute;
@@ -200,7 +174,6 @@
             border-radius: 50%;
             z-index: 5;
         }
-
         .game-info {
             display: flex;
             justify-content: space-between;
@@ -208,7 +181,6 @@
             width: 100%;
             max-width: 1200px;
         }
-
         .info-panel {
             background-color: var(--light-color);
             padding: 15px;
@@ -216,7 +188,6 @@
             width: 48%;
             text-align: center;
         }
-
         .status-bar {
             padding: 10px;
             background-color: var(--primary-color);
@@ -226,7 +197,6 @@
             width: 100%;
             margin-top: 20px;
         }
-
         @media (max-width: 768px) {
             .chessboard { grid-template-columns: repeat(17, 20px); grid-template-rows: repeat(19, 20px); }
             .cell { width: 20px; height: 20px; }
@@ -243,17 +213,17 @@
         <h2 style="color: white;">大规模象棋</h2>
         <a href="index.html" class="back-button">返回主界面</a>
     </div>
-    
+  
     <div class="content">
         <div class="section">
             <h2>大规模象棋</h2>
             <p style="text-align: center; margin-bottom: 15px;">双方各17兵10炮，其他棋子数量翻倍，马和象可以一次走到两步远的地方</p>
-            
+          
             <div class="control-panel">
                 <button id="new-game" class="control-button">新游戏</button>
                 <button id="reset-game" class="control-button reset">重置</button>
             </div>
-            
+          
             <div class="chess-container">
                 <div class="chessboard" id="chessboard">
                     <div class="river">楚河 汉界</div>
@@ -261,7 +231,7 @@
                     <div class="camp black"></div>
                 </div>
             </div>
-            
+          
             <div class="game-info">
                 <div class="info-panel">
                     <h3>红方 (玩家)</h3>
@@ -274,11 +244,10 @@
             </div>
         </div>
     </div>
-    
+  
     <div class="status-bar">
         江南大学 粮食发酵工艺与技术国家工程实验室
     </div>
-
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             let board = Array(19).fill().map(() => Array(17).fill(null));
@@ -286,11 +255,13 @@
             let currentPlayer = 'red';
             let gameOver = false;
             let moveHistory = [];
-
+            let redCannonCrossedRiver = false;
+            let blackKingMoved = false;
+            
             function initBoard() {
                 const chessboard = document.getElementById('chessboard');
                 chessboard.innerHTML = '<div class="river">楚河 汉界</div><div class="camp red"></div><div class="camp black"></div>';
-                
+              
                 for (let row = 0; row < 19; row++) {
                     for (let col = 0; col < 17; col++) {
                         const cell = document.createElement('div');
@@ -305,13 +276,16 @@
                 setupPieces();
                 clearSelection();
             }
-            
+          
             function setupPieces() {
-                const redSoldier = [[12,0],[12,2],[12,4],[12,6],[12,8],[12,10],[12,12],[12,14],[12,16],[13,1],[13,3],[13,5],[13,7],[13,9],[13,11],[13,13],[13,15]];
+                // 红方：所有兵和炮向前（向河界）移动一格
+                const redSoldier = [[11,0],[11,2],[11,4],[11,6],[11,8],[11,10],[11,12],[11,14],[11,16],
+                                   [12,1],[12,3],[12,5],[12,7],[12,9],[12,11],[12,13],[12,15]];
                 redSoldier.forEach(p => placePiece('red','soldier',p[0],p[1]));
-                const redCannon = [[15,1],[15,3],[15,13],[15,15],[16,0],[16,2],[16,4],[16,12],[16,14],[16,16]];
+                const redCannon = [[14,1],[14,3],[14,13],[14,15],
+                                  [15,0],[15,2],[15,4],[15,12],[15,14],[15,16]];
                 redCannon.forEach(p => placePiece('red','cannon',p[0],p[1]));
-
+                // 后排车马相士将不变（仍在18行）
                 placePiece('red','chariot',18,0); placePiece('red','chariot',18,1);
                 placePiece('red','horse',18,2); placePiece('red','horse',18,3);
                 placePiece('red','elephant',18,4); placePiece('red','elephant',18,5);
@@ -321,10 +295,12 @@
                 placePiece('red','elephant',18,11); placePiece('red','elephant',18,12);
                 placePiece('red','horse',18,13); placePiece('red','horse',18,14);
                 placePiece('red','chariot',18,15); placePiece('red','chariot',18,16);
-
-                const blackSoldier = [[6,1],[6,3],[6,5],[6,7],[6,9],[6,11],[6,13],[6,15],[7,0],[7,2],[7,4],[7,6],[7,8],[7,10],[7,12],[7,14],[7,16]];
+                // 黑方：完全关于第10行（河界行）对称
+                const blackSoldier = [[6,1],[6,3],[6,5],[6,7],[6,9],[6,11],[6,13],[6,15],
+                                     [7,0],[7,2],[7,4],[7,6],[7,8],[7,10],[7,12],[7,14],[7,16]];
                 blackSoldier.forEach(p => placePiece('black','soldier',p[0],p[1]));
-                const blackCannon = [[3,1],[3,3],[3,13],[3,15],[4,0],[4,2],[4,4],[4,12],[4,14],[4,16]];
+                const blackCannon = [[3,1],[3,3],[3,13],[3,15],
+                                    [4,0],[4,2],[4,4],[4,12],[4,14],[4,16]];
                 blackCannon.forEach(p => placePiece('black','cannon',p[0],p[1]));
                 placePiece('black','chariot',0,0); placePiece('black','chariot',0,1);
                 placePiece('black','horse',0,2); placePiece('black','horse',0,3);
@@ -336,7 +312,7 @@
                 placePiece('black','horse',0,13); placePiece('black','horse',0,14);
                 placePiece('black','chariot',0,15); placePiece('black','chariot',0,16);
             }
-            
+          
             function placePiece(color, type, row, col) {
                 const cell = document.querySelector(`.cell[data-row="${row}"][data-col="${col}"]`);
                 const piece = document.createElement('div');
@@ -349,24 +325,36 @@
                 cell.appendChild(piece);
                 board[row][col] = {color, type, element: piece};
             }
-            
+          
             function getPieceText(c, t) {
                 const map = {red:{soldier:'兵',cannon:'炮',chariot:'车',horse:'马',elephant:'相',advisor:'仕',general:'帅'},
                              black:{soldier:'卒',cannon:'炮',chariot:'车',horse:'马',elephant:'象',advisor:'士',general:'将'}};
                 return map[c][t];
             }
-            
+          
             function handleCellClick(e) {
                 if (gameOver || currentPlayer !== 'red') return;
                 const cell = e.currentTarget;
                 const row = parseInt(cell.dataset.row);
                 const col = parseInt(cell.dataset.col);
                 const target = board[row][col];
-
                 if (selectedPiece) {
                     if (target && target.color === 'red') { clearSelection(); selectPiece(target, row, col); return; }
                     if (isValidMove(selectedPiece, row, col)) {
                         if (executeMove(selectedPiece.row, selectedPiece.col, row, col)) {
+                            // 检查是否有红方炮过河
+                            if (!redCannonCrossedRiver) {
+                                for (let r = 0; r < 9; r++) {
+                                    for (let c = 0; c < 17; c++) {
+                                        if (board[r][c] && board[r][c].color === 'red' && board[r][c].type === 'cannon') {
+                                            redCannonCrossedRiver = true;
+                                            break;
+                                        }
+                                    }
+                                    if (redCannonCrossedRiver) break;
+                                }
+                            }
+                            
                             clearSelection();
                             if (checkGameOver()) return;
                             currentPlayer = 'black';
@@ -376,14 +364,14 @@
                     } else clearSelection();
                 } else if (target && target.color === 'red') selectPiece(target, row, col);
             }
-            
+          
             function selectPiece(p, r, c) {
                 selectedPiece = {row:r, col:c, piece:p};
                 p.element.classList.add('selected');
                 showValidMoves(r, c);
-                highlightCapturable();  // 高亮可吃子
+                highlightCapturable();
             }
-            
+          
             function clearSelection() {
                 if (selectedPiece) {
                     selectedPiece.piece.element.classList.remove('selected');
@@ -392,7 +380,7 @@
                     selectedPiece = null;
                 }
             }
-            
+          
             function highlightCapturable() {
                 if (!selectedPiece) return;
                 for (let r = 0; r < 19; r++) {
@@ -403,19 +391,18 @@
                     }
                 }
             }
-            
+          
             function showValidMoves(fr, fc) {
                 for (let r=0;r<19;r++) for (let c=0;c<17;c++) {
                     if (isValidMove({row:fr,col:fc,piece:board[fr][fc]}, r, c))
                         document.querySelector(`.cell[data-row="${r}"][data-col="${c}"]`).classList.add('valid-move');
                 }
             }
-            
+          
             function isValidMove(from, tr, tc) {
                 const p = from.piece;
                 if (!p || (board[tr][tc] && board[tr][tc].color === p.color)) return false;
                 if (tr === 9) return false;
-
                 switch(p.type){
                     case 'soldier': return isValidSoldierMove(p.color, from.row, from.col, tr, tc);
                     case 'cannon': return isValidCannonMove(from.row, from.col, tr, tc);
@@ -427,7 +414,7 @@
                     default: return false;
                 }
             }
-            
+          
             // 超级马（连续两步日）
             function isValidSuperHorseMove(fr, fc, tr, tc) {
                 const dirs = [[-1,-2],[-2,-1],[-1,2],[-2,1],[1,-2],[2,-1],[1,2],[2,1]];
@@ -440,7 +427,6 @@
                     if (Math.abs(dc1)===2 && board[fr][legC]) continue;
                     if (board[mr][mc] && !(mr===tr && mc===tc)) continue;
                     if (mr===tr && mc===tc) return true;
-
                     for (const [dr2, dc2] of dirs) {
                         const nr = mr + dr2, nc = mc + dc2;
                         if (nr<0||nr>18||nc<0||nc>16) continue;
@@ -453,22 +439,24 @@
                 }
                 return false;
             }
-            
-            // 超级象：第一步田 + 第二步任意方向田
+          
+            // 超级相：第一步田 → 第二步田
             function isValidSuperElephantMove(color, fr, fc, tr, tc) {
                 const dirs = [[-2,-2],[-2,2],[2,-2],[2,2]];
                 for (const [dr1, dc1] of dirs) {
                     const mr = fr + dr1, mc = fc + dc1;
                     if (mr<0||mr>18||mc<0||mc>16) continue;
-                    if (board[(fr+mr)>>1][(fc+mc)>>1]) continue;
+                    if (board[(fr+mr)>>1][(fc+mc)>>1]) continue; // 第一步田眼堵塞
                     if (color==='red' && mr<10) continue;
                     if (color==='black' && mr>8) continue;
+                    // 第一步直接到达
                     if (mr===tr && mc===tc) return true;
-
+                    // 如果第一步位置已经有棋子，不能进行第二步
+                    if (board[mr][mc]) continue;
                     for (const [dr2, dc2] of dirs) {
                         const nr = mr + dr2, nc = mc + dc2;
                         if (nr<0||nr>18||nc<0||nc>16) continue;
-                        if (board[(mr+nr)>>1][(mc+nc)>>1]) continue;
+                        if (board[(mr+nr)>>1][(mc+nc)>>1]) continue; // 第二步田眼堵塞
                         if (color==='red' && nr<10) continue;
                         if (color==='black' && nr>8) continue;
                         if (nr===tr && nc===tc) return true;
@@ -476,7 +464,7 @@
                 }
                 return false;
             }
-            
+          
             function isValidSoldierMove(c, fr, fc, tr, tc){
                 const dir = c==='red'?-1:1;
                 if (c==='red'?fr<=9:fr>=9) {
@@ -487,7 +475,7 @@
                 if (c==='black' && fr===8 && tr===10 && tc===fc) return true;
                 return false;
             }
-            
+          
             function isValidCannonMove(fr,fc,tr,tc){
                 if (fr!==tr && fc!==tc) return false;
                 let cnt=0;
@@ -500,14 +488,14 @@
                 }
                 return board[tr][tc]?cnt===1:cnt===0;
             }
-            
+          
             function isValidChariotMove(fr,fc,tr,tc){
                 if (fr!==tr && fc!==tc) return false;
                 if (fr===tr) { const s=fc<tc?1:-1; for(let c=fc+s;c!==tc;c+=s) if(board[fr][c])return false; }
                 else { const s=fr<tr?1:-1; for(let r=fr+s;r!==tr;r+=s) if(board[r][fc])return false; }
                 return true;
             }
-            
+          
             function isValidAdvisorMove(c,fr,fc,tr,tc){
                 return Math.abs(tr-fr)===1 && Math.abs(tc-fc)===1 && isInPalace(c,tr,tc);
             }
@@ -516,7 +504,7 @@
                 return ((dr===1&&dc===0)||(dr===0&&dc===1)) && isInPalace(c,tr,tc);
             }
             function isInPalace(c,r,col){ return c==='red'?(r>=14&&r<=18&&col>=6&&col<=10):(r>=0&&r<=4&&col>=6&&col<=10); }
-            
+          
             function wouldFaceGenerals() {
                 let redGen = null, blackGen = null;
                 outer: for(let r=0;r<19;r++) for(let c=0;c<17;c++){
@@ -533,27 +521,30 @@
                 for(let r=minR+1; r<maxR; r++) if(board[r][redGen.c]) return false;
                 return true;
             }
-            
+          
             function executeMove(fr, fc, tr, tc) {
                 const piece = board[fr][fc];
                 const captured = board[tr][tc];
-                
+              
                 board[tr][tc] = piece; board[fr][fc] = null;
                 piece.element.dataset.row = tr; piece.element.dataset.col = tc;
                 document.querySelector(`.cell[data-row="${tr}"][data-col="${tc}"]`).appendChild(piece.element);
                 if (captured) captured.element.remove();
-                
-                const inCheck = isInCheck(currentPlayer);
-                const facing = wouldFaceGenerals();
-                
-                board[fr][fc] = piece; board[tr][tc] = captured;
-                piece.element.dataset.row = fr; piece.element.dataset.col = fc;
-                document.querySelector(`.cell[data-row="${fr}"][data-col="${fc}"]`).appendChild(piece.element);
-                if (captured) document.querySelector(`.cell[data-row="${tr}"][data-col="${tc}"]`).appendChild(captured.element);
-                
-                if (inCheck) { alert('不能送将！'); return false; }
-                if (facing) { alert('不能对将！'); return false; }
-                
+              
+                // 只在红方走棋时检查送将
+                if (currentPlayer === 'red') {
+                    const inCheck = isInCheck(currentPlayer);
+                    const facing = wouldFaceGenerals();
+                  
+                    board[fr][fc] = piece; board[tr][tc] = captured;
+                    piece.element.dataset.row = fr; piece.element.dataset.col = fc;
+                    document.querySelector(`.cell[data-row="${fr}"][data-col="${fc}"]`).appendChild(piece.element);
+                    if (captured) document.querySelector(`.cell[data-row="${tr}"][data-col="${tc}"]`).appendChild(captured.element);
+                  
+                    if (inCheck) { alert('不能送将！'); return false; }
+                    if (facing) { alert('不能对将！'); return false; }
+                }
+              
                 moveHistory.push({from:{row:fr,col:fc}, to:{row:tr,col:tc}, captured});
                 board[tr][tc] = piece; board[fr][fc] = null;
                 piece.element.dataset.row = tr; piece.element.dataset.col = tc;
@@ -561,7 +552,7 @@
                 if (captured) captured.element.remove();
                 return true;
             }
-            
+          
             function isInCheck(color) {
                 let kr,kc;
                 outer:for(let r=0;r<19;r++)for(let c=0;c<17;c++){
@@ -574,93 +565,316 @@
                 }
                 return false;
             }
-            
+          
             function checkGameOver(){
                 const redAlive = board.flat().some(p=>p&&p.type==='general'&&p.color==='red');
                 const blackAlive = board.flat().some(p=>p&&p.type==='general'&&p.color==='black');
-                if (!redAlive) { alert('黑方获胜！'); gameOver=true; return true; }
-                if (!blackAlive) { alert('红方获胜！'); gameOver=true; return true; }
+                if (!redAlive) { 
+                    alert('黑方获胜！'); 
+                    gameOver=true; 
+                    updateGameInfo();
+                    return true; 
+                }
+                if (!blackAlive) { 
+                    alert('红方获胜！'); 
+                    gameOver=true; 
+                    updateGameInfo();
+                    return true; 
+                }
+                
+                // 检查是否被将死
+                if (currentPlayer === 'red' && isInCheck('red') && !hasAnyValidMove('red')) {
+                    alert('黑方获胜！');
+                    gameOver = true;
+                    updateGameInfo();
+                    return true;
+                }
+                if (currentPlayer === 'black' && isInCheck('black') && !hasAnyValidMove('black')) {
+                    alert('红方获胜！');
+                    gameOver = true;
+                    updateGameInfo();
+                    return true;
+                }
+                
                 return false;
             }
             
-            function updateGameInfo(){
-                document.getElementById('red-info').textContent = currentPlayer==='red'?'轮到红方走棋':'等待黑方走棋';
-                document.getElementById('black-info').textContent = currentPlayer==='black'?'黑方思考中...':'等待红方走棋';
+            function hasAnyValidMove(color) {
+                for (let r = 0; r < 19; r++) {
+                    for (let c = 0; c < 17; c++) {
+                        const piece = board[r][c];
+                        if (piece && piece.color === color) {
+                            for (let tr = 0; tr < 19; tr++) {
+                                for (let tc = 0; tc < 17; tc++) {
+                                    if (isValidMove({row: r, col: c, piece}, tr, tc)) {
+                                        // 尝试移动
+                                        const captured = board[tr][tc];
+                                        board[tr][tc] = piece;
+                                        board[r][c] = null;
+                                        
+                                        const inCheck = isInCheck(color);
+                                        const facing = wouldFaceGenerals();
+                                        
+                                        // 恢复原状
+                                        board[r][c] = piece;
+                                        board[tr][tc] = captured;
+                                        
+                                        if (!inCheck && !facing) {
+                                            return true;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                return false;
             }
-            
-            // 电脑AI：1.优先将死 > 2.吃将 > 吃马 > 吃车 > 吃炮 > 吃象 > 吃士 > 吃兵
+          
+            function updateGameInfo(){
+                if (gameOver) {
+                    document.getElementById('red-info').textContent = '游戏结束';
+                    document.getElementById('black-info').textContent = '游戏结束';
+                } else {
+                    document.getElementById('red-info').textContent = currentPlayer==='red'?'轮到红方走棋':'等待黑方走棋';
+                    document.getElementById('black-info').textContent = currentPlayer==='black'?'黑方思考中...':'等待红方走棋';
+                }
+            }
+          
             function computerMove(){
                 if (gameOver || currentPlayer!=='black') return;
-                
-                let bestMoves = [];
-                let bestScore = -999;
-
-                // 价值表
-                const value = {general:1000, horse:900, chariot:800, cannon:700, elephant:600, advisor:500, soldier:100};
-
-                for(let r=0;r<19;r++)for(let c=0;c<17;c++){
-                    const p=board[r][c];
-                    if(p&&p.color==='black'){
-                        for(let tr=0;tr<19;tr++)for(let tc=0;tc<17;tc++){
-                            if(isValidMove({row:r,col:c,piece:p},tr,tc)){
-                                const cap=board[tr][tc];
-                                board[tr][tc]=p; board[r][c]=null;
-                                const check = isInCheck('black');
-                                const facing = wouldFaceGenerals();
-                                const killsKing = cap && cap.type==='general' && cap.color==='red';
-                                board[r][c]=p; board[tr][tc]=cap;
-
-                                if(check || facing) continue;
-
-                                let score = 0;
-                                if (killsKing) score = 99999; // 直接将死最高优先
-                                else if (cap) score = value[cap.type];
-                                else score = 0;
-
-                                if (score > bestScore) {
-                                    bestScore = score;
-                                    bestMoves = [{fr:r,fc:c,tr,tc}];
-                                } else if (score === bestScore) {
-                                    bestMoves.push({fr:r,fc:c,tr,tc});
-                                }
-                            }
-                        }
-                    }
-                }
-
-                if(bestMoves.length===0){
-                    for(let r=0;r<19;r++)for(let c=0;c<17;c++){
+              
+                // 收集所有可能的移动
+                let allMoves = [];
+                for(let r=0;r<19;r++) {
+                    for(let c=0;c<17;c++) {
                         const p=board[r][c];
-                        if(p&&p.color==='black'){
-                            for(let tr=0;tr<19;tr++)for(let tc=0;tc<17;tc++){
-                                if(isValidMove({row:r,col:c,piece:p},tr,tc) && !board[tr][tc]){
-                                    board[tr][tc]=p; board[r][c]=null;
-                                    const check = isInCheck('black');
-                                    const facing = wouldFaceGenerals();
-                                    board[r][c]=p; board[tr][tc]=null;
-                                    if(!check && !facing) bestMoves.push({fr:r,fc:c,tr,tc});
+                        if(p && p.color==='black') {
+                            for(let tr=0;tr<19;tr++) {
+                                for(let tc=0;tc<17;tc++) {
+                                    if(isValidMove({row:r,col:c,piece:p},tr,tc)) {
+                                        allMoves.push({fr:r, fc:c, tr, tc, piece: p});
+                                    }
                                 }
                             }
                         }
                     }
                 }
                 
-                if(bestMoves.length===0){ alert('黑方无子可走，红方获胜！'); gameOver=true; return; }
-                const m = bestMoves[Math.floor(Math.random()*bestMoves.length)];
-                executeMove(m.fr,m.fc,m.tr,m.tc);
+                if (allMoves.length === 0) {
+                    // 无合法移动，检查是否被将死
+                    if (isInCheck('black')) {
+                        alert('红方获胜！');
+                        gameOver = true;
+                        updateGameInfo();
+                        return;
+                    } else {
+                        // 困毙
+                        alert('红方获胜！');
+                        gameOver = true;
+                        updateGameInfo();
+                        return;
+                    }
+                }
+                
+                // 特殊护将逻辑：当红方有炮过河且黑将未移动时，优先移动黑将
+                if (redCannonCrossedRiver && !blackKingMoved) {
+                    const blackGeneralMoves = allMoves.filter(move => 
+                        move.piece.type === 'general' && move.tr === 1 && move.tc === 8
+                    );
+                    
+                    if (blackGeneralMoves.length > 0) {
+                        const move = blackGeneralMoves[0];
+                        if (executeMove(move.fr, move.fc, move.tr, move.tc)) {
+                            blackKingMoved = true;
+                            clearSelection();
+                            if (checkGameOver()) return;
+                            currentPlayer = 'red';
+                            updateGameInfo();
+                            return;
+                        }
+                    }
+                }
+                
+                // 评估每个移动
+                let bestMoves = [];
+                let bestScore = -999999;
+                
+                for (const move of allMoves) {
+                    const {fr, fc, tr, tc, piece} = move;
+                    const captured = board[tr][tc];
+                    
+                    // 执行移动
+                    board[tr][tc] = piece;
+                    board[fr][fc] = null;
+                    
+                    // 检查移动后是否会导致黑方被将军
+                    const inCheck = isInCheck('black');
+                    const facing = wouldFaceGenerals();
+                    
+                    let score = 0;
+                    
+                    if (!inCheck && !facing) {
+                        // 计算移动的分数
+                        score = evaluateMove(piece, captured, fr, fc, tr, tc);
+                        
+                        // 如果这个移动能够威胁到红方将军，增加分数
+                        if (isInCheck('red')) {
+                            score += 500;
+                        }
+                        
+                        // 如果这个移动能够吃掉红方将军，这是最好的移动
+                        if (captured && captured.type === 'general') {
+                            score = 999999;
+                        }
+                        
+                        // 护将逻辑：当红方炮威胁黑将时，优先护将而不是撤将
+                        if (isProtectingGeneral(piece, tr, tc)) {
+                            score += 300;
+                        }
+                        
+                        // 如果这个移动能够威胁红方的重要棋子，增加分数
+                        score += threatValue(piece, tr, tc);
+                        
+                        // 增加马和车的移动概率
+                        if (piece.type === 'horse' || piece.type === 'chariot') {
+                            score += 100;
+                        }
+                        
+                        // 鼓励进攻过河
+                        if (tr > 9 && piece.color === 'black') {
+                            score += 50;
+                        }
+                        
+                        if (score > bestScore) {
+                            bestScore = score;
+                            bestMoves = [move];
+                        } else if (score === bestScore) {
+                            bestMoves.push(move);
+                        }
+                    }
+                    
+                    // 恢复棋盘
+                    board[fr][fc] = piece;
+                    board[tr][tc] = captured;
+                }
+                
+                if (bestMoves.length === 0) {
+                    // 如果没有找到安全的移动，选择第一个移动（即使会导致被将军）
+                    const move = allMoves[0];
+                    executeMove(move.fr, move.fc, move.tr, move.tc);
+                } else {
+                    // 从最佳移动中随机选择一个
+                    const move = bestMoves[Math.floor(Math.random() * bestMoves.length)];
+                    executeMove(move.fr, move.fc, move.tr, move.tc);
+                }
+                
                 clearSelection();
-                if(checkGameOver()) return;
-                currentPlayer='red';
+                if (checkGameOver()) return;
+                currentPlayer = 'red';
                 updateGameInfo();
             }
             
+            function evaluateMove(piece, captured, fr, fc, tr, tc) {
+                let score = 0;
+                
+                // 棋子价值
+                const pieceValues = {
+                    general: 10000,
+                    horse: 900,
+                    chariot: 800,
+                    cannon: 700,
+                    elephant: 600,
+                    advisor: 500,
+                    soldier: 100
+                };
+                
+                // 吃子得分
+                if (captured) {
+                    score += pieceValues[captured.type] * 2;
+                }
+                
+                // 移动棋子到更有利的位置
+                if (piece.type === 'soldier') {
+                    // 兵过河后价值增加
+                    if (piece.color === 'black' && tr > 9) {
+                        score += 50;
+                    } else if (piece.color === 'red' && tr < 9) {
+                        score += 50;
+                    }
+                }
+                
+                // 移动棋子到中心区域
+                const centerRow = 9;
+                const centerCol = 8;
+                const distanceFromCenter = Math.abs(tr - centerRow) + Math.abs(tc - centerCol);
+                score -= distanceFromCenter * 5;
+                
+                return score;
+            }
+            
+            function isProtectingGeneral(piece, tr, tc) {
+                // 找到黑方将军的位置
+                let generalPos = null;
+                for (let r = 0; r < 19; r++) {
+                    for (let c = 0; c < 17; c++) {
+                        const p = board[r][c];
+                        if (p && p.type === 'general' && p.color === 'black') {
+                            generalPos = {r, c};
+                            break;
+                        }
+                    }
+                    if (generalPos) break;
+                }
+                
+                if (!generalPos) return false;
+                
+                // 检查移动后的棋子是否在保护将军
+                const dr = Math.abs(tr - generalPos.r);
+                const dc = Math.abs(tc - generalPos.c);
+                
+                // 如果棋子紧邻将军，认为它在保护将军
+                return (dr === 1 && dc === 0) || (dr === 0 && dc === 1);
+            }
+            
+            function threatValue(piece, tr, tc) {
+                let threatScore = 0;
+                
+                // 检查这个位置是否威胁到红方的重要棋子
+                for (let r = 0; r < 19; r++) {
+                    for (let c = 0; c < 17; c++) {
+                        const target = board[r][c];
+                        if (target && target.color === 'red') {
+                            // 检查移动后的棋子是否能威胁到这个目标
+                            if (isValidMove({row: tr, col: tc, piece}, r, c)) {
+                                // 根据目标的价值增加威胁分数
+                                const pieceValues = {
+                                    general: 1000,
+                                    horse: 90,
+                                    chariot: 80,
+                                    cannon: 70,
+                                    elephant: 60,
+                                    advisor: 50,
+                                    soldier: 10
+                                };
+                                threatScore += pieceValues[target.type];
+                            }
+                        }
+                    }
+                }
+                
+                return threatScore;
+            }
+          
             document.getElementById('new-game').onclick = ()=>{
                 board = Array(19).fill().map(()=>Array(17).fill(null));
                 moveHistory=[]; currentPlayer='red'; gameOver=false;
+                redCannonCrossedRiver = false;
+                blackKingMoved = false;
                 initBoard(); updateGameInfo();
             };
             document.getElementById('reset-game').onclick = document.getElementById('new-game').onclick;
-            
+          
             initBoard();
             updateGameInfo();
         });
