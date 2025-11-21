@@ -86,6 +86,18 @@
             background-color: var(--accent-color);
         }
         .control-button.reset:hover { background-color: #c0392b; }
+        .mode-indicator {
+            background-color: var(--warning-color);
+            color: white;
+            padding: 12px 16px; /* 调整垂直内边距与按钮相同 */
+            border-radius: var(--border-radius);
+            font-weight: bold;
+            margin-left: 10px;
+            font-size: 1rem; /* 确保字体大小与按钮相同 */
+            line-height: 1; /* 设置行高为1，避免行高造成的额外高度 */
+            display: flex;
+            align-items: center; /* 垂直居中 */
+        }
         .chess-container {
             display: flex;
             justify-content: center;
@@ -222,6 +234,8 @@
             <div class="control-panel">
                 <button id="new-game" class="control-button">新游戏</button>
                 <button id="reset-game" class="control-button reset">重置</button>
+                <button id="toggle-mode" class="control-button">切换模式</button>
+                <div id="mode-indicator" class="mode-indicator">单人模式</div>
             </div>
           
             <div class="chess-container">
@@ -257,6 +271,7 @@
             let moveHistory = [];
             let redCannonCrossedRiver = false;
             let blackKingMoved = false;
+            let gameMode = 'single'; // 'single' or 'two-player'
             
             function initBoard() {
                 const chessboard = document.getElementById('chessboard');
@@ -334,36 +349,76 @@
             }
           
             function handleCellClick(e) {
-                if (gameOver || currentPlayer !== 'red') return;
-                const cell = e.currentTarget;
-                const row = parseInt(cell.dataset.row);
-                const col = parseInt(cell.dataset.col);
-                const target = board[row][col];
-                if (selectedPiece) {
-                    if (target && target.color === 'red') { clearSelection(); selectPiece(target, row, col); return; }
-                    if (isValidMove(selectedPiece, row, col)) {
-                        if (executeMove(selectedPiece.row, selectedPiece.col, row, col)) {
-                            // 检查是否有红方炮过河
-                            if (!redCannonCrossedRiver) {
-                                for (let r = 0; r < 9; r++) {
-                                    for (let c = 0; c < 17; c++) {
-                                        if (board[r][c] && board[r][c].color === 'red' && board[r][c].type === 'cannon') {
-                                            redCannonCrossedRiver = true;
-                                            break;
+                if (gameOver) return;
+                
+                // 在双人模式下，允许双方玩家操作
+                if (gameMode === 'two-player' && currentPlayer !== 'red') {
+                    // 黑方玩家回合
+                    const cell = e.currentTarget;
+                    const row = parseInt(cell.dataset.row);
+                    const col = parseInt(cell.dataset.col);
+                    const target = board[row][col];
+                    
+                    if (selectedPiece) {
+                        if (target && target.color === 'black') { 
+                            clearSelection(); 
+                            selectPiece(target, row, col); 
+                            return; 
+                        }
+                        if (isValidMove(selectedPiece, row, col)) {
+                            if (executeMove(selectedPiece.row, selectedPiece.col, row, col)) {
+                                clearSelection();
+                                if (checkGameOver()) return;
+                                currentPlayer = 'red';
+                                updateGameInfo();
+                            }
+                        } else clearSelection();
+                    } else if (target && target.color === 'black') {
+                        selectPiece(target, row, col);
+                    }
+                } else {
+                    // 单人模式或红方玩家回合
+                    const cell = e.currentTarget;
+                    const row = parseInt(cell.dataset.row);
+                    const col = parseInt(cell.dataset.col);
+                    const target = board[row][col];
+                    
+                    if (selectedPiece) {
+                        if (target && target.color === 'red') { 
+                            clearSelection(); 
+                            selectPiece(target, row, col); 
+                            return; 
+                        }
+                        if (isValidMove(selectedPiece, row, col)) {
+                            if (executeMove(selectedPiece.row, selectedPiece.col, row, col)) {
+                                // 检查是否有红方炮过河
+                                if (!redCannonCrossedRiver) {
+                                    for (let r = 0; r < 9; r++) {
+                                        for (let c = 0; c < 17; c++) {
+                                            if (board[r][c] && board[r][c].color === 'red' && board[r][c].type === 'cannon') {
+                                                redCannonCrossedRiver = true;
+                                                break;
+                                            }
                                         }
+                                        if (redCannonCrossedRiver) break;
                                     }
-                                    if (redCannonCrossedRiver) break;
+                                }
+                                
+                                clearSelection();
+                                if (checkGameOver()) return;
+                                currentPlayer = 'black';
+                                updateGameInfo();
+                                
+                                // 单人模式下，黑方由电脑自动走棋
+                                if (gameMode === 'single') {
+                                    setTimeout(computerMove, 600);
                                 }
                             }
-                            
-                            clearSelection();
-                            if (checkGameOver()) return;
-                            currentPlayer = 'black';
-                            updateGameInfo();
-                            setTimeout(computerMove, 600);
-                        }
-                    } else clearSelection();
-                } else if (target && target.color === 'red') selectPiece(target, row, col);
+                        } else clearSelection();
+                    } else if (target && target.color === 'red') {
+                        selectPiece(target, row, col);
+                    }
+                }
             }
           
             function selectPiece(p, r, c) {
@@ -384,9 +439,10 @@
           
             function highlightCapturable() {
                 if (!selectedPiece) return;
+                const targetColor = selectedPiece.piece.color === 'red' ? 'black' : 'red';
                 for (let r = 0; r < 19; r++) {
                     for (let c = 0; c < 17; c++) {
-                        if (board[r][c] && board[r][c].color === 'black' && isValidMove(selectedPiece, r, c)) {
+                        if (board[r][c] && board[r][c].color === targetColor && isValidMove(selectedPiece, r, c)) {
                             document.querySelector(`.cell[data-row="${r}"][data-col="${c}"]`).classList.add('can-capture');
                         }
                     }
@@ -532,19 +588,17 @@
                 document.querySelector(`.cell[data-row="${tr}"][data-col="${tc}"]`).appendChild(piece.element);
                 if (captured) captured.element.remove();
               
-                // 只在红方走棋时检查送将
-                if (currentPlayer === 'red') {
-                    const inCheck = isInCheck(currentPlayer);
-                    const facing = wouldFaceGenerals();
-                  
-                    board[fr][fc] = piece; board[tr][tc] = captured;
-                    piece.element.dataset.row = fr; piece.element.dataset.col = fc;
-                    document.querySelector(`.cell[data-row="${fr}"][data-col="${fc}"]`).appendChild(piece.element);
-                    if (captured) document.querySelector(`.cell[data-row="${tr}"][data-col="${tc}"]`).appendChild(captured.element);
-                  
-                    if (inCheck) { alert('不能送将！'); return false; }
-                    if (facing) { alert('不能对将！'); return false; }
-                }
+                // 检查送将
+                const inCheck = isInCheck(currentPlayer);
+                const facing = wouldFaceGenerals();
+              
+                board[fr][fc] = piece; board[tr][tc] = captured;
+                piece.element.dataset.row = fr; piece.element.dataset.col = fc;
+                document.querySelector(`.cell[data-row="${fr}"][data-col="${fc}"]`).appendChild(piece.element);
+                if (captured) document.querySelector(`.cell[data-row="${tr}"][data-col="${tc}"]`).appendChild(captured.element);
+              
+                if (inCheck) { alert('不能送将！'); return false; }
+                if (facing) { alert('不能对将！'); return false; }
               
                 moveHistory.push({from:{row:fr,col:fc}, to:{row:tr,col:tc}, captured});
                 board[tr][tc] = piece; board[fr][fc] = null;
@@ -637,13 +691,18 @@
                     document.getElementById('red-info').textContent = '游戏结束';
                     document.getElementById('black-info').textContent = '游戏结束';
                 } else {
-                    document.getElementById('red-info').textContent = currentPlayer==='red'?'轮到红方走棋':'等待黑方走棋';
-                    document.getElementById('black-info').textContent = currentPlayer==='black'?'黑方思考中...':'等待红方走棋';
+                    if (gameMode === 'single') {
+                        document.getElementById('red-info').textContent = currentPlayer==='red'?'轮到红方走棋':'等待黑方走棋';
+                        document.getElementById('black-info').textContent = currentPlayer==='black'?'黑方思考中...':'等待红方走棋';
+                    } else {
+                        document.getElementById('red-info').textContent = currentPlayer==='red'?'轮到红方走棋':'等待黑方走棋';
+                        document.getElementById('black-info').textContent = currentPlayer==='black'?'轮到黑方走棋':'等待红方走棋';
+                    }
                 }
             }
           
             function computerMove(){
-                if (gameOver || currentPlayer!=='black') return;
+                if (gameOver || currentPlayer!=='black' || gameMode !== 'single') return;
               
                 // 收集所有可能的移动
                 let allMoves = [];
@@ -866,6 +925,22 @@
                 
                 return threatScore;
             }
+            
+            // 切换游戏模式
+            function toggleGameMode() {
+                if (gameMode === 'single') {
+                    gameMode = 'two-player';
+                    document.getElementById('toggle-mode').textContent = '切换模式';
+                    document.getElementById('mode-indicator').textContent = '双人对战模式';
+                    document.getElementById('black-info').textContent = '等待黑方走棋';
+                } else {
+                    gameMode = 'single';
+                    document.getElementById('toggle-mode').textContent = '切换模式';
+                    document.getElementById('mode-indicator').textContent = '单人模式';
+                    document.getElementById('black-info').textContent = '等待红方走棋';
+                }
+                updateGameInfo();
+            }
           
             document.getElementById('new-game').onclick = ()=>{
                 board = Array(19).fill().map(()=>Array(17).fill(null));
@@ -875,6 +950,7 @@
                 initBoard(); updateGameInfo();
             };
             document.getElementById('reset-game').onclick = document.getElementById('new-game').onclick;
+            document.getElementById('toggle-mode').onclick = toggleGameMode;
           
             initBoard();
             updateGameInfo();
