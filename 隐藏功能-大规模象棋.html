@@ -248,11 +248,11 @@
           
             <div class="game-info">
                 <div class="info-panel">
-                    <h3>红方 (玩家)</h3>
+                    <h3 id="red-title">红方 (玩家)</h3>
                     <p id="red-info">轮到红方走棋</p>
                 </div>
                 <div class="info-panel">
-                    <h3>黑方 (电脑)</h3>
+                    <h3 id="black-title">黑方 (电脑)</h3>
                     <p id="black-info">等待红方走棋</p>
                 </div>
             </div>
@@ -597,8 +597,20 @@
                 document.querySelector(`.cell[data-row="${fr}"][data-col="${fc}"]`).appendChild(piece.element);
                 if (captured) document.querySelector(`.cell[data-row="${tr}"][data-col="${tc}"]`).appendChild(captured.element);
               
-                if (inCheck) { alert('不能送将！'); return false; }
-                if (facing) { alert('不能对将！'); return false; }
+                if (inCheck) { 
+                    // 只有在双人模式下才显示"不能送将"提示
+                    if (gameMode === 'two-player') {
+                        alert('不能送将！'); 
+                    }
+                    return false; 
+                }
+                if (facing) { 
+                    // 只有在双人模式下才显示"不能对将"提示
+                    if (gameMode === 'two-player') {
+                        alert('不能对将！'); 
+                    }
+                    return false; 
+                }
               
                 moveHistory.push({from:{row:fr,col:fc}, to:{row:tr,col:tc}, captured});
                 board[tr][tc] = piece; board[fr][fc] = null;
@@ -638,14 +650,13 @@
                 }
                 
                 // 检查是否被将死
-                if (currentPlayer === 'red' && isInCheck('red') && !hasAnyValidMove('red')) {
-                    alert('黑方获胜！');
-                    gameOver = true;
-                    updateGameInfo();
-                    return true;
-                }
-                if (currentPlayer === 'black' && isInCheck('black') && !hasAnyValidMove('black')) {
-                    alert('红方获胜！');
+                const opponent = currentPlayer === 'red' ? 'black' : 'red';
+                if (isInCheck(opponent) && !hasAnyValidMove(opponent)) {
+                    if (currentPlayer === 'red') {
+                        alert('红方获胜！');
+                    } else {
+                        alert('黑方获胜！');
+                    }
                     gameOver = true;
                     updateGameInfo();
                     return true;
@@ -685,6 +696,39 @@
                 }
                 return false;
             }
+            
+            // 检查当前玩家是否所有行动都会送将（困毙）
+            function checkStalemate() {
+                const playerColor = currentPlayer;
+                
+                // 如果当前玩家已经被将军，那么不是困毙而是被将死
+                if (isInCheck(playerColor)) {
+                    return false;
+                }
+                
+                // 检查当前玩家是否有任何合法移动
+                if (!hasAnyValidMove(playerColor)) {
+                    // 当前玩家没有合法移动，判对方获胜
+                    if (gameMode === 'single') {
+                        if (playerColor === 'red') {
+                            alert('黑方获胜！');
+                        } else {
+                            alert('红方获胜！');
+                        }
+                    } else {
+                        if (playerColor === 'red') {
+                            alert('黑方(玩家2)获胜！');
+                        } else {
+                            alert('红方(玩家1)获胜！');
+                        }
+                    }
+                    gameOver = true;
+                    updateGameInfo();
+                    return true;
+                }
+                
+                return false;
+            }
           
             function updateGameInfo(){
                 if (gameOver) {
@@ -703,6 +747,9 @@
           
             function computerMove(){
                 if (gameOver || currentPlayer!=='black' || gameMode !== 'single') return;
+                
+                // 首先检查困毙情况
+                if (checkStalemate()) return;
               
                 // 收集所有可能的移动
                 let allMoves = [];
@@ -820,9 +867,19 @@
                 }
                 
                 if (bestMoves.length === 0) {
-                    // 如果没有找到安全的移动，选择第一个移动（即使会导致被将军）
-                    const move = allMoves[0];
-                    executeMove(move.fr, move.fc, move.tr, move.tc);
+                    // 如果没有找到安全的移动，检查是否被将死
+                    if (isInCheck('black')) {
+                        alert('红方获胜！');
+                        gameOver = true;
+                        updateGameInfo();
+                        return;
+                    } else {
+                        // 困毙
+                        alert('红方获胜！');
+                        gameOver = true;
+                        updateGameInfo();
+                        return;
+                    }
                 } else {
                     // 从最佳移动中随机选择一个
                     const move = bestMoves[Math.floor(Math.random() * bestMoves.length)];
@@ -932,15 +989,34 @@
                     gameMode = 'two-player';
                     document.getElementById('toggle-mode').textContent = '切换模式';
                     document.getElementById('mode-indicator').textContent = '双人对战模式';
+                    document.getElementById('red-title').textContent = '红方 (玩家1)';
+                    document.getElementById('black-title').textContent = '黑方 (玩家2)';
                     document.getElementById('black-info').textContent = '等待黑方走棋';
                 } else {
                     gameMode = 'single';
                     document.getElementById('toggle-mode').textContent = '切换模式';
                     document.getElementById('mode-indicator').textContent = '单人模式';
+                    document.getElementById('red-title').textContent = '红方 (玩家)';
+                    document.getElementById('black-title').textContent = '黑方 (电脑)';
                     document.getElementById('black-info').textContent = '等待红方走棋';
                 }
                 updateGameInfo();
             }
+            
+            // 修改handleCellClick函数，在玩家回合开始时检查困毙
+            const originalHandleCellClick = handleCellClick;
+            handleCellClick = function(e) {
+                // 在玩家操作前检查困毙
+                if (!gameOver && 
+                    ((gameMode === 'single' && currentPlayer === 'red') || 
+                     (gameMode === 'two-player'))) {
+                    if (checkStalemate()) {
+                        return;
+                    }
+                }
+                
+                originalHandleCellClick.call(this, e);
+            };
           
             document.getElementById('new-game').onclick = ()=>{
                 board = Array(19).fill().map(()=>Array(17).fill(null));
