@@ -1,0 +1,1288 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>残基最短路径（SPM）计算</title>
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --secondary-color: #3498db;
+            --accent-color: #e74c3c;
+            --light-color: #ecf0f1;
+            --dark-color: #2c3e50;
+            --success-color: #27ae60;
+            --warning-color: #f39c12;
+            --border-radius: 8px;
+            --box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            --transition: all 0.3s ease;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            min-height: 100vh;
+        }
+
+        /* 顶部标题栏 */
+        .tool-header {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background-color: var(--primary-color);
+            color: white;
+            padding: 20px;
+            width: 100%;
+            text-align: center;
+        }
+
+        .back-button {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            padding: 8px 16px;
+            border-radius: var(--border-radius);
+            cursor: pointer;
+            transition: var(--transition);
+            font-size: 0.9rem;
+            margin-top: 15px;
+            text-decoration: none;
+        }
+
+        .back-button:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        /* 内容区域样式 */
+        .content {
+            padding: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .section {
+            background: white;
+            border-radius: var(--border-radius);
+            padding: 20px;
+            margin-bottom: 30px;
+            box-shadow: var(--box-shadow);
+        }
+
+        h2 {
+            color: var(--primary-color);
+            text-align: center;
+        }
+
+        h3 {
+            color: var(--secondary-color);
+            margin-bottom: 15px;
+            text-align: center;
+        }
+
+        /* 表单样式 */
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+        }
+
+        input[type="text"], input[type="number"], textarea, select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: var(--border-radius);
+            font-size: 14px;
+        }
+
+        textarea {
+            min-height: 100px;
+            resize: vertical;
+        }
+
+        /* 文件上传样式 */
+        .file-upload {
+            border: 2px dashed #ddd;
+            border-radius: var(--border-radius);
+            padding: 20px;
+            text-align: center;
+            margin-bottom: 15px;
+            transition: var(--transition);
+            cursor: pointer;
+            position: relative;
+        }
+
+        .file-upload:hover {
+            border-color: var(--secondary-color);
+            background-color: #f9f9f9;
+        }
+
+        .file-upload.drag-over {
+            border-color: var(--success-color);
+            background-color: #e8f8f0;
+        }
+
+        .file-upload.has-file {
+            border-color: var(--success-color);
+            background-color: #e8f8f0;
+        }
+
+        .file-upload input {
+            display: none;
+        }
+
+        .upload-icon {
+            font-size: 2rem;
+            color: var(--secondary-color);
+            margin-bottom: 10px;
+        }
+
+        .file-info {
+            margin-top: 10px;
+            font-size: 0.9rem;
+            color: #666;
+        }
+
+        .file-selected {
+            margin-top: 15px;
+            padding: 10px;
+            background-color: rgba(52, 152, 219, 0.1);
+            border-radius: var(--border-radius);
+            border-left: 3px solid var(--secondary-color);
+        }
+
+        .file-selected-name {
+            font-weight: 600;
+            color: var(--primary-color);
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        .file-selected-size {
+            font-size: 0.85rem;
+            color: #666;
+        }
+
+        .file-list {
+            margin-top: 10px;
+            padding: 10px;
+            background-color: #f5f5f5;
+            border-radius: var(--border-radius);
+            max-height: 150px;
+            overflow-y: auto;
+        }
+
+        .file-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 10px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .file-item:last-child {
+            border-bottom: none;
+        }
+
+        .file-name {
+            font-weight: 500;
+            flex: 1;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            margin-right: 10px;
+        }
+
+        .file-size {
+            color: #777;
+            font-size: 0.85rem;
+        }
+
+        .remove-file {
+            background-color: var(--accent-color);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 22px;
+            height: 22px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            margin-left: 10px;
+        }
+
+        .remove-file:hover {
+            background-color: #c0392b;
+        }
+
+        /* 按钮样式 */
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .primary-button, .secondary-button {
+            padding: 12px 24px;
+            border: none;
+            border-radius: var(--border-radius);
+            cursor: pointer;
+            transition: var(--transition);
+            font-weight: 600;
+            flex: 1;
+        }
+
+        .primary-button {
+            background-color: var(--secondary-color);
+            color: white;
+        }
+
+        .primary-button:hover {
+            background-color: #2980b9;
+        }
+
+        .primary-button:disabled {
+            background-color: #95a5a6;
+            cursor: not-allowed;
+        }
+
+        .secondary-button {
+            background-color: var(--accent-color);
+            color: white;
+        }
+
+        .secondary-button:hover {
+            background-color: #c0392b;
+        }
+
+        /* 参数设置样式 */
+        .parameter-group {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .parameter-item {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .parameter-item label {
+            margin-bottom: 5px;
+        }
+
+        /* 结果区域样式 */
+        .result-box {
+            padding: 15px;
+            background-color: #f9f9f9;
+            border-radius: var(--border-radius);
+            margin-top: 15px;
+            border-left: 4px solid var(--secondary-color);
+        }
+
+        /* 进度条样式 */
+        .progress-container {
+            margin-top: 20px;
+        }
+
+        .progress-bar {
+            height: 20px;
+            background-color: #eee;
+            border-radius: 10px;
+            overflow: hidden;
+            margin-bottom: 10px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background-color: var(--secondary-color);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+
+        .progress-text {
+            text-align: center;
+            font-size: 0.9rem;
+            color: #666;
+        }
+
+        /* 日志输出样式 */
+        .log-output {
+            padding: 15px;
+            background-color: #2c3e50;
+            color: #ecf0f1;
+            border-radius: var(--border-radius);
+            margin-top: 20px;
+            font-family: monospace;
+            font-size: 0.9rem;
+            max-height: 200px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+        }
+
+        /* 状态栏样式 */
+        .status-bar {
+            padding: 10px;
+            background-color: var(--primary-color);
+            color: white;
+            text-align: center;
+            font-weight: bold;
+            width: 100%;
+            margin-top: 20px;
+        }
+
+        /* 结果文件列表样式 */
+        .result-files {
+            margin-top: 20px;
+        }
+
+        .file-card {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 15px;
+            background-color: white;
+            border: 1px solid #eee;
+            border-radius: var(--border-radius);
+            margin-bottom: 10px;
+            transition: var(--transition);
+        }
+
+        .file-card:hover {
+            border-color: var(--secondary-color);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .file-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .download-btn {
+            padding: 5px 10px;
+            background-color: var(--secondary-color);
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.85rem;
+        }
+
+        .download-btn:hover {
+            background-color: #2980b9;
+        }
+
+        /* 全行按钮样式 */
+        .full-width-button {
+            width: 100%;
+            margin-top: 20px;
+        }
+
+        @media (max-width: 768px) {
+            .content {
+                padding: 15px;
+            }
+            
+            .parameter-group {
+                grid-template-columns: 1fr;
+            }
+            
+            .button-group {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="tool-header">
+        <h2 style="color: white;">残基最短路径（SPM）计算</h2>
+        <a href="index.html" class="back-button">返回主界面</a>
+    </div>
+    
+    <div class="content">
+        <!-- 文件上传部分 -->
+        <div class="section">
+            <h2>输入文件</h2>
+            <p style="text-align: center; margin-bottom: 20px; color: #666;">
+                请上传所需文件以进行残基最短路径（SPM）计算。计算完成后将生成包含结果文件的ZIP包。
+            </p>
+            
+            <div class="form-group">
+                <label for="pdb-file">PDB结构文件 (.pdb)</label>
+                <div class="file-upload" id="pdb-upload">
+                    <div class="upload-icon">📁</div>
+                    <div>点击选择PDB文件或拖放至此</div>
+                    <input type="file" id="pdb-file" accept=".pdb">
+                    <div class="file-info">用于生成PyMOL脚本的参考结构</div>
+                    <div class="file-selected" id="pdb-selected" style="display: none;">
+                        <span class="file-selected-name" id="pdb-filename"></span>
+                        <span class="file-selected-size" id="pdb-filesize"></span>
+                    </div>
+                </div>
+                <div id="pdb-list" class="file-list"></div>
+            </div>
+            
+            <div class="form-group">
+                <label for="dist-file">距离矩阵文件 (.npy, .txt, .dat)</label>
+                <div class="file-upload" id="dist-upload">
+                    <div class="upload-icon">📊</div>
+                    <div>点击选择距离矩阵文件或拖放至此</div>
+                    <input type="file" id="dist-file" accept=".npy,.txt,.dat,.csv">
+                    <div class="file-info">残基间距离矩阵（N×N方阵）</div>
+                    <div class="file-selected" id="dist-selected" style="display: none;">
+                        <span class="file-selected-name" id="dist-filename"></span>
+                        <span class="file-selected-size" id="dist-filesize"></span>
+                    </div>
+                </div>
+                <div id="dist-list" class="file-list"></div>
+            </div>
+            
+            <div class="form-group">
+                <label for="corr-file">相关矩阵文件 (.npy, .txt, .dat)</label>
+                <div class="file-upload" id="corr-upload">
+                    <div class="upload-icon">📈</div>
+                    <div>点击选择相关矩阵文件或拖放至此</div>
+                    <input type="file" id="corr-file" accept=".npy,.txt,.dat,.csv">
+                    <div class="file-info">残基间相关性矩阵（N×N方阵）</div>
+                    <div class="file-selected" id="corr-selected" style="display: none;">
+                        <span class="file-selected-name" id="corr-filename"></span>
+                        <span class="file-selected-size" id="corr-filesize"></span>
+                    </div>
+                </div>
+                <div id="corr-list" class="file-list"></div>
+            </div>
+        </div>
+        
+        <!-- 参数设置部分 -->
+        <div class="section">
+            <h2>计算参数</h2>
+            
+            <div class="parameter-group">
+                <div class="parameter-item">
+                    <label for="threshold">距离阈值 (Å)</label>
+                    <input type="number" id="threshold" value="6.0" step="0.1" min="0.1" max="100">
+                    <small>残基间距离超过此值将被忽略</small>
+                </div>
+                
+                <div class="parameter-item">
+                    <label for="significance">显著性阈值 (0-1)</label>
+                    <input type="number" id="significance" value="0.3" step="0.05" min="0" max="1">
+                    <small>边使用分数阈值，高于此值的边将被保留</small>
+                </div>
+                
+                <div class="parameter-item">
+                    <label for="epsilon">极小值 (ε)</label>
+                    <input type="number" id="epsilon" value="0.000001" step="0.000001" min="0.0000001">
+                    <small>避免log(0)的极小值</small>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 计算控制部分 -->
+        <div class="section">
+            <h2>计算控制</h2>
+            
+            <div class="button-group">
+                <button id="calculate-btn" class="primary-button">开始计算</button>
+                <button id="reset-btn" class="secondary-button">重置所有</button>
+            </div>
+            
+            <div class="progress-container" id="progress-container" style="display: none;">
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progress-fill"></div>
+                </div>
+                <div class="progress-text" id="progress-text">准备中...</div>
+            </div>
+            
+            <div class="log-output" id="log-output" style="display: none;"></div>
+        </div>
+        
+        <!-- 结果输出部分 -->
+        <div class="section" id="results-section" style="display: none;">
+            <h2>计算结果</h2>
+            
+            <div class="result-box">
+                <p><strong>计算完成！</strong> 已生成以下结果文件：</p>
+                
+                <div class="result-files" id="result-files"></div>
+                
+                <button id="download-all-btn" class="primary-button full-width-button">下载所有文件(ZIP)</button>
+            </div>
+        </div>
+    </div>
+    
+    <div class="status-bar">
+        江南大学 粮食发酵工艺与技术国家工程实验室
+    </div>
+
+    <!-- 引入JSZip库用于创建ZIP文件 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <!-- 引入FileSaver.js用于保存文件 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // 文件上传处理
+            const fileUploads = [
+                { 
+                    id: 'pdb-file', 
+                    uploadDiv: 'pdb-upload', 
+                    listDiv: 'pdb-list',
+                    selectedDiv: 'pdb-selected',
+                    filenameDiv: 'pdb-filename',
+                    filesizeDiv: 'pdb-filesize'
+                },
+                { 
+                    id: 'dist-file', 
+                    uploadDiv: 'dist-upload', 
+                    listDiv: 'dist-list',
+                    selectedDiv: 'dist-selected',
+                    filenameDiv: 'dist-filename',
+                    filesizeDiv: 'dist-filesize'
+                },
+                { 
+                    id: 'corr-file', 
+                    uploadDiv: 'corr-upload', 
+                    listDiv: 'corr-list',
+                    selectedDiv: 'corr-selected',
+                    filenameDiv: 'corr-filename',
+                    filesizeDiv: 'corr-filesize'
+                }
+            ];
+            
+            // 文件存储
+            const uploadedFiles = {
+                'pdb-file': null,
+                'dist-file': null,
+                'corr-file': null
+            };
+            
+            // 初始化文件上传区域
+            fileUploads.forEach(item => {
+                const uploadDiv = document.getElementById(item.uploadDiv);
+                const fileInput = document.getElementById(item.id);
+                const listDiv = document.getElementById(item.listDiv);
+                const selectedDiv = document.getElementById(item.selectedDiv);
+                const filenameDiv = document.getElementById(item.filenameDiv);
+                const filesizeDiv = document.getElementById(item.filesizeDiv);
+                
+                // 点击选择文件
+                uploadDiv.addEventListener('click', () => fileInput.click());
+                
+                // 文件选择变化
+                fileInput.addEventListener('change', (e) => {
+                    if (e.target.files.length > 0) {
+                        const file = e.target.files[0];
+                        handleFileUpload(file, item, uploadDiv, selectedDiv, filenameDiv, filesizeDiv);
+                    }
+                });
+                
+                // 拖放功能
+                ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+                    uploadDiv.addEventListener(eventName, preventDefaults, false);
+                });
+                
+                function preventDefaults(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                }
+                
+                // 高亮拖放区域
+                ['dragenter', 'dragover'].forEach(eventName => {
+                    uploadDiv.addEventListener(eventName, () => {
+                        uploadDiv.classList.add('drag-over');
+                    }, false);
+                });
+                
+                ['dragleave', 'drop'].forEach(eventName => {
+                    uploadDiv.addEventListener(eventName, () => {
+                        uploadDiv.classList.remove('drag-over');
+                    }, false);
+                });
+                
+                // 处理文件拖放
+                uploadDiv.addEventListener('drop', (e) => {
+                    const dt = e.dataTransfer;
+                    const files = dt.files;
+                    
+                    if (files.length > 0) {
+                        const file = files[0];
+                        handleFileUpload(file, item, uploadDiv, selectedDiv, filenameDiv, filesizeDiv);
+                        fileInput.files = files; // 更新文件输入
+                    }
+                }, false);
+            });
+            
+            // 处理文件上传
+            function handleFileUpload(file, item, uploadDiv, selectedDiv, filenameDiv, filesizeDiv) {
+                // 检查文件类型
+                const fileExt = file.name.split('.').pop().toLowerCase();
+                const allowedExtensions = {
+                    'pdb-file': ['pdb'],
+                    'dist-file': ['npy', 'txt', 'dat', 'csv'],
+                    'corr-file': ['npy', 'txt', 'dat', 'csv']
+                };
+                
+                const allowed = allowedExtensions[item.id];
+                if (!allowed || !allowed.includes(fileExt)) {
+                    let errorMsg = `文件类型不支持。`;
+                    if (item.id === 'pdb-file') {
+                        errorMsg += ' 请上传.pdb文件。';
+                    } else {
+                        errorMsg += ' 请上传.npy, .txt, .dat或.csv文件。';
+                    }
+                    alert(errorMsg);
+                    return;
+                }
+                
+                // 存储文件
+                uploadedFiles[item.id] = file;
+                
+                // 显示上传成功的反馈
+                uploadDiv.classList.add('has-file');
+                
+                // 更新显示已选择的文件信息
+                filenameDiv.textContent = file.name;
+                filesizeDiv.textContent = formatFileSize(file.size);
+                selectedDiv.style.display = 'block';
+                
+                // 更新文件列表显示
+                updateFileList(file, item.id, document.getElementById(item.listDiv));
+                
+                // 日志
+                logMessage(`已上传文件: ${file.name} (${formatFileSize(file.size)})`);
+            }
+            
+            // 更新文件列表
+            function updateFileList(file, inputId, listDiv) {
+                const element = document.getElementById(listDiv);
+                const fileSize = formatFileSize(file.size);
+                
+                element.innerHTML = `
+                    <div class="file-item">
+                        <div class="file-name" title="${file.name}">${file.name}</div>
+                        <div class="file-size">${fileSize}</div>
+                        <button class="remove-file" data-input="${inputId}">×</button>
+                    </div>
+                `;
+                
+                // 添加删除按钮事件
+                const removeBtn = element.querySelector('.remove-file');
+                removeBtn.addEventListener('click', function() {
+                    // 移除文件
+                    uploadedFiles[inputId] = null;
+                    document.getElementById(inputId).value = '';
+                    element.innerHTML = '';
+                    
+                    // 移除上传区域的反馈
+                    const uploadDivId = inputId.replace('-file', '-upload');
+                    const selectedDivId = inputId.replace('-file', '-selected');
+                    
+                    document.getElementById(uploadDivId).classList.remove('has-file');
+                    document.getElementById(selectedDivId).style.display = 'none';
+                    
+                    logMessage(`已移除文件: ${file.name}`);
+                });
+            }
+            
+            // 格式化文件大小
+            function formatFileSize(bytes) {
+                if (bytes === 0) return '0 Bytes';
+                const k = 1024;
+                const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+                const i = Math.floor(Math.log(bytes) / Math.log(k));
+                return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+            }
+            
+            // 重置按钮
+            document.getElementById('reset-btn').addEventListener('click', function() {
+                // 重置文件输入
+                document.getElementById('pdb-file').value = '';
+                document.getElementById('dist-file').value = '';
+                document.getElementById('corr-file').value = '';
+                
+                // 清除文件列表
+                document.getElementById('pdb-list').innerHTML = '';
+                document.getElementById('dist-list').innerHTML = '';
+                document.getElementById('corr-list').innerHTML = '';
+                
+                // 清除文件存储
+                uploadedFiles['pdb-file'] = null;
+                uploadedFiles['dist-file'] = null;
+                uploadedFiles['corr-file'] = null;
+                
+                // 移除上传区域的反馈
+                document.getElementById('pdb-upload').classList.remove('has-file');
+                document.getElementById('dist-upload').classList.remove('has-file');
+                document.getElementById('corr-upload').classList.remove('has-file');
+                
+                document.getElementById('pdb-selected').style.display = 'none';
+                document.getElementById('dist-selected').style.display = 'none';
+                document.getElementById('corr-selected').style.display = 'none';
+                
+                // 重置参数
+                document.getElementById('threshold').value = '6.0';
+                document.getElementById('significance').value = '0.3';
+                document.getElementById('epsilon').value = '0.000001';
+                
+                // 隐藏结果
+                document.getElementById('results-section').style.display = 'none';
+                document.getElementById('log-output').style.display = 'none';
+                document.getElementById('progress-container').style.display = 'none';
+                
+                // 清除日志
+                document.getElementById('log-output').textContent = '';
+                
+                logMessage('所有设置已重置。');
+            });
+            
+            // 日志函数
+            function logMessage(message) {
+                const logOutput = document.getElementById('log-output');
+                logOutput.style.display = 'block';
+                const timestamp = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', second:'2-digit'});
+                logOutput.textContent += `${timestamp}: ${message}\n`;
+                logOutput.scrollTop = logOutput.scrollHeight;
+            }
+            
+            // 更新进度条
+            function updateProgress(percent, message) {
+                const progressFill = document.getElementById('progress-fill');
+                const progressText = document.getElementById('progress-text');
+                
+                progressFill.style.width = `${percent}%`;
+                progressText.textContent = message;
+            }
+            
+            // 矩阵加载函数
+            function loadMatrix(file, callback) {
+                const reader = new FileReader();
+                
+                reader.onload = function(e) {
+                    const data = e.target.result;
+                    let matrix;
+                    
+                    // 检查是否为.npy文件（简单的检查，仅通过文件扩展名）
+                    if (file.name.toLowerCase().endsWith('.npy')) {
+                        // 注意：浏览器中无法直接解析.npy二进制格式
+                        // 这里我们假设.npy文件实际上是文本格式，或者我们需要其他方法
+                        // 为简化，我们将要求用户上传文本格式
+                        callback(new Error('浏览器中不支持.npy二进制格式，请上传文本格式(.txt, .dat, .csv)'));
+                        return;
+                    } else {
+                        // 文本格式矩阵
+                        try {
+                            const lines = data.trim().split('\n');
+                            matrix = lines.map(line => 
+                                line.trim().split(/\s+|,/)
+                                     .filter(val => val !== '')
+                                     .map(parseFloat)
+                            );
+                            
+                            // 验证矩阵是否为方阵
+                            const n = matrix.length;
+                            for (let i = 0; i < n; i++) {
+                                if (matrix[i].length !== n) {
+                                    callback(new Error(`矩阵不是方阵: 第${i+1}行有${matrix[i].length}个元素，但期望${n}个`));
+                                    return;
+                                }
+                            }
+                            
+                            callback(null, matrix);
+                        } catch (error) {
+                            callback(new Error(`解析矩阵时出错: ${error.message}`));
+                        }
+                    }
+                };
+                
+                reader.onerror = function() {
+                    callback(new Error('读取文件时出错'));
+                };
+                
+                reader.readAsText(file);
+            }
+            
+            // 矩阵清理函数
+            function sanitizeMatrix(M, fill = 0.0) {
+                const n = M.length;
+                const result = new Array(n);
+                
+                for (let i = 0; i < n; i++) {
+                    result[i] = new Array(n);
+                    for (let j = 0; j < n; j++) {
+                        let val = M[i][j];
+                        
+                        // 处理NaN和Inf
+                        if (isNaN(val) || !isFinite(val)) {
+                            val = fill;
+                        }
+                        
+                        result[i][j] = val;
+                    }
+                }
+                
+                // 对称化
+                for (let i = 0; i < n; i++) {
+                    for (let j = i + 1; j < n; j++) {
+                        const avg = 0.5 * (result[i][j] + result[j][i]);
+                        result[i][j] = avg;
+                        result[j][i] = avg;
+                    }
+                }
+                
+                // 对角线置零
+                for (let i = 0; i < n; i++) {
+                    result[i][i] = 0.0;
+                }
+                
+                return result;
+            }
+            
+            // 构建图函数
+            function buildGraph(dist, corr, d_thresh, eps) {
+                const N = dist.length;
+                const nodes = Array.from({length: N}, (_, i) => i + 1);
+                
+                // 创建图数据结构
+                const graph = {
+                    nodes: nodes,
+                    edges: [],
+                    adjacency: new Array(N + 1).fill().map(() => [])
+                };
+                
+                for (let i = 0; i < N; i++) {
+                    for (let j = i + 1; j < N; j++) {
+                        if (dist[i][j] <= d_thresh) {
+                            const cij = corr[i][j];
+                            const length = -Math.log(Math.max(Math.abs(cij), eps));
+                            
+                            graph.edges.push({
+                                i: i + 1,
+                                j: j + 1,
+                                weight: length,
+                                corr: cij,
+                                dist: dist[i][j]
+                            });
+                            
+                            graph.adjacency[i + 1].push({node: j + 1, weight: length});
+                            graph.adjacency[j + 1].push({node: i + 1, weight: length});
+                        }
+                    }
+                }
+                
+                return graph;
+            }
+            
+            // Dijkstra算法
+            function dijkstra(graph, start) {
+                const N = graph.nodes.length;
+                const distances = new Array(N + 1).fill(Infinity);
+                const visited = new Array(N + 1).fill(false);
+                const previous = new Array(N + 1).fill(null);
+                
+                distances[start] = 0;
+                
+                for (let count = 0; count < N; count++) {
+                    // 找到未访问节点中距离最小的节点
+                    let minDist = Infinity;
+                    let u = -1;
+                    
+                    for (let i = 1; i <= N; i++) {
+                        if (!visited[i] && distances[i] < minDist) {
+                            minDist = distances[i];
+                            u = i;
+                        }
+                    }
+                    
+                    if (u === -1) break;
+                    
+                    visited[u] = true;
+                    
+                    // 更新邻居节点的距离
+                    for (const neighbor of graph.adjacency[u]) {
+                        const v = neighbor.node;
+                        const weight = neighbor.weight;
+                        
+                        if (!visited[v]) {
+                            const alt = distances[u] + weight;
+                            if (alt < distances[v]) {
+                                distances[v] = alt;
+                                previous[v] = u;
+                            }
+                        }
+                    }
+                }
+                
+                // 重建路径
+                const paths = {};
+                for (let v = 1; v <= N; v++) {
+                    if (distances[v] < Infinity && v !== start) {
+                        const path = [];
+                        let current = v;
+                        
+                        while (current !== null) {
+                            path.unshift(current);
+                            current = previous[current];
+                        }
+                        
+                        paths[v] = path;
+                    }
+                }
+                
+                return paths;
+            }
+            
+            // 所有节点对的最短路径使用统计
+            function allPairsUsage(graph) {
+                const edgeCount = new Map();
+                
+                // 初始化边计数
+                for (const edge of graph.edges) {
+                    const key = [Math.min(edge.i, edge.j), Math.max(edge.i, edge.j)].join(',');
+                    edgeCount.set(key, 0);
+                }
+                
+                // 对每个节点运行Dijkstra
+                const nodes = graph.nodes;
+                for (let idx = 0; idx < nodes.length; idx++) {
+                    const u = nodes[idx];
+                    const paths = dijkstra(graph, u);
+                    
+                    for (const v in paths) {
+                        const path = paths[v];
+                        if (parseInt(v) <= u || path.length < 2) continue;
+                        
+                        // 统计路径上的每条边
+                        for (let i = 0; i < path.length - 1; i++) {
+                            const a = path[i];
+                            const b = path[i + 1];
+                            const key = [Math.min(a, b), Math.max(a, b)].join(',');
+                            
+                            if (edgeCount.has(key)) {
+                                edgeCount.set(key, edgeCount.get(key) + 1);
+                            }
+                        }
+                    }
+                }
+                
+                // 归一化
+                let maxCount = 0;
+                for (const count of edgeCount.values()) {
+                    if (count > maxCount) maxCount = count;
+                }
+                
+                const usageNorm = {};
+                for (const [key, count] of edgeCount.entries()) {
+                    usageNorm[key] = maxCount > 0 ? count / maxCount : 0;
+                }
+                
+                return usageNorm;
+            }
+            
+            // 生成结果文件
+            function generateResults(outdir, usageNorm, sig_thresh, graph, pdbName) {
+                // 筛选边
+                const edges = [];
+                for (const [key, score] of Object.entries(usageNorm)) {
+                    if (score >= sig_thresh) {
+                        const [i, j] = key.split(',').map(Number);
+                        const corr = graph.edges.find(e => 
+                            (e.i === i && e.j === j) || (e.i === j && e.j === i)
+                        )?.corr || 0;
+                        edges.push({i, j, score, corr});
+                    }
+                }
+                
+                // 按分数降序排序
+                edges.sort((a, b) => b.score - a.score);
+                
+                // 计算节点分数
+                const nodeScores = {};
+                graph.nodes.forEach(node => nodeScores[node] = 0);
+                
+                for (const edge of edges) {
+                    nodeScores[edge.i] += edge.score;
+                    nodeScores[edge.j] += edge.score;
+                }
+                
+                // 排序节点
+                const rankedNodes = Object.entries(nodeScores)
+                    .sort((a, b) => b[1] - a[1])
+                    .map(([node, score], index) => ({node: parseInt(node), score, rank: index + 1}));
+                
+                return { edges, nodeScores, rankedNodes };
+            }
+            
+            // 生成TSV内容
+            function generateTSVFiles(results) {
+                // 边文件
+                let edgesTSV = "i\tj\tscore\tcorr\n";
+                for (const edge of results.edges) {
+                    edgesTSV += `${edge.i}\t${edge.j}\t${edge.score.toFixed(6)}\t${edge.corr.toFixed(6)}\n`;
+                }
+                
+                // 节点文件
+                let nodesTSV = "residue\tscore\trank\n";
+                for (const node of results.rankedNodes) {
+                    nodesTSV += `${node.node}\t${node.score.toFixed(6)}\t${node.rank}\n`;
+                }
+                
+                return { edgesTSV, nodesTSV };
+            }
+            
+            // 生成PyMOL脚本
+            function generatePyMOLScript(pdbName, edges, nodeScores, pdbFileName) {
+                // 提取节点分数和边分数用于缩放
+                const nodeValues = Object.values(nodeScores);
+                const nodeMin = Math.min(...nodeValues);
+                const nodeMax = Math.max(...nodeValues);
+                const nodeRange = nodeMax - nodeMin || 1; // 避免除以零
+                
+                const edgeValues = edges.map(e => e.score);
+                const edgeMin = Math.min(...edgeValues);
+                const edgeMax = Math.max(...edgeValues);
+                const edgeRange = edgeMax - edgeMin || 1;
+                
+                // 缩放函数
+                const scaleNode = (score) => 0.4 + 0.7 * (score - nodeMin) / nodeRange;
+                const scaleEdge = (score) => 0.4 + 0.7 * (score - edgeMin) / edgeRange;
+                
+                let pml = `# PyMOL script for SPM visualization
+# Generated by SPM Web Tool
+# PDB: ${pdbFileName}
+
+# Load structure
+load ${pdbFileName}
+
+# Set display
+show cartoon
+set cartoon_transparency, 0.5
+bg_color white
+
+# SPM edges and nodes\n`;
+
+                // 为每条边创建对象
+                edges.forEach((edge, idx) => {
+                    const objName = `SPM_${pdbName}_${idx + 1}`;
+                    const color = edge.corr >= 0 ? "blue" : "red";
+                    
+                    pml += `
+# Edge ${edge.i}-${edge.j} (score: ${edge.score.toFixed(4)}, corr: ${edge.corr.toFixed(4)})
+create ${objName}, name ca and resi ${edge.i}+${edge.j}
+show spheres, ${objName}
+set sphere_scale, ${scaleNode(nodeScores[edge.i]).toFixed(4)}, ${objName} and resi ${edge.i}
+set sphere_scale, ${scaleNode(nodeScores[edge.j]).toFixed(4)}, ${objName} and resi ${edge.j}
+bond name ca and resi ${edge.i}, name ca and resi ${edge.j}
+set stick_radius, ${scaleEdge(edge.score).toFixed(4)}, ${objName}
+show sticks, ${objName}
+color ${color}, ${objName}\n`;
+                });
+
+                // 创建组
+                const edgeObjs = edges.map((_, idx) => `SPM_${pdbName}_${idx + 1}`).join(' ');
+                pml += `
+# Group all SPM objects
+group SPM_${pdbName}, ${edgeObjs}
+
+# Center and zoom
+center all
+zoom all
+
+# Additional settings
+set stick_color, gray40, SPM_${pdbName}
+set sphere_color, gray40, SPM_${pdbName}
+
+print "SPM visualization loaded for ${pdbFileName}"
+print "${edges.length} significant edges displayed"
+print "Blue: positive correlation, Red: negative correlation"`;
+
+                return pml;
+            }
+            
+            // 主计算函数
+            async function runSPMCalculation() {
+                // 获取文件
+                const pdbFile = uploadedFiles['pdb-file'];
+                const distFile = uploadedFiles['dist-file'];
+                const corrFile = uploadedFiles['corr-file'];
+                
+                // 获取参数
+                const threshold = parseFloat(document.getElementById('threshold').value);
+                const significance = parseFloat(document.getElementById('significance').value);
+                const epsilon = parseFloat(document.getElementById('epsilon').value);
+                
+                // 验证输入
+                if (!pdbFile || !distFile || !corrFile) {
+                    alert('请上传所有必需文件：PDB文件、距离矩阵和相关矩阵');
+                    return;
+                }
+                
+                // 显示进度条
+                document.getElementById('progress-container').style.display = 'block';
+                document.getElementById('log-output').style.display = 'block';
+                document.getElementById('calculate-btn').disabled = true;
+                
+                logMessage('开始SPM计算...');
+                logMessage(`参数设置: 距离阈值=${threshold}Å, 显著性阈值=${significance}, ε=${epsilon}`);
+                updateProgress(5, '正在加载文件...');
+                
+                try {
+                    // 加载距离矩阵
+                    logMessage('正在加载距离矩阵...');
+                    const distMatrix = await new Promise((resolve, reject) => {
+                        loadMatrix(distFile, (err, matrix) => {
+                            if (err) reject(err);
+                            else resolve(matrix);
+                        });
+                    });
+                    
+                    updateProgress(20, '正在加载相关矩阵...');
+                    logMessage(`距离矩阵加载完成: ${distMatrix.length}×${distMatrix.length}`);
+                    
+                    // 加载相关矩阵
+                    logMessage('正在加载相关矩阵...');
+                    const corrMatrix = await new Promise((resolve, reject) => {
+                        loadMatrix(corrFile, (err, matrix) => {
+                            if (err) reject(err);
+                            else resolve(matrix);
+                        });
+                    });
+                    
+                    updateProgress(35, '正在验证矩阵...');
+                    logMessage(`相关矩阵加载完成: ${corrMatrix.length}×${corrMatrix.length}`);
+                    
+                    // 验证矩阵大小
+                    if (distMatrix.length !== corrMatrix.length) {
+                        throw new Error(`矩阵大小不匹配: 距离矩阵${distMatrix.length}×${distMatrix.length}, 相关矩阵${corrMatrix.length}×${corrMatrix.length}`);
+                    }
+                    
+                    const N = distMatrix.length;
+                    logMessage(`系统大小: ${N}个残基`);
+                    
+                    // 清理矩阵
+                    updateProgress(40, '正在清理矩阵...');
+                    logMessage('正在清理矩阵...');
+                    const distClean = sanitizeMatrix(distMatrix);
+                    const corrClean = sanitizeMatrix(corrMatrix);
+                    
+                    // 构建图
+                    updateProgress(50, '正在构建图...');
+                    logMessage(`使用距离阈值 ${threshold}Å 构建图...`);
+                    const graph = buildGraph(distClean, corrClean, threshold, epsilon);
+                    logMessage(`图构建完成: ${graph.nodes.length}个节点, ${graph.edges.length}条边`);
+                    
+                    // 计算最短路径使用情况
+                    updateProgress(60, '正在计算最短路径...');
+                    logMessage('正在计算所有节点对之间的最短路径...');
+                    const usageNorm = allPairsUsage(graph);
+                    logMessage(`路径计算完成，统计了${Object.keys(usageNorm).length}条边的使用情况`);
+                    
+                    // 生成结果
+                    updateProgress(80, '正在生成结果...');
+                    logMessage(`使用显著性阈值 ${significance} 筛选边...`);
+                    
+                    const pdbName = pdbFile.name.replace(/\.[^/.]+$/, ""); // 移除扩展名
+                    const results = generateResults("spm_out", usageNorm, significance, graph, pdbName);
+                    
+                    logMessage(`筛选结果: ${results.edges.length}条显著边`);
+                    
+                    // 生成文件内容
+                    const tsvFiles = generateTSVFiles(results);
+                    const pmlScript = generatePyMOLScript(pdbName, results.edges, results.nodeScores, pdbFile.name);
+                    
+                    updateProgress(95, '正在打包结果...');
+                    
+                    // 创建ZIP文件
+                    const zip = new JSZip();
+                    const folder = zip.folder("spm_out");
+                    
+                    folder.file("spm_edges.tsv", tsvFiles.edgesTSV);
+                    folder.file("spm_nodes.tsv", tsvFiles.nodesTSV);
+                    folder.file("spm.pml", pmlScript);
+                    
+                    // 生成ZIP
+                    const zipBlob = await zip.generateAsync({type: "blob"});
+                    
+                    updateProgress(100, '计算完成！');
+                    logMessage('SPM计算成功完成！');
+                    
+                    // 显示结果
+                    displayResults(zipBlob, results, pmlScript, pdbName);
+                    
+                } catch (error) {
+                    logMessage(`错误: ${error.message}`);
+                    updateProgress(0, '计算失败');
+                    alert(`计算过程中出错: ${error.message}`);
+                } finally {
+                    document.getElementById('calculate-btn').disabled = false;
+                }
+            }
+            
+            // 显示结果函数
+            function displayResults(zipBlob, results, pmlScript, pdbName) {
+                // 显示结果区域
+                document.getElementById('results-section').style.display = 'block';
+                
+                // 生成文件列表
+                const resultFiles = document.getElementById('result-files');
+                resultFiles.innerHTML = '';
+                
+                const files = [
+                    { name: 'spm_edges.tsv', description: '边列表 (TSV格式)' },
+                    { name: 'spm_nodes.tsv', description: '节点分数 (TSV格式)' },
+                    { name: 'spm.pml', description: 'PyMOL可视化脚本' }
+                ];
+                
+                files.forEach(file => {
+                    const card = document.createElement('div');
+                    card.className = 'file-card';
+                    
+                    const fileInfo = document.createElement('div');
+                    fileInfo.innerHTML = `<strong>${file.name}</strong><br><small>${file.description}</small>`;
+                    
+                    card.appendChild(fileInfo);
+                    resultFiles.appendChild(card);
+                });
+                
+                // 保存ZIP blob供下载使用
+                window.resultZipBlob = zipBlob;
+                window.resultPMLScript = pmlScript;
+                
+                logMessage('结果已生成，可以下载。');
+            }
+            
+            // 下载所有文件(ZIP)
+            document.getElementById('download-all-btn').addEventListener('click', function() {
+                if (window.resultZipBlob) {
+                    const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+                    saveAs(window.resultZipBlob, `spm_results_${timestamp}.zip`);
+                    logMessage('ZIP文件已开始下载。');
+                } else {
+                    alert('没有可下载的结果文件。请先进行计算。');
+                }
+            });
+            
+            // 开始计算按钮
+            document.getElementById('calculate-btn').addEventListener('click', runSPMCalculation);
+            
+            // 初始日志消息
+            logMessage('SPM Web工具已就绪。请上传文件并设置参数。');
+        });
+    </script>
+</body>
+</html>
