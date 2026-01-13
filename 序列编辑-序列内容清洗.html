@@ -1,0 +1,1307 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>序列内容清洗</title>
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --secondary-color: #3498db;
+            --accent-color: #e74c3c;
+            --light-color: #ecf0f1;
+            --dark-color: #2c3e50;
+            --success-color: #27ae60;
+            --warning-color: #f39c12;
+            --border-radius: 8px;
+            --box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            --transition: all 0.3s ease;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            min-height: 100vh;
+        }
+
+        /* 顶部标题栏 */
+        .tool-header {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background-color: var(--primary-color);
+            color: white;
+            padding: 20px;
+            width: 100%;
+            text-align: center;
+        }
+
+        .back-button {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            padding: 8px 16px;
+            border-radius: var(--border-radius);
+            cursor: pointer;
+            transition: var(--transition);
+            font-size: 0.9rem;
+            margin-top: 15px;
+            text-decoration: none;
+        }
+
+        .back-button:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        /* 内容区域样式 */
+        .content {
+            padding: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .section {
+            background: white;
+            border-radius: var(--border-radius);
+            padding: 20px;
+            margin-bottom: 30px;
+            box-shadow: var(--box-shadow);
+        }
+
+        h2 {
+            color: var(--primary-color);
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        h3 {
+            color: var(--secondary-color);
+            margin-bottom: 15px;
+            text-align: left;
+        }
+
+        /* 功能选择样式 */
+        .function-selector {
+            display: flex;
+            margin-bottom: 20px;
+            border-radius: var(--border-radius);
+            overflow: hidden;
+            box-shadow: var(--box-shadow);
+        }
+
+        .function-option {
+            flex: 1;
+            padding: 12px;
+            text-align: center;
+            background-color: #f8f9fa;
+            cursor: pointer;
+            transition: var(--transition);
+            border: 1px solid #ddd;
+        }
+
+        .function-option:not(:last-child) {
+            border-right: none;
+        }
+
+        .function-option.active {
+            color: white;
+            background-color: var(--secondary-color);
+        }
+
+        .function-option:hover:not(.active) {
+            background-color: #e9ecef;
+        }
+
+        /* 功能内容区域 */
+        .function-content {
+            display: none;
+        }
+
+        .function-content.active {
+            display: block;
+        }
+
+        /* 表单样式 */
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+
+        input[type="text"], input[type="file"], select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: var(--border-radius);
+            font-size: 14px;
+        }
+
+        /* 文件上传样式 */
+        .file-upload {
+            border: 2px dashed #ddd;
+            border-radius: var(--border-radius);
+            padding: 20px;
+            text-align: center;
+            margin-bottom: 20px;
+            background-color: #f9f9f9;
+            transition: var(--transition);
+        }
+
+        .file-upload:hover {
+            border-color: var(--secondary-color);
+        }
+
+        .file-upload input {
+            display: none;
+        }
+
+        .file-upload label {
+            display: inline-block;
+            padding: 10px 20px;
+            background-color: var(--secondary-color);
+            color: white;
+            border-radius: var(--border-radius);
+            cursor: pointer;
+            transition: var(--transition);
+            margin-bottom: 10px;
+        }
+
+        .file-upload label:hover {
+            background-color: #2980b9;
+        }
+
+        .file-info {
+            margin-top: 15px;
+            text-align: left;
+            padding: 10px;
+            background-color: #f0f8ff;
+            border-radius: var(--border-radius);
+            font-size: 0.9rem;
+        }
+
+        /* 按钮样式 */
+        .btn {
+            padding: 12px 20px;
+            border: none;
+            border-radius: var(--border-radius);
+            cursor: pointer;
+            transition: var(--transition);
+            font-weight: bold;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+
+        .btn-primary {
+            background-color: var(--secondary-color);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background-color: #2980b9;
+        }
+
+        .btn-success {
+            background-color: var(--success-color);
+            color: white;
+        }
+
+        .btn-success:hover {
+            background-color: #219653;
+        }
+
+        .btn-accent {
+            background-color: var(--accent-color);
+            color: white;
+        }
+
+        .btn-accent:hover {
+            background-color: #c0392b;
+        }
+
+        /* 选项组样式 */
+        .option-group {
+            display: flex;
+            gap: 15px;
+            margin-top: 10px;
+            flex-wrap: wrap;
+        }
+
+        .option-item {
+            display: flex;
+            align-items: center;
+            padding: 8px 15px;
+            background-color: #f8f9fa;
+            border-radius: var(--border-radius);
+            cursor: pointer;
+            transition: var(--transition);
+            border: 1px solid #ddd;
+        }
+
+        .option-item:hover {
+            background-color: #e9ecef;
+        }
+
+        .option-item input[type="radio"], .option-item input[type="checkbox"] {
+            margin-right: 8px;
+        }
+
+        .option-item.active {
+            background-color: #e8f4fd;
+            border-color: var(--secondary-color);
+        }
+
+        /* 结果区域样式 */
+        .result-box {
+            padding: 15px;
+            background-color: #f9f9f9;
+            border-radius: var(--border-radius);
+            margin-top: 20px;
+            border-left: 4px solid var(--secondary-color);
+            display: none;
+        }
+
+        .result-box.active {
+            display: block;
+        }
+
+        .result-summary {
+            background-color: #e8f5e8;
+            padding: 15px;
+            border-radius: var(--border-radius);
+            margin-bottom: 15px;
+        }
+
+        .sequence-count {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: var(--success-color);
+        }
+
+        .error-list {
+            background-color: #ffe6e6;
+            padding: 15px;
+            border-radius: var(--border-radius);
+            margin-top: 15px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .error-item {
+            padding: 5px 0;
+            border-bottom: 1px solid #ffcccc;
+        }
+
+        .error-item:last-child {
+            border-bottom: none;
+        }
+
+        /* 下载区域样式 */
+        .download-area {
+            margin-top: 20px;
+            padding-top: 15px;
+            border-top: 1px solid #ddd;
+            text-align: center;
+        }
+
+        .download-link {
+            display: inline-block;
+            padding: 12px 25px;
+            background-color: var(--success-color);
+            color: white;
+            border-radius: var(--border-radius);
+            text-decoration: none;
+            font-weight: bold;
+            transition: var(--transition);
+        }
+
+        .download-link:hover {
+            background-color: #219653;
+            transform: translateY(-2px);
+        }
+
+        /* 状态栏样式 */
+        .status-bar {
+            padding: 10px;
+            background-color: var(--primary-color);
+            color: white;
+            text-align: center;
+            font-weight: bold;
+            width: 100%;
+            margin-top: 20px;
+        }
+
+        /* 加载动画 */
+        .loader {
+            display: none;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid var(--secondary-color);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* 特殊字符输入样式 */
+        .char-input-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .char-input {
+            flex: 1;
+        }
+
+        @media (max-width: 768px) {
+            .content {
+                padding: 15px;
+            }
+            
+            .function-selector {
+                flex-direction: column;
+            }
+            
+            .function-option:not(:last-child) {
+                border-right: 1px solid #ddd;
+                border-bottom: none;
+            }
+            
+            .option-group {
+                flex-direction: column;
+            }
+            
+            .char-input-group {
+                flex-direction: column;
+            }
+            
+            .btn {
+                width: 100%;
+                margin-right: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="tool-header">
+        <h1>序列内容清洗</h1>
+        <a href="index.html" class="back-button">返回主界面</a>
+    </div>
+    
+    <div class="content">
+        <!-- 功能选择部分 -->
+        <div class="section">
+            <h2>选择清洗功能</h2>
+            
+            <div class="function-selector">
+                <div class="function-option active" data-function="case-convert">序列大小写转换</div>
+                <div class="function-option" data-function="special-chars">删除序列中的特殊字符</div>
+                <div class="function-option" data-function="non-standard">删除含有非标准氨基酸的序列</div>
+            </div>
+        </div>
+        
+        <!-- 功能1: 序列大小写转换 -->
+        <div id="function-case-convert" class="function-content active">
+            <div class="section">
+                <h2>序列大小写转换</h2>
+                
+                <div class="form-group">
+                    <label>上传FASTA文件:</label>
+                    <div class="file-upload">
+                        <input type="file" id="fasta-file-3" accept=".fasta,.fa,.txt,.fna">
+                        <label for="fasta-file-3">选择FASTA文件</label>
+                        <p>支持 .fasta, .fa, .txt, .fna 格式</p>
+                        <div id="file-info-3" class="file-info" style="display: none;">
+                            <!-- 文件信息将在这里显示 -->
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label>选择转换方式:</label>
+                    <div class="option-group">
+                        <div class="option-item active" id="option-uppercase">
+                            <input type="radio" name="case-option" id="uppercase" checked>
+                            <label for="uppercase">转换为大写 (A, T, C, G / A, C, D, E...)</label>
+                        </div>
+                        <div class="option-item" id="option-lowercase">
+                            <input type="radio" name="case-option" id="lowercase">
+                            <label for="lowercase">转换为小写 (a, t, c, g / a, c, d, e...)</label>
+                        </div>
+                    </div>
+                    
+                    <div style="margin-top: 15px; padding: 10px; background-color: #f8f9fa; border-radius: var(--border-radius);">
+                        <p><strong>支持序列类型:</strong> 核苷酸序列 (A, T, C, G, U, N) 和氨基酸序列 (20种标准氨基酸)</p>
+                        <p><strong>注意:</strong> 转换仅对序列内容进行，序列名称保持不变。</p>
+                    </div>
+                </div>
+                
+                <div class="loader" id="loader-3"></div>
+                
+                <button id="analyze-btn-3" class="btn btn-primary">分析文件</button>
+                <button id="process-btn-3" class="btn btn-success" style="display: none;">执行大小写转换</button>
+                <button id="reset-btn-3" class="btn btn-accent">重置</button>
+                
+                <div id="result-box-3" class="result-box">
+                    <!-- 分析结果将在这里显示 -->
+                </div>
+            </div>
+        </div>
+        
+        <!-- 功能2: 删除序列中的特殊字符 -->
+        <div id="function-special-chars" class="function-content">
+            <div class="section">
+                <h2>删除序列中的特殊字符</h2>
+                
+                <div class="form-group">
+                    <label>上传FASTA文件:</label>
+                    <div class="file-upload">
+                        <input type="file" id="fasta-file-2" accept=".fasta,.fa,.txt,.fna">
+                        <label for="fasta-file-2">选择FASTA文件</label>
+                        <p>支持 .fasta, .fa, .txt, .fna 格式</p>
+                        <div id="file-info-2" class="file-info" style="display: none;">
+                            <!-- 文件信息将在这里显示 -->
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label>选择删除方式:</label>
+                    <div class="option-group">
+                        <div class="option-item active" id="option-specific-char">
+                            <input type="radio" name="char-option" id="specific-char" checked>
+                            <label for="specific-char">删除特定字符</label>
+                        </div>
+                        <div class="option-item" id="option-all-chars">
+                            <input type="radio" name="char-option" id="all-chars">
+                            <label for="all-chars">删除所有特殊字符</label>
+                        </div>
+                    </div>
+                    
+                    <div id="specific-char-input" class="char-input-group">
+                        <input type="text" id="char-to-remove" class="char-input" placeholder="输入要删除的字符（如: - 或 * 或 X）" maxlength="1">
+                        <button id="scan-char-btn" class="btn btn-primary">扫描该字符</button>
+                    </div>
+                    
+                    <div id="all-chars-desc" style="display: none; margin-top: 10px; padding: 10px; background-color: #f8f9fa; border-radius: var(--border-radius);">
+                        <p><strong>说明:</strong> 删除所有非英文字母的字符，包括数字、符号和空格。</p>
+                        <p><strong>保留的字符:</strong> A-Z, a-z (氨基酸和核苷酸字母)</p>
+                    </div>
+                </div>
+                
+                <div class="loader" id="loader-2"></div>
+                
+                <button id="analyze-btn-2" class="btn btn-primary">分析文件</button>
+                <button id="process-btn-2" class="btn btn-success" style="display: none;">执行删除操作</button>
+                <button id="reset-btn-2" class="btn btn-accent">重置</button>
+                
+                <div id="result-box-2" class="result-box">
+                    <!-- 分析结果将在这里显示 -->
+                </div>
+            </div>
+        </div>
+        
+        <!-- 功能3: 删除含有非标准氨基酸的序列 -->
+        <div id="function-non-standard" class="function-content">
+            <div class="section">
+                <h2>删除含有非标准氨基酸的序列</h2>
+                
+                <div class="form-group">
+                    <label>上传FASTA文件:</label>
+                    <div class="file-upload">
+                        <input type="file" id="fasta-file-1" accept=".fasta,.fa,.txt,.fna">
+                        <label for="fasta-file-1">选择FASTA文件</label>
+                        <p>支持 .fasta, .fa, .txt, .fna 格式</p>
+                        <div id="file-info-1" class="file-info" style="display: none;">
+                            <!-- 文件信息将在这里显示 -->
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label>标准氨基酸列表 (20种):</label>
+                    <div style="background-color: #f0f8ff; padding: 15px; border-radius: var(--border-radius);">
+                        <p><strong>单字母缩写:</strong> A, C, D, E, F, G, H, I, K, L, M, N, P, Q, R, S, T, V, W, Y</p>
+                        <p style="margin-top: 10px; font-size: 0.9rem; color: #666;">只有包含这20种标准氨基酸的序列会被保留，其他序列将被删除。</p>
+                    </div>
+                </div>
+                
+                <div class="loader" id="loader-1"></div>
+                
+                <button id="analyze-btn-1" class="btn btn-primary">分析文件</button>
+                <button id="process-btn-1" class="btn btn-success" style="display: none;">仅保留标准氨基酸序列</button>
+                <button id="reset-btn-1" class="btn btn-accent">重置</button>
+                
+                <div id="result-box-1" class="result-box">
+                    <!-- 分析结果将在这里显示 -->
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="status-bar">
+        生物信息分析工具 - 序列内容清洗
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // 全局变量
+            let currentFunction = 'case-convert';
+            let sequences1 = [], sequences2 = [], sequences3 = []; // 分别存储三个功能的序列数据
+            let fileName1 = '', fileName2 = '', fileName3 = '';
+            let filteredSequences1 = []; // 功能1中处理后的序列
+            
+            // DOM元素
+            const functionOptions = document.querySelectorAll('.function-option');
+            const functionContents = document.querySelectorAll('.function-content');
+            
+            // 功能1元素 (序列大小写转换)
+            const fastaFile3 = document.getElementById('fasta-file-3');
+            const fileInfo3 = document.getElementById('file-info-3');
+            const analyzeBtn3 = document.getElementById('analyze-btn-3');
+            const processBtn3 = document.getElementById('process-btn-3');
+            const resetBtn3 = document.getElementById('reset-btn-3');
+            const loader3 = document.getElementById('loader-3');
+            const resultBox3 = document.getElementById('result-box-3');
+            const optionUppercase = document.getElementById('option-uppercase');
+            const optionLowercase = document.getElementById('option-lowercase');
+            
+            // 功能2元素 (删除特殊字符)
+            const fastaFile2 = document.getElementById('fasta-file-2');
+            const fileInfo2 = document.getElementById('file-info-2');
+            const analyzeBtn2 = document.getElementById('analyze-btn-2');
+            const processBtn2 = document.getElementById('process-btn-2');
+            const resetBtn2 = document.getElementById('reset-btn-2');
+            const loader2 = document.getElementById('loader-2');
+            const resultBox2 = document.getElementById('result-box-2');
+            const specificCharInput = document.getElementById('specific-char-input');
+            const allCharsDesc = document.getElementById('all-chars-desc');
+            const charToRemove = document.getElementById('char-to-remove');
+            const scanCharBtn = document.getElementById('scan-char-btn');
+            const optionSpecificChar = document.getElementById('option-specific-char');
+            const optionAllChars = document.getElementById('option-all-chars');
+            
+            // 功能3元素 (删除非标准氨基酸序列)
+            const fastaFile1 = document.getElementById('fasta-file-1');
+            const fileInfo1 = document.getElementById('file-info-1');
+            const analyzeBtn1 = document.getElementById('analyze-btn-1');
+            const processBtn1 = document.getElementById('process-btn-1');
+            const resetBtn1 = document.getElementById('reset-btn-1');
+            const loader1 = document.getElementById('loader-1');
+            const resultBox1 = document.getElementById('result-box-1');
+            
+            // 功能切换
+            functionOptions.forEach(option => {
+                option.addEventListener('click', function() {
+                    const functionId = this.dataset.function;
+                    
+                    // 更新活动状态
+                    functionOptions.forEach(opt => opt.classList.remove('active'));
+                    this.classList.add('active');
+                    
+                    // 显示对应内容
+                    functionContents.forEach(content => {
+                        content.classList.remove('active');
+                        if (content.id === `function-${functionId}`) {
+                            content.classList.add('active');
+                        }
+                    });
+                    
+                    currentFunction = functionId;
+                });
+            });
+            
+            // 功能1选项切换 (序列大小写转换)
+            optionUppercase.addEventListener('click', function() {
+                optionUppercase.classList.add('active');
+                optionLowercase.classList.remove('active');
+                document.getElementById('uppercase').checked = true;
+                document.getElementById('lowercase').checked = false;
+            });
+            
+            optionLowercase.addEventListener('click', function() {
+                optionLowercase.classList.add('active');
+                optionUppercase.classList.remove('active');
+                document.getElementById('lowercase').checked = true;
+                document.getElementById('uppercase').checked = false;
+            });
+            
+            // 功能2选项切换 (删除特殊字符)
+            optionSpecificChar.addEventListener('click', function() {
+                optionSpecificChar.classList.add('active');
+                optionAllChars.classList.remove('active');
+                document.getElementById('specific-char').checked = true;
+                document.getElementById('all-chars').checked = false;
+                specificCharInput.style.display = 'flex';
+                allCharsDesc.style.display = 'none';
+            });
+            
+            optionAllChars.addEventListener('click', function() {
+                optionAllChars.classList.add('active');
+                optionSpecificChar.classList.remove('active');
+                document.getElementById('all-chars').checked = true;
+                document.getElementById('specific-char').checked = false;
+                specificCharInput.style.display = 'none';
+                allCharsDesc.style.display = 'block';
+            });
+            
+            // 解析FASTA文件
+            function parseFastaFile(content) {
+                const sequences = [];
+                const lines = content.split('\n');
+                let currentHeader = '';
+                let currentSequence = '';
+                
+                for (let line of lines) {
+                    line = line.trim();
+                    
+                    if (line.startsWith('>')) {
+                        // 保存上一个序列
+                        if (currentHeader && currentSequence) {
+                            sequences.push({
+                                header: currentHeader,
+                                sequence: currentSequence,
+                                originalSequence: currentSequence,
+                                length: currentSequence.length
+                            });
+                        }
+                        
+                        // 开始新序列
+                        currentHeader = line.substring(1).trim();
+                        currentSequence = '';
+                    } else if (line) {
+                        // 添加序列数据
+                        currentSequence += line;
+                    }
+                }
+                
+                // 添加最后一个序列
+                if (currentHeader && currentSequence) {
+                    sequences.push({
+                        header: currentHeader,
+                        sequence: currentSequence,
+                        originalSequence: currentSequence,
+                        length: currentSequence.length
+                    });
+                }
+                
+                return sequences;
+            }
+            
+            // 文件上传处理 - 功能1 (序列大小写转换)
+            fastaFile3.addEventListener('change', function() {
+                if (this.files.length === 0) return;
+                
+                const file = this.files[0];
+                fileName3 = file.name.replace(/\.[^/.]+$/, ""); // 移除扩展名
+                
+                // 显示文件信息
+                fileInfo3.innerHTML = `
+                    <p><strong>已选择文件:</strong> ${file.name}</p>
+                    <p><strong>文件大小:</strong> ${(file.size / 1024).toFixed(2)} KB</p>
+                `;
+                fileInfo3.style.display = 'block';
+            });
+            
+            // 文件上传处理 - 功能2 (删除特殊字符)
+            fastaFile2.addEventListener('change', function() {
+                if (this.files.length === 0) return;
+                
+                const file = this.files[0];
+                fileName2 = file.name.replace(/\.[^/.]+$/, ""); // 移除扩展名
+                
+                // 显示文件信息
+                fileInfo2.innerHTML = `
+                    <p><strong>已选择文件:</strong> ${file.name}</p>
+                    <p><strong>文件大小:</strong> ${(file.size / 1024).toFixed(2)} KB</p>
+                `;
+                fileInfo2.style.display = 'block';
+            });
+            
+            // 文件上传处理 - 功能3 (删除非标准氨基酸序列)
+            fastaFile1.addEventListener('change', function() {
+                if (this.files.length === 0) return;
+                
+                const file = this.files[0];
+                fileName1 = file.name.replace(/\.[^/.]+$/, ""); // 移除扩展名
+                
+                // 显示文件信息
+                fileInfo1.innerHTML = `
+                    <p><strong>已选择文件:</strong> ${file.name}</p>
+                    <p><strong>文件大小:</strong> ${(file.size / 1024).toFixed(2)} KB</p>
+                `;
+                fileInfo1.style.display = 'block';
+            });
+            
+            // 标准氨基酸集合 (20种)
+            const standardAminoAcids = new Set([
+                'A', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'K', 'L', 
+                'M', 'N', 'P', 'Q', 'R', 'S', 'T', 'V', 'W', 'Y'
+            ]);
+            
+            // 检查序列是否只包含标准氨基酸
+            function containsOnlyStandardAminoAcids(sequence) {
+                const seq = sequence.toUpperCase();
+                for (let i = 0; i < seq.length; i++) {
+                    const char = seq[i];
+                    if (!standardAminoAcids.has(char)) {
+                        return false;
+                    }
+                }
+                return true;
+            }
+            
+            // 检查序列中是否包含特定字符
+            function containsSpecificChar(sequence, char) {
+                return sequence.includes(char);
+            }
+            
+            // 检查序列中是否包含特殊字符
+            function containsSpecialChars(sequence) {
+                // 正则表达式匹配非字母字符
+                const specialCharRegex = /[^A-Za-z]/;
+                return specialCharRegex.test(sequence);
+            }
+            
+            // 获取序列中的特殊字符
+            function getSpecialChars(sequence) {
+                const specialChars = new Set();
+                for (let i = 0; i < sequence.length; i++) {
+                    const char = sequence[i];
+                    if (!/[A-Za-z]/.test(char)) {
+                        specialChars.add(char);
+                    }
+                }
+                return Array.from(specialChars);
+            }
+            
+            // 删除序列中的特定字符
+            function removeSpecificChar(sequence, char) {
+                return sequence.split(char).join('');
+            }
+            
+            // 删除序列中的所有特殊字符
+            function removeAllSpecialChars(sequence) {
+                return sequence.replace(/[^A-Za-z]/g, '');
+            }
+            
+            // 功能1: 分析文件 (序列大小写转换)
+            analyzeBtn3.addEventListener('click', function() {
+                if (fastaFile3.files.length === 0) {
+                    alert('请先选择FASTA文件');
+                    return;
+                }
+                
+                // 显示加载动画
+                loader3.style.display = 'block';
+                resultBox3.classList.remove('active');
+                
+                const file = fastaFile3.files[0];
+                const reader = new FileReader();
+                
+                reader.onload = function(e) {
+                    // 解析FASTA文件
+                    sequences3 = parseFastaFile(e.target.result);
+                    
+                    if (sequences3.length === 0) {
+                        alert('未能从文件中解析出任何序列，请检查文件格式');
+                        loader3.style.display = 'none';
+                        return;
+                    }
+                    
+                    // 分析序列内容
+                    let uppercaseCount = 0;
+                    let lowercaseCount = 0;
+                    let mixedCount = 0;
+                    
+                    sequences3.forEach(seq => {
+                        const seqContent = seq.sequence;
+                        const isUppercase = seqContent === seqContent.toUpperCase();
+                        const isLowercase = seqContent === seqContent.toLowerCase();
+                        
+                        if (isUppercase) {
+                            uppercaseCount++;
+                        } else if (isLowercase) {
+                            lowercaseCount++;
+                        } else {
+                            mixedCount++;
+                        }
+                    });
+                    
+                    // 显示分析结果
+                    resultBox3.innerHTML = `
+                        <div class="result-summary">
+                            <p>总序列数: <span class="sequence-count">${sequences3.length}</span></p>
+                            <p>全大写序列: <span class="sequence-count">${uppercaseCount}</span></p>
+                            <p>全小写序列: <span class="sequence-count">${lowercaseCount}</span></p>
+                            <p>大小写混合序列: <span class="sequence-count">${mixedCount}</span></p>
+                        </div>
+                    `;
+                    
+                    // 显示处理按钮
+                    processBtn3.style.display = 'inline-block';
+                    
+                    // 隐藏加载动画，显示结果
+                    loader3.style.display = 'none';
+                    resultBox3.classList.add('active');
+                };
+                
+                reader.onerror = function() {
+                    alert('读取文件时发生错误，请重试');
+                    loader3.style.display = 'none';
+                };
+                
+                reader.readAsText(file);
+            });
+            
+            // 功能1: 处理文件 (序列大小写转换)
+            processBtn3.addEventListener('click', function() {
+                if (sequences3.length === 0) {
+                    alert('请先分析文件');
+                    return;
+                }
+                
+                const isUppercase = document.getElementById('uppercase').checked;
+                
+                // 处理序列
+                const processedSequences = sequences3.map(seq => {
+                    let processedSequence;
+                    
+                    if (isUppercase) {
+                        processedSequence = seq.sequence.toUpperCase();
+                    } else {
+                        processedSequence = seq.sequence.toLowerCase();
+                    }
+                    
+                    return {
+                        header: seq.header,
+                        sequence: processedSequence,
+                        originalSequence: seq.originalSequence,
+                        length: processedSequence.length
+                    };
+                });
+                
+                // 生成FASTA格式内容
+                let fastaContent = '';
+                processedSequences.forEach(seq => {
+                    fastaContent += `>${seq.header}\n`;
+                    
+                    // 每行显示60个字符
+                    for (let i = 0; i < seq.sequence.length; i += 60) {
+                        fastaContent += seq.sequence.substring(i, i + 60) + '\n';
+                    }
+                });
+                
+                // 创建文件名
+                const caseType = isUppercase ? 'uppercase' : 'lowercase';
+                const downloadFileName = `${fileName3}_${caseType}.fasta`;
+                
+                // 更新结果框
+                resultBox3.innerHTML += `
+                    <div class="download-area">
+                        <p>已生成转换后的文件，包含 <span class="sequence-count">${processedSequences.length}</span> 条序列</p>
+                        <p>转换方式: <strong>${isUppercase ? '大写' : '小写'}</strong></p>
+                        <a href="#" class="download-link" id="download-link-3">下载转换后的文件</a>
+                    </div>
+                `;
+                
+                // 设置下载链接
+                document.getElementById('download-link-3').addEventListener('click', function(e) {
+                    e.preventDefault();
+                    downloadFile(fastaContent, downloadFileName);
+                });
+            });
+            
+            // 功能2: 分析文件 (删除特殊字符)
+            analyzeBtn2.addEventListener('click', function() {
+                if (fastaFile2.files.length === 0) {
+                    alert('请先选择FASTA文件');
+                    return;
+                }
+                
+                // 显示加载动画
+                loader2.style.display = 'block';
+                resultBox2.classList.remove('active');
+                
+                const file = fastaFile2.files[0];
+                const reader = new FileReader();
+                
+                reader.onload = function(e) {
+                    // 解析FASTA文件
+                    sequences2 = parseFastaFile(e.target.result);
+                    
+                    if (sequences2.length === 0) {
+                        alert('未能从文件中解析出任何序列，请检查文件格式');
+                        loader2.style.display = 'none';
+                        return;
+                    }
+                    
+                    // 分析特殊字符
+                    let sequencesWithSpecialChars = [];
+                    let allSpecialChars = new Set();
+                    
+                    sequences2.forEach(seq => {
+                        if (containsSpecialChars(seq.sequence)) {
+                            sequencesWithSpecialChars.push(seq);
+                            const specialChars = getSpecialChars(seq.sequence);
+                            specialChars.forEach(char => allSpecialChars.add(char));
+                        }
+                    });
+                    
+                    // 显示分析结果
+                    resultBox2.innerHTML = `
+                        <div class="result-summary">
+                            <p>总序列数: <span class="sequence-count">${sequences2.length}</span></p>
+                            <p>含有特殊字符的序列数: <span class="sequence-count" style="color: ${sequencesWithSpecialChars.length > 0 ? 'var(--accent-color)' : 'var(--success-color)'};">${sequencesWithSpecialChars.length}</span></p>
+                        </div>
+                    `;
+                    
+                    // 显示所有特殊字符
+                    if (allSpecialChars.size > 0) {
+                        const specialCharsArray = Array.from(allSpecialChars).sort();
+                        resultBox2.innerHTML += `
+                            <div style="background-color: #fff3cd; padding: 15px; border-radius: var(--border-radius); margin-top: 15px;">
+                                <h4>检测到的特殊字符:</h4>
+                                <p style="font-family: monospace; font-size: 1.2rem; word-break: break-all;">${specialCharsArray.join(' ')}</p>
+                                <p style="margin-top: 10px; font-size: 0.9rem;">共计 ${allSpecialChars.size} 种特殊字符</p>
+                            </div>
+                        `;
+                    }
+                    
+                    // 显示处理按钮
+                    processBtn2.style.display = 'inline-block';
+                    
+                    // 隐藏加载动画，显示结果
+                    loader2.style.display = 'none';
+                    resultBox2.classList.add('active');
+                };
+                
+                reader.onerror = function() {
+                    alert('读取文件时发生错误，请重试');
+                    loader2.style.display = 'none';
+                };
+                
+                reader.readAsText(file);
+            });
+            
+            // 功能2: 扫描特定字符
+            scanCharBtn.addEventListener('click', function() {
+                const char = charToRemove.value.trim();
+                if (!char) {
+                    alert('请输入要扫描的字符');
+                    return;
+                }
+                
+                if (sequences2.length === 0) {
+                    alert('请先分析文件');
+                    return;
+                }
+                
+                // 查找包含该字符的序列
+                let sequencesWithChar = [];
+                sequences2.forEach(seq => {
+                    if (containsSpecificChar(seq.sequence, char)) {
+                        sequencesWithChar.push(seq);
+                    }
+                });
+                
+                // 显示扫描结果
+                let scanResultHTML = `
+                    <div style="background-color: #fff3cd; padding: 15px; border-radius: var(--border-radius); margin-top: 15px;">
+                        <h4>字符 '${char}' 扫描结果:</h4>
+                        <p>包含该字符的序列数: <span class="sequence-count">${sequencesWithChar.length}</span></p>
+                `;
+                
+                if (sequencesWithChar.length > 0) {
+                    scanResultHTML += '<p>示例序列 (前5条):</p><div style="max-height: 150px; overflow-y: auto;">';
+                    sequencesWithChar.slice(0, 5).forEach((seq, index) => {
+                        // 显示字符出现位置
+                        const positions = [];
+                        for (let i = 0; i < seq.sequence.length; i++) {
+                            if (seq.sequence[i] === char) {
+                                positions.push(i + 1);
+                            }
+                        }
+                        
+                        scanResultHTML += `
+                            <div style="padding: 5px 0; border-bottom: 1px solid #ddd;">
+                                <strong>${index + 1}. ${seq.header.substring(0, 30)}${seq.header.length > 30 ? '...' : ''}</strong><br>
+                                <span>长度: ${seq.length} | 字符 '${char}' 出现次数: ${positions.length} (位置: ${positions.slice(0, 5).join(', ')}${positions.length > 5 ? '...' : ''})</span>
+                            </div>
+                        `;
+                    });
+                    scanResultHTML += '</div>';
+                }
+                scanResultHTML += '</div>';
+                
+                // 更新结果框
+                resultBox2.innerHTML += scanResultHTML;
+            });
+            
+            // 功能2: 处理文件 (删除特殊字符)
+            processBtn2.addEventListener('click', function() {
+                if (sequences2.length === 0) {
+                    alert('请先分析文件');
+                    return;
+                }
+                
+                const isRemoveAll = document.getElementById('all-chars').checked;
+                const charToRemoveValue = charToRemove.value.trim();
+                
+                if (!isRemoveAll && !charToRemoveValue) {
+                    alert('请输入要删除的字符');
+                    return;
+                }
+                
+                // 处理序列
+                const processedSequences = sequences2.map(seq => {
+                    let processedSequence = seq.sequence;
+                    
+                    if (isRemoveAll) {
+                        // 删除所有特殊字符
+                        processedSequence = removeAllSpecialChars(seq.sequence);
+                    } else {
+                        // 删除特定字符
+                        processedSequence = removeSpecificChar(seq.sequence, charToRemoveValue);
+                    }
+                    
+                    return {
+                        header: seq.header,
+                        sequence: processedSequence,
+                        originalSequence: seq.originalSequence,
+                        length: processedSequence.length
+                    };
+                });
+                
+                // 生成FASTA格式内容
+                let fastaContent = '';
+                processedSequences.forEach(seq => {
+                    fastaContent += `>${seq.header}\n`;
+                    
+                    // 每行显示60个字符
+                    for (let i = 0; i < seq.sequence.length; i += 60) {
+                        fastaContent += seq.sequence.substring(i, i + 60) + '\n';
+                    }
+                });
+                
+                // 创建文件名
+                let downloadFileName;
+                if (isRemoveAll) {
+                    downloadFileName = `${fileName2}_no_special_chars.fasta`;
+                } else {
+                    downloadFileName = `${fileName2}_no_${charToRemoveValue}.fasta`;
+                }
+                
+                // 更新结果框
+                resultBox2.innerHTML += `
+                    <div class="download-area">
+                        <p>已生成清洗后的文件，包含 <span class="sequence-count">${processedSequences.length}</span> 条序列</p>
+                        <a href="#" class="download-link" id="download-link-2">下载清洗后的文件</a>
+                    </div>
+                `;
+                
+                // 设置下载链接
+                document.getElementById('download-link-2').addEventListener('click', function(e) {
+                    e.preventDefault();
+                    downloadFile(fastaContent, downloadFileName);
+                });
+            });
+            
+            // 功能3: 分析文件 (删除非标准氨基酸序列)
+            analyzeBtn1.addEventListener('click', function() {
+                if (fastaFile1.files.length === 0) {
+                    alert('请先选择FASTA文件');
+                    return;
+                }
+                
+                // 显示加载动画
+                loader1.style.display = 'block';
+                resultBox1.classList.remove('active');
+                
+                const file = fastaFile1.files[0];
+                const reader = new FileReader();
+                
+                reader.onload = function(e) {
+                    // 解析FASTA文件
+                    sequences1 = parseFastaFile(e.target.result);
+                    
+                    if (sequences1.length === 0) {
+                        alert('未能从文件中解析出任何序列，请检查文件格式');
+                        loader1.style.display = 'none';
+                        return;
+                    }
+                    
+                    // 分析非标准氨基酸序列
+                    let nonStandardSequences = [];
+                    sequences1.forEach(seq => {
+                        if (!containsOnlyStandardAminoAcids(seq.sequence)) {
+                            nonStandardSequences.push(seq);
+                        }
+                    });
+                    
+                    // 显示分析结果
+                    resultBox1.innerHTML = `
+                        <div class="result-summary">
+                            <p>总序列数: <span class="sequence-count">${sequences1.length}</span></p>
+                            <p>含有非标准氨基酸的序列数: <span class="sequence-count" style="color: ${nonStandardSequences.length > 0 ? 'var(--accent-color)' : 'var(--success-color)'};">${nonStandardSequences.length}</span></p>
+                            <p>仅包含标准氨基酸的序列数: <span class="sequence-count">${sequences1.length - nonStandardSequences.length}</span></p>
+                        </div>
+                    `;
+                    
+                    // 如果有非标准氨基酸序列，显示详情
+                    if (nonStandardSequences.length > 0) {
+                        let errorListHTML = '<div class="error-list"><h4>含有非标准氨基酸的序列:</h4>';
+                        nonStandardSequences.forEach((seq, index) => {
+                            // 找出非标准字符
+                            const nonStandardChars = [];
+                            const seqUpper = seq.sequence.toUpperCase();
+                            for (let i = 0; i < seqUpper.length; i++) {
+                                const char = seqUpper[i];
+                                if (!standardAminoAcids.has(char)) {
+                                    if (!nonStandardChars.includes(char)) {
+                                        nonStandardChars.push(char);
+                                    }
+                                }
+                            }
+                            
+                            errorListHTML += `
+                                <div class="error-item">
+                                    <strong>${index + 1}. ${seq.header.substring(0, 50)}${seq.header.length > 50 ? '...' : ''}</strong><br>
+                                    <span>长度: ${seq.length} | 非标准字符: ${nonStandardChars.join(', ')}</span>
+                                </div>
+                            `;
+                        });
+                        errorListHTML += '</div>';
+                        resultBox1.innerHTML += errorListHTML;
+                    }
+                    
+                    // 显示处理按钮
+                    processBtn1.style.display = 'inline-block';
+                    
+                    // 隐藏加载动画，显示结果
+                    loader1.style.display = 'none';
+                    resultBox1.classList.add('active');
+                };
+                
+                reader.onerror = function() {
+                    alert('读取文件时发生错误，请重试');
+                    loader1.style.display = 'none';
+                };
+                
+                reader.readAsText(file);
+            });
+            
+            // 功能3: 处理文件 - 仅处理，不下载 (删除非标准氨基酸序列)
+            processBtn1.addEventListener('click', function() {
+                if (sequences1.length === 0) {
+                    alert('请先分析文件');
+                    return;
+                }
+                
+                // 筛选只包含标准氨基酸的序列
+                filteredSequences1 = sequences1.filter(seq => 
+                    containsOnlyStandardAminoAcids(seq.sequence)
+                );
+                
+                if (filteredSequences1.length === 0) {
+                    alert('没有找到只包含标准氨基酸的序列');
+                    return;
+                }
+                
+                // 更新结果框，显示处理结果和下载链接
+                resultBox1.innerHTML += `
+                    <div class="download-area">
+                        <p>已处理完成，筛选出 <span class="sequence-count">${filteredSequences1.length}</span> 条只包含标准氨基酸的序列</p>
+                        <a href="#" class="download-link" id="download-link-1">下载清洗后的文件</a>
+                    </div>
+                `;
+                
+                // 设置下载链接
+                document.getElementById('download-link-1').addEventListener('click', function(e) {
+                    e.preventDefault();
+                    
+                    // 生成FASTA格式内容
+                    let fastaContent = '';
+                    filteredSequences1.forEach(seq => {
+                        fastaContent += `>${seq.header}\n`;
+                        
+                        // 每行显示60个字符
+                        for (let i = 0; i < seq.sequence.length; i += 60) {
+                            fastaContent += seq.sequence.substring(i, i + 60) + '\n';
+                        }
+                    });
+                    
+                    // 创建下载链接
+                    const downloadFileName = `${fileName1}_standard_amino_acids_only.fasta`;
+                    downloadFile(fastaContent, downloadFileName);
+                });
+            });
+            
+            // 重置功能
+            resetBtn3.addEventListener('click', function() {
+                fastaFile3.value = '';
+                sequences3 = [];
+                fileName3 = '';
+                fileInfo3.style.display = 'none';
+                resultBox3.classList.remove('active');
+                processBtn3.style.display = 'none';
+                loader3.style.display = 'none';
+            });
+            
+            resetBtn2.addEventListener('click', function() {
+                fastaFile2.value = '';
+                sequences2 = [];
+                fileName2 = '';
+                fileInfo2.style.display = 'none';
+                resultBox2.classList.remove('active');
+                processBtn2.style.display = 'none';
+                loader2.style.display = 'none';
+                charToRemove.value = '';
+                optionSpecificChar.click();
+            });
+            
+            resetBtn1.addEventListener('click', function() {
+                fastaFile1.value = '';
+                sequences1 = [];
+                filteredSequences1 = [];
+                fileName1 = '';
+                fileInfo1.style.display = 'none';
+                resultBox1.classList.remove('active');
+                processBtn1.style.display = 'none';
+                loader1.style.display = 'none';
+            });
+            
+            // 下载文件函数
+            function downloadFile(content, filename) {
+                const blob = new Blob([content], { type: 'text/plain' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            }
+        });
+    </script>
+</body>
+</html>
