@@ -1,0 +1,680 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>特定长度氨基酸序列筛选</title>
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --secondary-color: #3498db;
+            --accent-color: #e74c3c;
+            --light-color: #ecf0f1;
+            --dark-color: #2c3e50;
+            --success-color: #27ae60;
+            --warning-color: #f39c12;
+            --border-radius: 8px;
+            --box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            --transition: all 0.3s ease;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            min-height: 100vh;
+        }
+
+        /* 顶部标题栏 */
+        .tool-header {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background-color: var(--primary-color);
+            color: white;
+            padding: 20px;
+            width: 100%;
+            text-align: center;
+        }
+
+        .back-button {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            padding: 8px 16px;
+            border-radius: var(--border-radius);
+            cursor: pointer;
+            transition: var(--transition);
+            font-size: 0.9rem;
+            margin-top: 15px;
+            text-decoration: none;
+        }
+
+        .back-button:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        /* 内容区域样式 */
+        .content {
+            padding: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .section {
+            background: white;
+            border-radius: var(--border-radius);
+            padding: 20px;
+            margin-bottom: 30px;
+            box-shadow: var(--box-shadow);
+        }
+
+        h2 {
+            color: var(--primary-color);
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        h3 {
+            color: var(--secondary-color);
+            margin-bottom: 15px;
+            text-align: center;
+        }
+
+        /* 表单样式 */
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+
+        input[type="file"] {
+            width: 100%;
+            padding: 10px;
+            border: 2px dashed #ddd;
+            border-radius: var(--border-radius);
+            background-color: #f9f9f9;
+            cursor: pointer;
+        }
+
+        input[type="number"] {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: var(--border-radius);
+            font-size: 14px;
+        }
+
+        .range-inputs {
+            display: flex;
+            gap: 15px;
+            margin-top: 10px;
+        }
+
+        .range-inputs .form-group {
+            flex: 1;
+        }
+
+        /* 按钮样式 */
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .btn {
+            padding: 12px 20px;
+            border: none;
+            border-radius: var(--border-radius);
+            cursor: pointer;
+            transition: var(--transition);
+            font-weight: bold;
+            flex: 1;
+        }
+
+        .btn-primary {
+            background-color: var(--secondary-color);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background-color: #2980b9;
+        }
+
+        .btn-success {
+            background-color: var(--success-color);
+            color: white;
+        }
+
+        .btn-success:hover {
+            background-color: #219653;
+        }
+
+        .btn-accent {
+            background-color: var(--accent-color);
+            color: white;
+        }
+
+        .btn-accent:hover {
+            background-color: #c0392b;
+        }
+
+        /* 结果区域样式 */
+        .result-box {
+            padding: 15px;
+            background-color: #f9f9f9;
+            border-radius: var(--border-radius);
+            margin-top: 20px;
+            border-left: 4px solid var(--secondary-color);
+            display: none;
+        }
+
+        .result-box.active {
+            display: block;
+        }
+
+        /* 统计表格样式 */
+        .stats-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+
+        .stats-table th, .stats-table td {
+            border: 1px solid #ddd;
+            padding: 10px;
+            text-align: center;
+        }
+
+        .stats-table th {
+            background-color: var(--secondary-color);
+            color: white;
+            font-weight: 600;
+        }
+
+        .stats-table tr:nth-child(even) {
+            background-color: #f2f2f2;
+        }
+
+        .stats-table tr:hover {
+            background-color: #e9f7fe;
+        }
+
+        .highlight-row {
+            background-color: #fffacd !important;
+            font-weight: bold;
+        }
+
+        /* 筛选结果样式 */
+        .filter-info {
+            background-color: #e8f5e8;
+            padding: 15px;
+            border-radius: var(--border-radius);
+            margin-bottom: 20px;
+        }
+
+        .sequence-count {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: var(--success-color);
+        }
+
+        /* 状态栏样式 */
+        .status-bar {
+            padding: 10px;
+            background-color: var(--primary-color);
+            color: white;
+            text-align: center;
+            font-weight: bold;
+            width: 100%;
+            margin-top: 20px;
+        }
+
+        /* 加载动画 */
+        .loader {
+            display: none;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid var(--secondary-color);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* 文件信息 */
+        .file-info {
+            background-color: #f0f8ff;
+            padding: 10px;
+            border-radius: var(--border-radius);
+            margin-top: 10px;
+            font-size: 0.9rem;
+        }
+
+        @media (max-width: 768px) {
+            .content {
+                padding: 15px;
+            }
+            
+            .range-inputs {
+                flex-direction: column;
+                gap: 10px;
+            }
+            
+            .button-group {
+                flex-direction: column;
+            }
+            
+            .stats-table {
+                font-size: 0.85rem;
+            }
+            
+            .stats-table th, 
+            .stats-table td {
+                padding: 6px 3px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="tool-header">
+        <h1>特定长度氨基酸序列筛选</h1>
+        <a href="index.html" class="back-button">返回主界面</a>
+    </div>
+    
+    <div class="content">
+        <!-- 文件上传和统计部分 -->
+        <div class="section">
+            <h2>FASTA文件分析</h2>
+            
+            <div class="form-group">
+                <label for="fasta-file">上传FASTA文件:</label>
+                <input type="file" id="fasta-file" accept=".fasta,.fa,.txt">
+                <div id="file-info" class="file-info" style="display: none;">
+                    <!-- 文件信息将在这里显示 -->
+                </div>
+            </div>
+            
+            <div class="button-group">
+                <button id="analyze-btn" class="btn btn-primary">分析文件</button>
+                <button id="reset-btn" class="btn btn-accent">重置</button>
+            </div>
+            
+            <div class="loader" id="loader"></div>
+            
+            <div id="stats-result" class="result-box">
+                <h3>序列长度分布统计</h3>
+                <div id="stats-summary"></div>
+                <table id="stats-table" class="stats-table">
+                    <thead>
+                        <tr>
+                            <th>序列长度范围</th>
+                            <th>基因数量</th>
+                            <th>百分比 (%)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- 统计表格将在这里生成 -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        
+        <!-- 序列筛选部分 -->
+        <div class="section">
+            <h2>序列长度筛选</h2>
+            
+            <div class="range-inputs">
+                <div class="form-group">
+                    <label for="min-length">最小长度:</label>
+                    <input type="number" id="min-length" min="1" placeholder="例如: 50">
+                </div>
+                
+                <div class="form-group">
+                    <label for="max-length">最大长度:</label>
+                    <input type="number" id="max-length" min="1" placeholder="例如: 200">
+                </div>
+            </div>
+            
+            <div id="filter-info" class="filter-info" style="display: none;">
+                <!-- 筛选信息将在这里显示 -->
+            </div>
+            
+            <div class="button-group">
+                <button id="filter-btn" class="btn btn-success">筛选序列</button>
+                <button id="download-btn" class="btn btn-primary">下载筛选结果</button>
+            </div>
+        </div>
+    </div>
+    
+    <div class="status-bar">
+        生物信息分析工具 - 特定长度氨基酸序列筛选器
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // 全局变量
+            let sequences = [];
+            let fileName = "";
+            let filteredSequences = [];
+            
+            // DOM元素
+            const fileInput = document.getElementById('fasta-file');
+            const analyzeBtn = document.getElementById('analyze-btn');
+            const resetBtn = document.getElementById('reset-btn');
+            const filterBtn = document.getElementById('filter-btn');
+            const downloadBtn = document.getElementById('download-btn');
+            const loader = document.getElementById('loader');
+            const statsResult = document.getElementById('stats-result');
+            const statsTable = document.getElementById('stats-table');
+            const statsSummary = document.getElementById('stats-summary');
+            const fileInfo = document.getElementById('file-info');
+            const filterInfo = document.getElementById('filter-info');
+            const minLengthInput = document.getElementById('min-length');
+            const maxLengthInput = document.getElementById('max-length');
+            
+            // 解析FASTA文件
+            function parseFastaFile(content) {
+                const sequences = [];
+                const lines = content.split('\n');
+                let currentHeader = '';
+                let currentSequence = '';
+                
+                for (let line of lines) {
+                    line = line.trim();
+                    
+                    if (line.startsWith('>')) {
+                        // 保存上一个序列
+                        if (currentHeader && currentSequence) {
+                            sequences.push({
+                                header: currentHeader,
+                                sequence: currentSequence,
+                                length: currentSequence.length
+                            });
+                        }
+                        
+                        // 开始新序列
+                        currentHeader = line.substring(1).trim();
+                        currentSequence = '';
+                    } else if (line) {
+                        // 添加序列数据（移除空格和数字）
+                        currentSequence += line.replace(/\s+|\d+/g, '');
+                    }
+                }
+                
+                // 添加最后一个序列
+                if (currentHeader && currentSequence) {
+                    sequences.push({
+                        header: currentHeader,
+                        sequence: currentSequence,
+                        length: currentSequence.length
+                    });
+                }
+                
+                return sequences;
+            }
+            
+            // 生成长度范围
+            function generateLengthRanges(maxLength) {
+                const ranges = [];
+                const step = 50;
+                
+                for (let start = 1; start <= maxLength; start += step) {
+                    const end = Math.min(start + step - 1, maxLength);
+                    ranges.push({start, end});
+                }
+                
+                return ranges;
+            }
+            
+            // 统计序列长度分布
+            function calculateLengthStats(sequences) {
+                if (sequences.length === 0) return [];
+                
+                // 找到最长序列
+                const maxLength = Math.max(...sequences.map(s => s.length));
+                const ranges = generateLengthRanges(maxLength);
+                
+                // 统计每个范围的序列数
+                const stats = ranges.map(range => {
+                    const count = sequences.filter(s => 
+                        s.length >= range.start && s.length <= range.end
+                    ).length;
+                    
+                    const percentage = (count / sequences.length * 100).toFixed(2);
+                    
+                    return {
+                        range: `${range.start}-${range.end}`,
+                        start: range.start,
+                        end: range.end,
+                        count,
+                        percentage
+                    };
+                });
+                
+                return stats;
+            }
+            
+            // 显示统计表格
+            function displayStatsTable(stats) {
+                const tbody = statsTable.querySelector('tbody');
+                tbody.innerHTML = '';
+                
+                stats.forEach(stat => {
+                    const row = document.createElement('tr');
+                    
+                    // 高亮显示包含序列最多的范围
+                    const maxCount = Math.max(...stats.map(s => s.count));
+                    if (stat.count === maxCount && stat.count > 0) {
+                        row.classList.add('highlight-row');
+                    }
+                    
+                    row.innerHTML = `
+                        <td>${stat.range}</td>
+                        <td>${stat.count}</td>
+                        <td>${stat.percentage}%</td>
+                    `;
+                    
+                    tbody.appendChild(row);
+                });
+                
+                // 显示总结信息
+                const totalSequences = sequences.length;
+                const maxLength = Math.max(...sequences.map(s => s.length));
+                const minLength = Math.min(...sequences.map(s => s.length));
+                const avgLength = (sequences.reduce((sum, s) => sum + s.length, 0) / totalSequences).toFixed(1);
+                
+                statsSummary.innerHTML = `
+                    <p>总序列数: <span class="sequence-count">${totalSequences}</span></p>
+                    <p>最短序列长度: ${minLength} | 最长序列长度: ${maxLength} | 平均长度: ${avgLength}</p>
+                `;
+            }
+            
+            // 文件上传处理
+            fileInput.addEventListener('change', function() {
+                if (this.files.length === 0) return;
+                
+                const file = this.files[0];
+                fileName = file.name.replace(/\.[^/.]+$/, ""); // 移除扩展名
+                
+                // 显示文件信息
+                fileInfo.innerHTML = `
+                    <p><strong>已选择文件:</strong> ${file.name}</p>
+                    <p><strong>文件大小:</strong> ${(file.size / 1024).toFixed(2)} KB</p>
+                `;
+                fileInfo.style.display = 'block';
+            });
+            
+            // 分析按钮点击事件
+            analyzeBtn.addEventListener('click', function() {
+                if (fileInput.files.length === 0) {
+                    alert('请先选择FASTA文件');
+                    return;
+                }
+                
+                // 显示加载动画
+                loader.style.display = 'block';
+                statsResult.classList.remove('active');
+                
+                const file = fileInput.files[0];
+                const reader = new FileReader();
+                
+                reader.onload = function(e) {
+                    // 解析FASTA文件
+                    sequences = parseFastaFile(e.target.result);
+                    
+                    if (sequences.length === 0) {
+                        alert('未能从文件中解析出任何序列，请检查文件格式');
+                        loader.style.display = 'none';
+                        return;
+                    }
+                    
+                    // 计算统计信息
+                    const stats = calculateLengthStats(sequences);
+                    
+                    // 显示统计表格
+                    displayStatsTable(stats);
+                    
+                    // 隐藏加载动画，显示结果
+                    loader.style.display = 'none';
+                    statsResult.classList.add('active');
+                    
+                    // 更新筛选范围的最大值输入
+                    const maxLength = Math.max(...sequences.map(s => s.length));
+                    maxLengthInput.placeholder = `最大值: ${maxLength}`;
+                    
+                    // 显示筛选部分
+                    filterInfo.style.display = 'block';
+                    filterInfo.innerHTML = `
+                        <p>已加载 <span class="sequence-count">${sequences.length}</span> 条序列</p>
+                        <p>序列长度范围: ${Math.min(...sequences.map(s => s.length))} - ${maxLength} 个氨基酸</p>
+                    `;
+                };
+                
+                reader.onerror = function() {
+                    alert('读取文件时发生错误，请重试');
+                    loader.style.display = 'none';
+                };
+                
+                reader.readAsText(file);
+            });
+            
+            // 筛选按钮点击事件
+            filterBtn.addEventListener('click', function() {
+                if (sequences.length === 0) {
+                    alert('请先上传并分析FASTA文件');
+                    return;
+                }
+                
+                const minLength = parseInt(minLengthInput.value) || 1;
+                const maxLength = parseInt(maxLengthInput.value) || Math.max(...sequences.map(s => s.length));
+                
+                if (minLength > maxLength) {
+                    alert('最小长度不能大于最大长度');
+                    return;
+                }
+                
+                // 筛选序列
+                filteredSequences = sequences.filter(s => 
+                    s.length >= minLength && s.length <= maxLength
+                );
+                
+                // 显示筛选结果
+                filterInfo.innerHTML = `
+                    <p>筛选条件: ${minLength} - ${maxLength} 个氨基酸</p>
+                    <p>匹配序列数: <span class="sequence-count">${filteredSequences.length}</span> (${(filteredSequences.length / sequences.length * 100).toFixed(2)}%)</p>
+                `;
+                filterInfo.style.display = 'block';
+                
+                // 高亮显示统计表格中的对应范围
+                const rows = statsTable.querySelectorAll('tbody tr');
+                rows.forEach(row => {
+                    row.classList.remove('highlight-row');
+                    
+                    const rangeText = row.cells[0].textContent;
+                    const [rangeStart, rangeEnd] = rangeText.split('-').map(Number);
+                    
+                    // 如果筛选范围与统计范围有重叠，则高亮显示
+                    if (!(maxLength < rangeStart || minLength > rangeEnd)) {
+                        row.classList.add('highlight-row');
+                    }
+                });
+                
+                if (filteredSequences.length === 0) {
+                    alert('没有找到符合长度要求的序列');
+                }
+            });
+            
+            // 下载按钮点击事件
+            downloadBtn.addEventListener('click', function() {
+                if (filteredSequences.length === 0) {
+                    alert('没有可下载的序列，请先进行筛选');
+                    return;
+                }
+                
+                const minLength = parseInt(minLengthInput.value) || 1;
+                const maxLength = parseInt(maxLengthInput.value) || Math.max(...sequences.map(s => s.length));
+                
+                // 生成FASTA格式内容
+                let fastaContent = '';
+                filteredSequences.forEach(seq => {
+                    fastaContent += `>${seq.header}\n`;
+                    
+                    // 每行显示60个氨基酸
+                    for (let i = 0; i < seq.sequence.length; i += 60) {
+                        fastaContent += seq.sequence.substring(i, i + 60) + '\n';
+                    }
+                });
+                
+                // 创建下载链接
+                const downloadFileName = `${fileName}_${minLength}-${maxLength}aa.fasta`;
+                const blob = new Blob([fastaContent], { type: 'text/plain' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = downloadFileName;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            });
+            
+            // 重置按钮点击事件
+            resetBtn.addEventListener('click', function() {
+                fileInput.value = '';
+                sequences = [];
+                filteredSequences = [];
+                fileName = '';
+                statsResult.classList.remove('active');
+                fileInfo.style.display = 'none';
+                filterInfo.style.display = 'none';
+                minLengthInput.value = '';
+                maxLengthInput.value = '';
+                loader.style.display = 'none';
+                
+                // 重置表格
+                const tbody = statsTable.querySelector('tbody');
+                tbody.innerHTML = '';
+                statsSummary.innerHTML = '';
+            });
+        });
+    </script>
+</body>
+</html>
