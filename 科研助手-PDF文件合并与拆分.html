@@ -1,0 +1,624 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDF文件合并拆分 · 文档处理工具</title>
+    <!-- 引用 pdf-lib 和 FileSaver 用于前端PDF生成与保存 -->
+    <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+    <style>
+        /* 完全继承参考风格的变量与基础样式 */
+        :root {
+            --primary-color: #2c3e50;
+            --secondary-color: #3498db;
+            --accent-color: #e74c3c;
+            --light-color: #ecf0f1;
+            --dark-color: #2c3e50;
+            --success-color: #27ae60;
+            --warning-color: #f39c12;
+            --border-radius: 8px;
+            --box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            --transition: all 0.3s ease;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            min-height: 100vh;
+        }
+
+        /* 顶部标题栏 */
+        .tool-header {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background-color: var(--primary-color);
+            color: white;
+            padding: 20px;
+            width: 100%;
+            text-align: center;
+        }
+
+        .back-button {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            padding: 8px 16px;
+            border-radius: var(--border-radius);
+            cursor: pointer;
+            transition: var(--transition);
+            font-size: 0.9rem;
+            margin-top: 15px;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .back-button:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        /* 内容区域 */
+        .content {
+            padding: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .section {
+            background: white;
+            border-radius: var(--border-radius);
+            padding: 20px;
+            margin-bottom: 30px;
+            box-shadow: var(--box-shadow);
+        }
+
+        h2 {
+            color: var(--primary-color);
+            text-align: center;
+        }
+
+        h3 {
+            color: var(--secondary-color);
+            margin-bottom: 15px;
+            text-align: center;
+            font-size: 1.2rem;
+        }
+
+        /* 表单元素 */
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: var(--dark-color);
+        }
+
+        input[type="text"], input[type="file"] {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: var(--border-radius);
+            font-size: 14px;
+            background-color: white;
+        }
+
+        input[type="file"] {
+            padding: 8px;
+            background-color: #fafafa;
+        }
+
+        /* 按钮组 */
+        .search-container {
+            display: flex;
+            margin-bottom: 20px;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .search-button, .reset-button, .action-button {
+            padding: 10px 20px;
+            font-weight: bold;
+            border: none;
+            border-radius: var(--border-radius);
+            cursor: pointer;
+            transition: var(--transition);
+            font-size: 1rem;
+        }
+
+        .search-button {
+            background-color: var(--secondary-color);
+            color: white;
+        }
+
+        .search-button:hover {
+            background-color: #2980b9;
+        }
+
+        .reset-button {
+            background-color: var(--accent-color);
+            color: white;
+        }
+
+        .reset-button:hover {
+            background-color: #c0392b;
+        }
+
+        .action-button {
+            background-color: var(--success-color);
+            color: white;
+        }
+
+        .action-button:hover {
+            background-color: #219a52;
+        }
+
+        .action-button:disabled {
+            background-color: #95a5a6;
+            cursor: not-allowed;
+        }
+
+        /* 文件列表卡片 */
+        .file-list {
+            margin: 15px 0;
+            border: 1px solid #eee;
+            border-radius: var(--border-radius);
+            background: #f9f9f9;
+            padding: 10px;
+            max-height: 250px;
+            overflow-y: auto;
+        }
+
+        .file-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 8px 12px;
+            margin-bottom: 6px;
+            background: white;
+            border-radius: var(--border-radius);
+            border-left: 4px solid var(--secondary-color);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+
+        .file-name {
+            flex: 1;
+            font-size: 0.9rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            margin-right: 10px;
+        }
+
+        .file-controls {
+            display: flex;
+            gap: 5px;
+        }
+
+        .file-controls button {
+            background: var(--light-color);
+            border: none;
+            border-radius: 4px;
+            padding: 4px 8px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            transition: var(--transition);
+            color: var(--dark-color);
+        }
+
+        .file-controls button:hover {
+            background: var(--secondary-color);
+            color: white;
+        }
+
+        .file-controls .delete-btn:hover {
+            background: var(--accent-color);
+        }
+
+        /* 信息条和结果框 */
+        .result-box {
+            padding: 15px;
+            background-color: #f9f9f9;
+            border-radius: var(--border-radius);
+            margin-top: 15px;
+            border-left: 4px solid var(--secondary-color);
+            word-break: break-word;
+        }
+
+        .info-badge {
+            display: inline-block;
+            background: var(--primary-color);
+            color: white;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            margin-right: 10px;
+        }
+
+        .status-bar {
+            padding: 10px;
+            background-color: var(--primary-color);
+            color: white;
+            text-align: center;
+            font-weight: bold;
+            width: 100%;
+            margin-top: 20px;
+        }
+
+        /* 响应式 */
+        @media (max-width: 768px) {
+            .content {
+                padding: 15px;
+            }
+            .search-container {
+                flex-direction: column;
+            }
+            .file-item {
+                flex-wrap: wrap;
+            }
+            .file-controls {
+                margin-top: 5px;
+                justify-content: flex-end;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="tool-header">
+        <h2 style="color: white;">PDF文件合并拆分</h2>
+        <a href="index.html" class="back-button">返回主界面</a>
+    </div>
+
+    <div class="content">
+        <!-- ========= 合并PDF部分 ========= -->
+        <div class="section">
+            <h2>🔗 合并多个PDF</h2>
+            <div class="form-group">
+                <label for="mergeFiles">上传PDF文件 (可多选)</label>
+                <input type="file" id="mergeFiles" multiple accept=".pdf" />
+            </div>
+
+            <!-- 文件列表展示区 + 排序控件 -->
+            <div id="mergeFileListContainer" style="display: none;">
+                <h3>已上传文件 (可调整顺序)</h3>
+                <div class="file-list" id="mergeFileList"></div>
+            </div>
+
+            <div class="form-group">
+                <label for="mergeOutputName">输出文件名 (含扩展名)</label>
+                <input type="text" id="mergeOutputName" value="merged.pdf" placeholder="例如: 合并结果.pdf" />
+            </div>
+
+            <div class="search-container">
+                <button id="mergeBtn" class="search-button">合并PDF</button>
+                <button id="mergeResetBtn" class="reset-button">清空列表</button>
+            </div>
+
+            <!-- 合并结果信息 -->
+            <div id="mergeResult" class="result-box" style="display: none;"></div>
+        </div>
+
+        <!-- ========= 拆分PDF部分 ========= -->
+        <div class="section">
+            <h2>✂️ 拆分PDF (保留指定页码)</h2>
+            <div class="form-group">
+                <label for="splitFile">上传一个PDF文件</label>
+                <input type="file" id="splitFile" accept=".pdf" />
+            </div>
+
+            <!-- 文件信息展示 -->
+            <div id="splitFileInfo" class="result-box" style="display: none;">
+                <!-- 动态填充文件名和总页数 -->
+            </div>
+
+            <div class="form-group">
+                <label for="pageRanges">需要保留的页码 (支持单个、逗号、范围，如 1,3,5-9)</label>
+                <input type="text" id="pageRanges" placeholder="示例: 1,2,5-8,10" />
+            </div>
+
+            <div class="form-group">
+                <label for="splitOutputName">输出文件名 (含扩展名)</label>
+                <input type="text" id="splitOutputName" value="split.pdf" placeholder="例如: 精选页.pdf" />
+            </div>
+
+            <div class="search-container">
+                <button id="splitBtn" class="search-button">拆分PDF</button>
+                <button id="splitResetBtn" class="reset-button">清空</button>
+            </div>
+
+            <!-- 拆分结果信息 -->
+            <div id="splitResult" class="result-box" style="display: none;"></div>
+        </div>
+    </div>
+
+    <div class="status-bar">
+        江南大学 粮食发酵工艺与技术国家工程实验室 (风格参考)
+    </div>
+
+    <script>
+        (function() {
+            // ---------- 全局变量 ----------
+            // 合并相关
+            let mergeFilesArray = [];              // 存储 File 对象，按顺序
+            const mergeFileInput = document.getElementById('mergeFiles');
+            const mergeFileListDiv = document.getElementById('mergeFileList');
+            const mergeListContainer = document.getElementById('mergeFileListContainer');
+            const mergeOutputName = document.getElementById('mergeOutputName');
+            const mergeBtn = document.getElementById('mergeBtn');
+            const mergeResetBtn = document.getElementById('mergeResetBtn');
+            const mergeResultDiv = document.getElementById('mergeResult');
+
+            // 拆分相关
+            let splitFileBuffer = null;             // 存储当前拆分PDF的ArrayBuffer
+            let splitFilePageCount = 0;
+            let splitFileName = '';
+            const splitFileInput = document.getElementById('splitFile');
+            const splitFileInfoDiv = document.getElementById('splitFileInfo');
+            const pageRangesInput = document.getElementById('pageRanges');
+            const splitOutputName = document.getElementById('splitOutputName');
+            const splitBtn = document.getElementById('splitBtn');
+            const splitResetBtn = document.getElementById('splitResetBtn');
+            const splitResultDiv = document.getElementById('splitResult');
+
+            // ---------- 辅助函数：解析页码字符串 ----------
+            function parsePageRanges(input, totalPages) {
+                if (!input || input.trim() === '') throw new Error('请输入页码');
+                const parts = input.split(',').map(s => s.trim()).filter(s => s !== '');
+                const pageSet = new Set();
+
+                for (let part of parts) {
+                    if (/^\d+$/.test(part)) { // 单个数字
+                        const p = parseInt(part, 10);
+                        if (p < 1 || p > totalPages) throw new Error(`页码 ${p} 超出范围 (1-${totalPages})`);
+                        pageSet.add(p);
+                    } else if (/^\d+-\d+$/.test(part)) { // 范围 如 2-5
+                        const [start, end] = part.split('-').map(n => parseInt(n, 10));
+                        if (start < 1 || end > totalPages || start > end) 
+                            throw new Error(`范围 ${part} 无效或超出范围 (1-${totalPages})`);
+                        for (let i = start; i <= end; i++) pageSet.add(i);
+                    } else {
+                        throw new Error(`无效的格式: "${part}"，请使用数字或范围 (如 3-7)`);
+                    }
+                }
+                // 转为排序数组
+                return Array.from(pageSet).sort((a, b) => a - b);
+            }
+
+            // ---------- 合并：渲染文件列表 (带排序按钮) ----------
+            function renderMergeFileList() {
+                if (mergeFilesArray.length === 0) {
+                    mergeListContainer.style.display = 'none';
+                    return;
+                }
+                mergeListContainer.style.display = 'block';
+                let html = '';
+                mergeFilesArray.forEach((file, index) => {
+                    html += `
+                        <div class="file-item">
+                            <span class="file-name" title="${file.name}">📄 ${file.name}</span>
+                            <div class="file-controls">
+                                <button class="move-up" ${index === 0 ? 'disabled' : ''} data-index="${index}">↑</button>
+                                <button class="move-down" ${index === mergeFilesArray.length-1 ? 'disabled' : ''} data-index="${index}">↓</button>
+                                <button class="delete-btn" data-index="${index}">✖</button>
+                            </div>
+                        </div>
+                    `;
+                });
+                mergeFileListDiv.innerHTML = html;
+
+                // 绑定上移、下移、删除事件
+                mergeFileListDiv.querySelectorAll('.move-up').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        const idx = parseInt(e.target.dataset.index);
+                        if (idx > 0) {
+                            [mergeFilesArray[idx-1], mergeFilesArray[idx]] = [mergeFilesArray[idx], mergeFilesArray[idx-1]];
+                            renderMergeFileList();
+                        }
+                    });
+                });
+                mergeFileListDiv.querySelectorAll('.move-down').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        const idx = parseInt(e.target.dataset.index);
+                        if (idx < mergeFilesArray.length-1) {
+                            [mergeFilesArray[idx], mergeFilesArray[idx+1]] = [mergeFilesArray[idx+1], mergeFilesArray[idx]];
+                            renderMergeFileList();
+                        }
+                    });
+                });
+                mergeFileListDiv.querySelectorAll('.delete-btn').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        const idx = parseInt(e.target.dataset.index);
+                        mergeFilesArray.splice(idx, 1);
+                        renderMergeFileList();
+                        if (mergeFilesArray.length === 0) mergeResultDiv.style.display = 'none';
+                    });
+                });
+            }
+
+            // 合并：文件选择事件 (追加)
+            mergeFileInput.addEventListener('change', function(e) {
+                const files = Array.from(e.target.files);
+                if (files.length) {
+                    mergeFilesArray.push(...files);
+                    renderMergeFileList();
+                }
+                // 清空input，以便再次选择同一个文件可触发
+                mergeFileInput.value = '';
+            });
+
+            // 合并：清空列表
+            mergeResetBtn.addEventListener('click', function() {
+                mergeFilesArray = [];
+                renderMergeFileList();
+                mergeResultDiv.style.display = 'none';
+            });
+
+            // ---------- 合并核心逻辑 ----------
+            mergeBtn.addEventListener('click', async function() {
+                if (mergeFilesArray.length === 0) {
+                    alert('请至少上传一个PDF文件');
+                    return;
+                }
+
+                // 禁用按钮，防止重复点击
+                mergeBtn.disabled = true;
+                mergeBtn.textContent = '合并中...';
+                mergeResultDiv.style.display = 'none';
+
+                try {
+                    const { PDFDocument } = PDFLib;
+                    const mergedPdf = await PDFDocument.create();
+
+                    // 按顺序遍历每个文件
+                    for (let i = 0; i < mergeFilesArray.length; i++) {
+                        const file = mergeFilesArray[i];
+                        const arrayBuffer = await file.arrayBuffer();
+                        const pdfDoc = await PDFDocument.load(arrayBuffer, { ignoreEncryption: true });
+                        const pages = await mergedPdf.copyPages(pdfDoc, pdfDoc.getPageIndices());
+                        pages.forEach(page => mergedPdf.addPage(page));
+                    }
+
+                    const pdfBytes = await mergedPdf.save();
+                    // 处理输出文件名
+                    let fileName = mergeOutputName.value.trim();
+                    if (!fileName.toLowerCase().endsWith('.pdf')) fileName += '.pdf';
+
+                    // 保存
+                    saveAs(new Blob([pdfBytes], { type: 'application/pdf' }), fileName);
+                    mergeResultDiv.innerHTML = `<span style="color: var(--success-color);">✅ 合并成功！已下载 ${fileName}</span>`;
+                    mergeResultDiv.style.display = 'block';
+                } catch (error) {
+                    console.error(error);
+                    mergeResultDiv.innerHTML = `<span style="color: var(--accent-color);">❌ 合并失败: ${error.message}</span>`;
+                    mergeResultDiv.style.display = 'block';
+                } finally {
+                    mergeBtn.disabled = false;
+                    mergeBtn.textContent = '合并PDF';
+                }
+            });
+
+            // ---------- 拆分：文件选择与页数读取 ----------
+            splitFileInput.addEventListener('change', async function(e) {
+                const file = e.target.files[0];
+                if (!file) {
+                    splitFileInfoDiv.style.display = 'none';
+                    splitFileBuffer = null;
+                    return;
+                }
+
+                splitResultDiv.style.display = 'none';
+                splitFileInfoDiv.style.display = 'block';
+                splitFileInfoDiv.innerHTML = `<span>⏳ 正在读取文件信息...</span>`;
+
+                try {
+                    const arrayBuffer = await file.arrayBuffer();
+                    const { PDFDocument } = PDFLib;
+                    const pdfDoc = await PDFDocument.load(arrayBuffer, { ignoreEncryption: true });
+                    const pageCount = pdfDoc.getPageCount();
+                    
+                    // 存储buffer和页数
+                    splitFileBuffer = arrayBuffer;
+                    splitFilePageCount = pageCount;
+                    splitFileName = file.name;
+
+                    splitFileInfoDiv.innerHTML = `
+                        <span class="info-badge">📄 ${file.name}</span>
+                        <span>总页数: <strong>${pageCount}</strong></span>
+                    `;
+                } catch (err) {
+                    splitFileInfoDiv.innerHTML = `<span style="color: var(--accent-color);">❌ 无法读取PDF: ${err.message}</span>`;
+                    splitFileBuffer = null;
+                    splitFilePageCount = 0;
+                }
+            });
+
+            // 拆分：重置按钮
+            splitResetBtn.addEventListener('click', function() {
+                splitFileInput.value = '';
+                splitFileInfoDiv.style.display = 'none';
+                splitFileBuffer = null;
+                splitFilePageCount = 0;
+                pageRangesInput.value = '';
+                splitResultDiv.style.display = 'none';
+            });
+
+            // ---------- 拆分核心逻辑 ----------
+            splitBtn.addEventListener('click', async function() {
+                if (!splitFileBuffer) {
+                    alert('请先上传一个PDF文件');
+                    return;
+                }
+
+                // 解析页码范围
+                let pagesToKeep = [];
+                try {
+                    pagesToKeep = parsePageRanges(pageRangesInput.value, splitFilePageCount);
+                } catch (err) {
+                    splitResultDiv.innerHTML = `<span style="color: var(--accent-color);">❌ 页码输入错误: ${err.message}</span>`;
+                    splitResultDiv.style.display = 'block';
+                    return;
+                }
+
+                if (pagesToKeep.length === 0) {
+                    splitResultDiv.innerHTML = `<span style="color: var(--accent-color);">❌ 没有选择任何有效页码</span>`;
+                    splitResultDiv.style.display = 'block';
+                    return;
+                }
+
+                splitBtn.disabled = true;
+                splitBtn.textContent = '拆分中...';
+
+                try {
+                    const { PDFDocument } = PDFLib;
+                    // 从buffer重新加载
+                    const sourceDoc = await PDFDocument.load(splitFileBuffer, { ignoreEncryption: true });
+                    const newDoc = await PDFDocument.create();
+
+                    // 页码转换为索引 (从0开始)
+                    const pageIndices = pagesToKeep.map(p => p - 1);
+                    const copiedPages = await newDoc.copyPages(sourceDoc, pageIndices);
+                    copiedPages.forEach(page => newDoc.addPage(page));
+
+                    const pdfBytes = await newDoc.save();
+                    let fileName = splitOutputName.value.trim();
+                    if (!fileName.toLowerCase().endsWith('.pdf')) fileName += '.pdf';
+
+                    saveAs(new Blob([pdfBytes], { type: 'application/pdf' }), fileName);
+                    splitResultDiv.innerHTML = `<span style="color: var(--success-color);">✅ 拆分成功！已下载 ${fileName} (共 ${pagesToKeep.length} 页)</span>`;
+                    splitResultDiv.style.display = 'block';
+                } catch (error) {
+                    console.error(error);
+                    splitResultDiv.innerHTML = `<span style="color: var(--accent-color);">❌ 拆分失败: ${error.message}</span>`;
+                    splitResultDiv.style.display = 'block';
+                } finally {
+                    splitBtn.disabled = false;
+                    splitBtn.textContent = '拆分PDF';
+                }
+            });
+
+            // 简单的防呆：如果输出文件名被删空，重置一个默认值
+            mergeOutputName.addEventListener('blur', function() {
+                if (!mergeOutputName.value.trim()) mergeOutputName.value = 'merged.pdf';
+            });
+            splitOutputName.addEventListener('blur', function() {
+                if (!splitOutputName.value.trim()) splitOutputName.value = 'split.pdf';
+            });
+
+            // 初始化渲染空列表
+            renderMergeFileList();
+        })();
+    </script>
+</body>
+</html>
