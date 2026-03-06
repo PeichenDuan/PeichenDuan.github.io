@@ -2,8 +2,8 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>大规模象棋</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
+    <title>大规模象棋 · 面对面翻转</title>
     <style>
         :root {
             --primary-color: #2c3e50;
@@ -89,14 +89,14 @@
         .mode-indicator {
             background-color: var(--warning-color);
             color: white;
-            padding: 12px 16px; /* 调整垂直内边距与按钮相同 */
+            padding: 12px 16px;
             border-radius: var(--border-radius);
             font-weight: bold;
             margin-left: 10px;
-            font-size: 1rem; /* 确保字体大小与按钮相同 */
-            line-height: 1; /* 设置行高为1，避免行高造成的额外高度 */
+            font-size: 1rem;
+            line-height: 1;
             display: flex;
-            align-items: center; /* 垂直居中 */
+            align-items: center;
         }
         .chess-container {
             display: flex;
@@ -168,6 +168,10 @@
         }
         .piece.red { background-color: #e74c3c; color: white; border: 2px solid #c0392b; }
         .piece.black { background-color: var(--dark-color); color: white; border: 2px solid #1a252f; }
+        /* 翻转样式：用于移动端双人模式下的黑方棋子，文字旋转180度 */
+        .piece.flipped {
+            transform: rotate(180deg);
+        }
         .piece.selected { box-shadow: 0 0 0 3px var(--warning-color); }
         .cell.can-capture .piece.black {
             animation: glow 1.5s infinite alternate;
@@ -273,6 +277,32 @@
             let blackKingMoved = false;
             let gameMode = 'single'; // 'single' or 'two-player'
             
+            // ---------- 新增：根据模式与移动端控制黑方棋子翻转 ----------
+            function updatePiecesOrientation() {
+                const isMobile = window.innerWidth <= 768;  // 与CSS媒体查询阈值一致
+                const shouldFlip = (gameMode === 'two-player' && isMobile);
+                
+                // 黑方棋子：满足条件则添加flipped类，否则移除
+                document.querySelectorAll('.piece.black').forEach(p => {
+                    if (shouldFlip) {
+                        p.classList.add('flipped');
+                    } else {
+                        p.classList.remove('flipped');
+                    }
+                });
+                // 确保红方永远不会被翻转 (以防万一有样式污染)
+                document.querySelectorAll('.piece.red').forEach(p => {
+                    p.classList.remove('flipped');
+                });
+            }
+
+            // 监听窗口大小变化，更新翻转状态（带简单防抖）
+            window.addEventListener('resize', function() {
+                clearTimeout(window._orientationTimer);
+                window._orientationTimer = setTimeout(updatePiecesOrientation, 100);
+            });
+            // -------------------------------------------------------
+          
             function initBoard() {
                 const chessboard = document.getElementById('chessboard');
                 chessboard.innerHTML = '<div class="river">楚河 汉界</div><div class="camp red"></div><div class="camp black"></div>';
@@ -290,6 +320,9 @@
                 }
                 setupPieces();
                 clearSelection();
+                
+                // 新棋盘生成后，更新一次棋子翻转状态
+                updatePiecesOrientation();
             }
           
             function setupPieces() {
@@ -1001,6 +1034,8 @@
                     document.getElementById('black-info').textContent = '等待红方走棋';
                 }
                 updateGameInfo();
+                // 切换模式后立即更新棋子翻转状态（可能进入/退出移动端双人模式）
+                updatePiecesOrientation();
             }
             
             // 修改handleCellClick函数，在玩家回合开始时检查困毙
