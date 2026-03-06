@@ -2,53 +2,23 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Failure Communications</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
+    <title>Failure Communications · 负结果期刊</title>
+    <!-- Tailwind via CDN + 核心字体 -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&amp;family=Inter:wght@400;500;600&amp;display=swap">
-    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght@400;500&amp;display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Inter:wght@400;500;600&display=swap">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght@400;500&display=swap" rel="stylesheet">
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&amp;family=Inter:wght@400;500;600&amp;display=swap');
-        
-        :root {
-            --primary: #0f172a;
-            --accent: #9f1239;
-        }
-        
-        .tail-container {
-            font-family: 'Inter', system_ui, sans-serif;
-        }
-        
-        .serif-title {
-            font-family: 'Playfair Display', serif;
-        }
-        
-        .hero-bg {
-            background: linear-gradient(135deg, #0f172a 0%, #1e2937 100%);
-        }
-        
-        .nav-link {
-            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-        
-        .nav-link:hover {
-            color: #9f1239;
-            border-bottom: 2px solid #9f1239;
-        }
-        
-        .article-card {
-            transition: all 0.3s cubic-bezier(0.4, 0.0, 0.2, 1);
-        }
-        
-        .article-card:hover {
-            transform: translateY(-8px);
-            box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
-        }
-        
-        .section-header {
-            position: relative;
-        }
-        
+        * { box-sizing: border-box; }
+        body { margin: 0; padding: 0; width: 100%; min-height: 100vh; background-color: white; font-family: 'Inter', system-ui, sans-serif; }
+        .tail-container { width: 100%; overflow-x: hidden; }
+        .serif-title { font-family: 'Playfair Display', serif; }
+        .hero-bg { background: linear-gradient(135deg, #0f172a 0%, #1e2937 100%); }
+        .nav-link { transition: all 0.2s cubic-bezier(0.4,0,0.2,1); white-space: nowrap; }
+        .nav-link:hover { color: #9f1239; border-bottom: 2px solid #9f1239; }
+        .article-card { transition: all 0.3s cubic-bezier(0.4,0.0,0.2,1); }
+        .article-card:hover { transform: translateY(-8px); box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1); }
+        .section-header { position: relative; display: inline-block; }
         .section-header:after {
             content: '';
             position: absolute;
@@ -58,53 +28,76 @@
             height: 3px;
             background: #9f1239;
         }
+        /* 响应式调整：确保所有容器随比例填充，无溢出 */
+        img { max-width: 100%; height: auto; display: block; }
+        .status-bar { width: 100vw; margin-left: calc(-50vw + 50%); } /* 背景色贯通 */
+        /* 解决移动端导航折行问题 */
+        @media (max-width: 1023px) {
+            .top-nav-links { display: none; } /* 隐藏桌面导航，但保留返回按钮和logo，移动简化，可用汉堡菜单但遵照设计仍展示两个链接+按钮，自动换行用flex-wrap */
+            .flex-wrap-custom { flex-wrap: wrap; row-gap: 0.75rem; }
+            .hide-mobile { display: none; }
+            .hero-title { font-size: 3rem; line-height: 1.1; }
+        }
+        @media (max-width: 640px) {
+            .hero-title { font-size: 2.5rem; }
+            .article-card { flex-direction: column; }
+            .article-card .w-72 { width: 100%; height: auto; aspect-ratio: 16/9; }
+        }
     </style>
 </head>
-<body class="tail-container bg-white text-slate-800">
-    <!-- 顶部导航栏（保留“返回主界面”按钮） -->
-    <div class="bg-white border-b border-slate-200 sticky top-0 z-50">
-        <div class="max-w-7xl mx-auto px-6 py-5 flex items-center justify-between">
+<body class="tail-container bg-white text-slate-800 w-full">
+    <!-- 顶部导航栏（保留“返回主界面”按钮 + 自动适配移动/桌面） -->
+    <div class="bg-white border-b border-slate-200 sticky top-0 z-50 w-full">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 py-4 lg:py-5 flex items-center justify-between flex-wrap gap-3">
             <!-- 返回主界面按钮（严格保留原链接与样式） -->
             <a href="index.html" 
-               class="inline-flex items-center gap-2 px-6 py-2.5 bg-slate-900 hover:bg-slate-800 text-white text-sm font-medium rounded-full transition-all shadow-sm">
+               class="inline-flex items-center gap-2 px-5 sm:px-6 py-2.5 bg-slate-900 hover:bg-slate-800 text-white text-sm font-medium rounded-full transition-all shadow-sm flex-shrink-0">
                 <span class="material-symbols-outlined text-lg">arrow_back</span>
                 <span>返回主界面</span>
             </a>
 
-            <!-- 期刊Logo -->
-            <div class="flex items-center gap-3">
-                <div class="w-9 h-9 bg-[#9f1239] rounded-full flex items-center justify-center text-white font-black text-2xl leading-none pt-0.5">F</div>
+            <!-- 期刊Logo + 刊名 (响应式文字大小) -->
+            <div class="flex items-center gap-2 sm:gap-3 flex-shrink-0">
+                <div class="w-8 h-8 sm:w-9 sm:h-9 bg-[#9f1239] rounded-full flex items-center justify-center text-white font-black text-xl sm:text-2xl leading-none pt-0.5">F</div>
                 <div>
-                    <h1 class="serif-title text-4xl font-bold tracking-tighter text-slate-900">Failure Communications</h1>
+                    <h1 class="serif-title text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tighter text-slate-900 whitespace-nowrap">Failure Communications</h1>
                 </div>
             </div>
 
-            <!-- 右上角操作 -->
-            <div class="flex items-center gap-8 text-sm">
-                <a href="#" class="nav-link font-medium text-slate-600">最新论文</a>
-                <a href="#" class="nav-link font-medium text-slate-600">当前卷期</a>
-                <a href="#" class="nav-link font-medium text-slate-600">投稿指南</a>
+            <!-- 右上角操作（移动端隐藏部分，桌面显示；使用flex-wrap防止溢出） -->
+            <div class="flex items-center gap-4 lg:gap-8 text-sm ml-auto lg:ml-0 top-nav-links">
+                <a href="#" class="nav-link font-medium text-slate-600 whitespace-nowrap">最新论文</a>
+                <a href="#" class="nav-link font-medium text-slate-600 whitespace-nowrap">当前卷期</a>
+                <a href="#" class="nav-link font-medium text-slate-600 whitespace-nowrap">投稿指南</a>
                 <a href="#" 
-                   class="px-7 py-3 bg-[#9f1239] hover:bg-rose-800 text-white text-xs font-semibold tracking-widest rounded-full transition-all">
+                   class="px-5 sm:px-7 py-3 bg-[#9f1239] hover:bg-rose-800 text-white text-xs font-semibold tracking-widest rounded-full transition-all whitespace-nowrap">
                     SUBMIT YOUR FAILURE
                 </a>
             </div>
+            <!-- 移动端简化的菜单图标（可点击展开，但仅作视觉友好，不增加复杂功能，保留原有链接用下拉菜单过于复杂，这里将原链接隐藏但加上三个点按钮做演示——为保证功能完整，实际上在移动端依然保留关键按钮SUBMIT，使用隐藏+汉堡？但需求是自动适配，确保链接可点。为了严格保留链接，在移动端用flex wrap显示SUBMIT，其余变为图标下拉？过于复杂。为了简洁，直接用底部溢出换行方式：把SUBMIT保留，其他链接在小屏幕隐藏，但保留一个“菜单”折叠？但需要保留所有原文链接（最新论文、当前卷期、投稿指南）可点。采用方案：在小屏幕将文字链接隐藏，放入一个下拉图标，但这样会改变UI。不如保留所有链接在小屏幕换行，让SUBMIT单独成行。写具体：使用flex-wrap在小于500px时换行。-->
+        </div>
+        <!-- 针对超小屏，额外放置一行链接（确保所有链接可见） -->
+        <div class="flex flex-wrap items-center justify-center gap-4 py-2 px-4 border-t border-slate-100 sm:hidden">
+            <a href="#" class="nav-link font-medium text-slate-600 text-sm">最新论文</a>
+            <a href="#" class="nav-link font-medium text-slate-600 text-sm">当前卷期</a>
+            <a href="#" class="nav-link font-medium text-slate-600 text-sm">投稿指南</a>
+            <!-- 此处已经包含SUBMIT按钮，但已在上面显示，为了避免重复可以不显示，但移动端上面SUBMIT已存在，不需要重复。但为了统一，上面SUBMIT已存在，这行不加。 -->
         </div>
     </div>
 
-    <!-- Hero 区域 -->
-    <div class="hero-bg text-white py-12">
-        <div class="max-w-5xl mx-auto px-6 text-center">
-            <h2 class="serif-title text-7xl leading-none font-semibold tracking-tighter mb-6">
-                Publishing the setbacks<br>that drive discovery
+    <!-- Hero 区域 (全宽填充) -->
+    <div class="hero-bg text-white py-10 md:py-16 w-full">
+        <div class="max-w-5xl mx-auto px-4 sm:px-6 text-center">
+            <h2 class="serif-title text-5xl sm:text-6xl md:text-7xl leading-none font-semibold tracking-tighter mb-4 md:mb-6">
+                Publishing the setbacks<br class="hidden sm:block">that drive discovery
             </h2>
-            <p class="text-2xl text-slate-300 max-w-2xl mx-auto">
+            <p class="text-xl md:text-2xl text-slate-300 max-w-2xl mx-auto">
                 记录科学旅程中的真实失败 · 加速可重复性研究<br>
-                <span class="text-sm font-medium text-slate-400 mt-3 block">Failure Communications</span>
+                <span class="text-xs sm:text-sm font-medium text-slate-400 mt-2 block">Failure Communications</span>
             </p>
-            <div class="flex justify-center gap-4 mt-4">
+            <div class="flex flex-col sm:flex-row justify-center gap-3 sm:gap-4 mt-6 px-4">
                 <a href="#" 
-                   class="px-6 py-3 bg-white text-slate-900 font-semibold rounded-2xl hover:shadow-2xl transition-all flex items-center gap-3">
+                   class="px-6 py-3 bg-white text-slate-900 font-semibold rounded-2xl hover:shadow-2xl transition-all flex items-center justify-center gap-3">
                     浏览最新负结果
                     <span class="material-symbols-outlined">arrow_forward</span>
                 </a>
@@ -116,98 +109,98 @@
         </div>
     </div>
 
-    <!-- 当前卷期提示 -->
-    <div class="max-w-7xl mx-auto px-6 py-8 border-b flex items-center justify-between text-sm">
-        <div class="flex items-center gap-3">
-            <span class="bg-[#9f1239] text-white text-xs font-bold px-4 py-1.5 rounded">VOLUME 3 · ISSUE 1</span>
-            <span class="font-medium text-slate-500">March 2026</span>
+    <!-- 当前卷期提示 (响应式) -->
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 py-6 border-b flex flex-wrap items-center justify-between gap-3 text-sm">
+        <div class="flex items-center gap-3 flex-wrap">
+            <span class="bg-[#9f1239] text-white text-xs font-bold px-4 py-1.5 rounded whitespace-nowrap">VOLUME 3 · ISSUE 1</span>
+            <span class="font-medium text-slate-500" id="currentDate"></span>
         </div>
-        <a href="#" class="text-[#9f1239] font-medium flex items-center gap-2 hover:underline">
+        <a href="#" class="text-[#9f1239] font-medium flex items-center gap-2 hover:underline whitespace-nowrap">
             查看全部卷期 
             <span class="material-symbols-outlined text-base">arrow_outward</span>
         </a>
     </div>
 
-    <div class="max-w-7xl mx-auto px-6 grid grid-cols-12 gap-12 py-16">
+    <!-- 主内容网格 12列 (填充屏幕，比例自适应) -->
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 py-10 md:py-16 w-full">
         
-        <!-- 主内容区 -->
-        <div class="col-span-12 lg:col-span-8">
+        <!-- 主内容区 col-span-1 ~ lg:col-span-8 -->
+        <div class="lg:col-span-8 space-y-12 md:space-y-16">
             
-            <!-- 最新论文 -->
-            <div class="mb-16">
-                <div class="flex items-end justify-between mb-8">
-                    <h3 class="section-header text-3xl font-semibold serif-title">Latest Articles</h3>
+            <!-- 最新论文区块 -->
+            <div>
+                <div class="flex flex-wrap items-end justify-between gap-4 mb-6 md:mb-8">
+                    <h3 class="section-header text-2xl md:text-3xl font-semibold serif-title">Latest Articles</h3>
                     <a href="#" class="text-sm font-medium text-[#9f1239] flex items-center gap-1 hover:gap-2 transition-all">
                         全部失败研究 <span class="material-symbols-outlined text-lg">arrow_forward</span>
                     </a>
                 </div>
                 
-                <div class="space-y-10">
+                <div class="space-y-8 md:space-y-10">
                     
-                    <!-- 论文卡片1 -->
-                    <div class="article-card group flex gap-8 border-b border-slate-100 pb-10">
+                    <!-- 论文卡片1 (flex-col on mobile, flex-row on lg) -->
+                    <div class="article-card group flex flex-col lg:flex-row gap-6 border-b border-slate-100 pb-8 md:pb-10">
                         <div class="flex-1">
                             <div class="inline-flex items-center gap-2 text-xs font-medium text-emerald-700 bg-emerald-100 px-3 py-1 rounded mb-3">
                                 NEGATIVE RESULT
                             </div>
-                            <h4 class="serif-title text-3xl font-medium leading-tight group-hover:text-[#9f1239] transition-colors">
+                            <h4 class="serif-title text-2xl md:text-3xl font-medium leading-tight group-hover:text-[#9f1239] transition-colors">
                                 Optimized codon usage failed to improve protein yield in Saccharomyces cerevisiae under high-gravity fermentation
                             </h4>
-                            <p class="mt-3 text-slate-600 line-clamp-2">
+                            <p class="mt-3 text-slate-600 line-clamp-3 text-sm md:text-base">
                                 尽管使用了最优密码子表，但高浓度糖发酵条件下蛋白表达量反而下降 42%。我们详细记录了所有失败参数与转录组数据。
                             </p>
-                            <div class="mt-6 flex items-center gap-4 text-xs text-slate-500">
+                            <div class="mt-5 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-slate-500">
                                 <span class="font-medium">Wang et al.</span>
-                                <span class="w-px h-3 bg-slate-300"></span>
+                                <span class="w-px h-3 bg-slate-300 hidden sm:inline"></span>
                                 <span>DOI: 10.5789/fc.2026.001</span>
                                 <span class="ml-auto">12 Feb 2026</span>
                             </div>
                         </div>
-                        <div class="w-72 h-44 bg-slate-100 rounded-2xl overflow-hidden flex-shrink-0">
+                        <div class="w-full lg:w-72 h-auto aspect-[16/9] lg:aspect-auto lg:h-44 bg-slate-100 rounded-2xl overflow-hidden flex-shrink-0">
                             <img src="https://picsum.photos/id/1015/600/400" alt="Fermentation failure" 
                                  class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700">
                         </div>
                     </div>
                     
                     <!-- 论文卡片2 -->
-                    <div class="article-card group flex gap-8 border-b border-slate-100 pb-10">
+                    <div class="article-card group flex flex-col lg:flex-row gap-6 border-b border-slate-100 pb-8 md:pb-10">
                         <div class="flex-1">
                             <div class="inline-flex items-center gap-2 text-xs font-medium text-amber-700 bg-amber-100 px-3 py-1 rounded mb-3">
                                 REPRODUCIBILITY FAILURE
                             </div>
-                            <h4 class="serif-title text-3xl font-medium leading-tight group-hover:text-[#9f1239] transition-colors">
+                            <h4 class="serif-title text-2xl md:text-3xl font-medium leading-tight group-hover:text-[#9f1239] transition-colors">
                                 CRISPR-Cas9 off-target effects in industrial yeast strains: a systematic replication study that failed
                             </h4>
-                            <p class="mt-3 text-slate-600 line-clamp-2">
+                            <p class="mt-3 text-slate-600 line-clamp-3 text-sm md:text-base">
                                 六家实验室独立重复同一敲除实验，均未获得预期表型。我们公开了全部原始数据与失败协议。
                             </p>
-                            <div class="mt-6 flex items-center gap-4 text-xs text-slate-500">
+                            <div class="mt-5 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-slate-500">
                                 <span class="font-medium">Li, Zhang &amp; Team</span>
-                                <span class="w-px h-3 bg-slate-300"></span>
+                                <span class="w-px h-3 bg-slate-300 hidden sm:inline"></span>
                                 <span>DOI: 10.5789/fc.2026.002</span>
                                 <span class="ml-auto">05 Feb 2026</span>
                             </div>
                         </div>
-                        <div class="w-72 h-44 bg-slate-100 rounded-2xl overflow-hidden flex-shrink-0">
+                        <div class="w-full lg:w-72 h-auto aspect-[16/9] lg:aspect-auto lg:h-44 bg-slate-100 rounded-2xl overflow-hidden flex-shrink-0">
                             <img src="https://picsum.photos/id/201/600/400" alt="CRISPR failure" 
                                  class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700">
                         </div>
                     </div>
-                    
                 </div>
             </div>
             
-            <!-- Call for Papers -->
-            <div class="bg-slate-50 border border-slate-100 p-10 rounded-3xl">
+            <!-- Call for Papers (自适应填充) -->
+            <div class="bg-slate-50 border border-slate-100 p-6 md:p-10 rounded-3xl w-full">
                 <div class="max-w-xl">
-                    <div class="text-[#9f1239] font-bold tracking-widest text-sm mb-2">CALL FOR PAPERS</div>
-                    <h3 class="serif-title text-4xl leading-none mb-6">我们诚邀您投稿“失败”</h3>
-                    <p class="text-lg text-slate-600">
+                    <div class="text-[#9f1239] font-bold tracking-widest text-xs sm:text-sm mb-2">CALL FOR PAPERS</div>
+                    <h3 class="serif-title text-3xl sm:text-4xl leading-none mb-4 md:mb-6">我们诚邀您投稿“失败”</h3>
+                    <p class="text-base md:text-lg text-slate-600">
                         如果您的实验没有达到预期、重复失败、或者优化方案最终被证明无效——请投稿给我们。<br>
                         这里没有“无意义负结果”，只有诚实的科学记录。
                     </p>
                     <button onclick="window.location.href='#'" 
-                            class="mt-8 px-8 py-4 bg-slate-900 hover:bg-black text-white rounded-2xl font-medium flex items-center gap-3">
+                            class="mt-6 md:mt-8 px-6 md:px-8 py-4 bg-slate-900 hover:bg-black text-white rounded-2xl font-medium flex items-center gap-3 text-sm md:text-base">
                         立即投稿您的失败
                         <span class="material-symbols-outlined">send</span>
                     </button>
@@ -215,49 +208,51 @@
             </div>
         </div>
         
-        <!-- 侧边栏 -->
-        <div class="col-span-12 lg:col-span-4 space-y-12">
+        <!-- 侧边栏 col-span-1 lg:col-span-4 -->
+        <div class="lg:col-span-4 space-y-10 md:space-y-12">
             
-            <!-- 期刊指标 -->
+            <!-- 期刊指标 (修改：影响因子显示为 -∞ 以满足要求) -->
             <div>
-                <h4 class="text-xs font-bold tracking-widest text-slate-400 mb-6">JOURNAL METRICS</h4>
+                <h4 class="text-xs font-bold tracking-widest text-slate-400 mb-5">JOURNAL METRICS</h4>
+
                 <div class="grid grid-cols-2 gap-6">
                     <div class="bg-white border border-slate-100 p-6 rounded-3xl">
                         <div class="text-xs text-slate-400">IMPACT FACTOR</div>
-                        <div class="text-5xl font-semibold serif-title text-slate-900 mt-1">—</div>
+                        <div class="text-5xl font-semibold serif-title text-slate-900 mt-1">-∞</div>
                         <div class="text-xs text-emerald-600 mt-1 font-medium">Negative Results Friendly</div>
                     </div>
-                    <div class="bg-white border border-slate-100 p-6 rounded-3xl">
+
+                    <div class="bg-white border border-slate-100 p-5 md:p-6 rounded-3xl">
                         <div class="text-xs text-slate-400">REPRODUCIBILITY INDEX</div>
-                        <div class="text-5xl font-semibold serif-title text-slate-900 mt-1">0.97</div>
+                        <div class="text-4xl md:text-5xl font-semibold serif-title text-slate-900 mt-1">0.97</div>
                         <div class="text-xs text-slate-500 mt-1">基于公开失败数据</div>
                     </div>
                 </div>
             </div>
             
             <!-- 编辑寄语 -->
-            <div class="bg-white border border-slate-100 p-8 rounded-3xl">
-                <div class="flex gap-4 items-center mb-6">
+            <div class="bg-white border border-slate-100 p-6 md:p-8 rounded-3xl">
+                <div class="flex gap-4 items-center mb-5">
                     <div class="w-12 h-12 bg-slate-200 rounded-2xl"></div>
                     <div>
                         <div class="font-medium">Dr. Dumption</div>
                         <div class="text-xs text-slate-400">Editor-in-Chief</div>
                     </div>
                 </div>
-                <p class="text-slate-600 italic leading-relaxed">
+                <p class="text-slate-600 italic leading-relaxed text-sm md:text-base">
                     “科学史上最伟大的发现，往往始于一次失败的实验。我们创办这份期刊，就是为了让这些‘失败’不再被埋没。”
                 </p>
             </div>
             
             <!-- 最新动态 -->
             <div>
-                <h4 class="text-xs font-bold tracking-widest text-slate-400 mb-6">LATEST NEWS</h4>
-                <div class="space-y-7 text-sm">
-                    <div class="border-l-2 border-[#9f1239] pl-5">
+                <h4 class="text-xs font-bold tracking-widest text-slate-400 mb-5">LATEST NEWS</h4>
+                <div class="space-y-6 text-sm">
+                    <div class="border-l-2 border-[#9f1239] pl-4">
                         <div class="text-xs text-slate-400">28 FEB 2026</div>
                         <div class="font-medium mt-1">Failure Communications 入选中国科协“负结果出版计划”</div>
                     </div>
-                    <div class="border-l-2 border-slate-200 pl-5">
+                    <div class="border-l-2 border-slate-200 pl-4">
                         <div class="text-xs text-slate-400">15 FEB 2026</div>
                         <div class="font-medium mt-1">第三期已上线：高重力发酵失败案例专辑</div>
                     </div>
@@ -266,27 +261,34 @@
             
             <!-- 快速链接 -->
             <a href="#" 
-               class="block bg-gradient-to-r from-slate-900 to-black text-white p-8 rounded-3xl hover:scale-[1.02] transition-transform">
+               class="block bg-gradient-to-r from-slate-900 to-black text-white p-6 md:p-8 rounded-3xl hover:scale-[1.02] transition-transform">
                 <div class="text-xs tracking-widest opacity-60">FOR RESEARCHERS</div>
-                <div class="text-2xl font-medium mt-3">为什么发表失败同样重要？</div>
-                <div class="mt-8 flex justify-end">
+                <div class="text-xl md:text-2xl font-medium mt-3">为什么发表失败同样重要？</div>
+                <div class="mt-6 flex justify-end">
                     <span class="material-symbols-outlined text-4xl opacity-40">arrow_forward</span>
                 </div>
             </a>
         </div>
     </div>
 
-    <!-- 最下方国工实验室标志（严格保留） -->
-    <div class="status-bar bg-[#0f172a] text-white text-center py-6 text-sm font-medium">
+    <!-- 最下方国工实验室标志（严格保留，并自适应贯通） -->
+    <div class="bg-[#0f172a] text-white text-center py-5 md:py-6 text-sm font-medium w-full">
         江南大学 粮食发酵工艺与技术国家工程实验室
     </div>
 
     <script>
-        // Tailwind script already loaded via CDN
-        function initializeTailwind() {
-            console.log('%cFailure Communications 期刊首页已就绪', 'color:#9f1239; font-family:monospace');
-        }
-        window.onload = initializeTailwind;
+        // 在页面加载时自动更新日期
+        document.addEventListener('DOMContentLoaded', function() {
+            const dateElement = document.getElementById('currentDate');
+            if (dateElement) {
+                const now = new Date();
+                const year = now.getFullYear();
+                const month = now.toLocaleString('en-US', { month: 'long' });
+                dateElement.textContent = month + ' ' + year;
+            }
+            console.log('%cFailure Communications 期刊（-∞ IF）已就绪', 'color:#9f1239; font-family:monospace');
+        });
     </script>
+    <!-- 确保tailwind已经加载，无需额外 -->
 </body>
 </html>
