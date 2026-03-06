@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
     <title>Bioinformatics Analysis Toolkit</title>
     <style>
         :root {
@@ -426,17 +426,14 @@
 </head>
 <body>
     <header class="main-header">
-        <!-- 左上角蝙蝠图标和BAT文字 -->
         <div class="logo-container">
             <div class="bat-icon">🦇</div>
             <span class="logo-text">BAT</span>
         </div>
         
-        <!-- 标题和描述 -->
         <h1>Bioinformatics Analysis Toolkit</h1>
         <p>高效、准确的生物信息分析解决方案</p>
         
-        <!-- 右上角关于按钮 -->
         <div class="about-container">
             <button class="about-btn" id="aboutBtn">!</button>
             <span class="about-text">关于</span>
@@ -739,79 +736,107 @@
     </div>
 
     <script>
-        // 用户认证配置 - 您可以在这里编辑用户名和密码
+        // 用户认证配置
         const VALID_USERS = {
-            "admin": "123456", // 用户名: 密码
+            "admin": "123456",
         };
-
-        // 会话超时时间（分钟）- 现在仅在同一会话中有效
         const SESSION_TIMEOUT = 30;
 
-        // 键盘快捷键监听
         document.addEventListener('DOMContentLoaded', function() {
+            // ---------- 隐藏版块元素 ----------
+            const hiddenSection = document.getElementById('hiddenSection');
+
+            // ---------- 键盘快捷键 (Ctrl + Y + C) 保持不变 ----------
             let keysPressed = {};
             let requiredKeys = ['Control', 'y', 'c'];
-            let hiddenSection = document.getElementById('hiddenSection');
             
             document.addEventListener('keydown', function(event) {
-                // 存储按下的键
                 keysPressed[event.key] = true;
-                
-                // 检查是否同时按下了所有需要的键
                 let allKeysPressed = requiredKeys.every(key => keysPressed[key]);
                 
                 if (allKeysPressed) {
-                    // 切换隐藏版块的显示状态
-                    if (hiddenSection.style.display === 'block') {
-                        hiddenSection.style.display = 'none';
-                    } else {
-                        hiddenSection.style.display = 'block';
-                        
-                        // 添加显示动画
-                        hiddenSection.style.animation = 'highlight 2s';
-                    }
+                    // 直接切换显示状态 (不经过冷却，保证快捷键即时响应)
+                    const isVisible = hiddenSection.style.display === 'block';
+                    hiddenSection.style.display = isVisible ? 'none' : 'block';
                     
                     // 清除按键状态，防止重复触发
                     keysPressed = {};
-                    
-                    // 阻止默认行为
                     event.preventDefault();
                 }
             });
             
             document.addEventListener('keyup', function(event) {
-                // 移除松开的键
                 delete keysPressed[event.key];
             });
-            
-            // 添加高亮动画
-            let style = document.createElement('style');
-            style.textContent = `
-                @keyframes highlight {
-                    0% { 
-                        transform: scale(0.98);
-                        background: linear-gradient(135deg, #fceabb 0%, #f8b500 100%);
-                    }
-                    50% { 
-                        transform: scale(1.01);
-                        background: linear-gradient(135deg, #ffdd9a 0%, #ffa500 100%);
-                    }
-                    100% { 
-                        transform: scale(1);
-                        background: linear-gradient(135deg, #fceabb 0%, #f8b500 100%);
-                    }
+
+            // ---------- 移动端手势: 到底部后上拉显示/隐藏 (无任何提示) ----------
+            function initMobileGesture() {
+                // 只对触摸设备生效
+                if (!('ontouchstart' in window)) return;
+
+                const BOTTOM_THRESHOLD = 20;      // 距离底部多少像素内算“到底”
+                const SWIPE_DISTANCE = 15;         // 上拉最少像素
+                const COOLDOWN_MS = 400;            // 避免连续触发
+
+                let touchStartY = 0;
+                let startedAtBottom = false;
+                let gestureCooldown = false;
+
+                function isAtBottom() {
+                    const scrollY = window.scrollY;
+                    const visibleHeight = window.innerHeight;
+                    const totalHeight = document.documentElement.scrollHeight;
+                    return (totalHeight - (scrollY + visibleHeight)) <= BOTTOM_THRESHOLD;
                 }
-            `;
-            document.head.appendChild(style);
-            
-            // 用户认证功能
+
+                function toggleHiddenViaGesture() {
+                    if (gestureCooldown) return;
+                    gestureCooldown = true;
+                    setTimeout(() => { gestureCooldown = false; }, COOLDOWN_MS);
+
+                    const isVisible = hiddenSection.style.display === 'block';
+                    hiddenSection.style.display = isVisible ? 'none' : 'block';
+                }
+
+                document.addEventListener('touchstart', function(e) {
+                    if (e.touches.length) {
+                        touchStartY = e.touches[0].clientY;
+                        startedAtBottom = isAtBottom();
+                    }
+                }, { passive: true });
+
+                document.addEventListener('touchend', function(e) {
+                    // 只有触摸开始时在底部，才可能触发手势
+                    if (!startedAtBottom) return;
+                    if (!e.changedTouches.length) return;
+
+                    const touchEndY = e.changedTouches[0].clientY;
+                    const deltaY = touchEndY - touchStartY;   // 向上滑动为负值
+
+                    // 向上滑动且距离足够
+                    if (deltaY < 0 && Math.abs(deltaY) >= SWIPE_DISTANCE) {
+                        toggleHiddenViaGesture();
+                    }
+
+                    // 重置标志
+                    startedAtBottom = false;
+                });
+
+                document.addEventListener('touchcancel', function() {
+                    startedAtBottom = false;
+                });
+            }
+
+            initMobileGesture();
+
+            // ---------- 用户认证功能 (原样保留) ----------
             initAuthentication();
             
-            // 关于模态框功能
+            // ---------- 关于模态框 (原样保留) ----------
             initAboutModal();
         });
 
-        // 关于模态框功能
+        // 关于模态框功能 (保持不变)
         function initAboutModal() {
             const aboutBtn = document.getElementById('aboutBtn');
             const aboutModal = document.getElementById('aboutModal');
@@ -832,7 +857,7 @@
             });
         }
 
-        // 用户认证功能
+        // 用户认证功能 (保持不变)
         function initAuthentication() {
             const loginModal = document.getElementById('loginModal');
             const loginForm = document.getElementById('loginForm');
@@ -842,48 +867,36 @@
             
             let targetUrl = '';
             
-            // 检查是否已有有效的登录会话
             checkSession();
             
-            // 为受限工具添加点击事件
             restrictedTools.forEach(tool => {
                 tool.addEventListener('click', function(e) {
-                    // 如果用户未登录，显示登录模态框
                     if (!isLoggedIn()) {
                         e.preventDefault();
                         targetUrl = this.getAttribute('href');
                         loginModal.style.display = 'flex';
                     }
-                    // 如果已登录，直接跳转
                 });
             });
             
-            // 登录表单提交事件
             loginForm.addEventListener('submit', function(e) {
                 e.preventDefault();
                 const username = document.getElementById('username').value;
                 const password = document.getElementById('password').value;
                 
                 if (authenticateUser(username, password)) {
-                    // 登录成功
                     loginModal.style.display = 'none';
                     errorMessage.style.display = 'none';
                     loginForm.reset();
-                    
-                    // 保存登录状态（使用sessionStorage，关闭页面后失效）
                     saveLoginState(username);
-                    
-                    // 跳转到目标页面
                     if (targetUrl) {
                         window.location.href = targetUrl;
                     }
                 } else {
-                    // 登录失败
                     errorMessage.style.display = 'block';
                 }
             });
             
-            // 取消按钮事件
             cancelBtn.addEventListener('click', function() {
                 loginModal.style.display = 'none';
                 errorMessage.style.display = 'none';
@@ -891,7 +904,6 @@
                 targetUrl = '';
             });
             
-            // 点击模态框外部关闭
             loginModal.addEventListener('click', function(e) {
                 if (e.target === loginModal) {
                     loginModal.style.display = 'none';
@@ -902,44 +914,34 @@
             });
         }
         
-        // 验证用户名和密码
         function authenticateUser(username, password) {
             return VALID_USERS[username] === password;
         }
         
-        // 检查用户是否已登录
         function isLoggedIn() {
             const loginData = getLoginData();
             if (!loginData) return false;
-            
-            // 检查会话是否过期
             const now = new Date().getTime();
             if (now - loginData.loginTime > SESSION_TIMEOUT * 60 * 1000) {
-                // 会话已过期
                 sessionStorage.removeItem('labLoginData');
                 return false;
             }
-            
             return true;
         }
         
-        // 保存登录状态
         function saveLoginState(username) {
             const loginData = {
                 username: username,
                 loginTime: new Date().getTime()
             };
-            // 使用sessionStorage替代localStorage，关闭页面后自动清除
             sessionStorage.setItem('labLoginData', JSON.stringify(loginData));
         }
         
-        // 获取登录数据
         function getLoginData() {
             const data = sessionStorage.getItem('labLoginData');
             return data ? JSON.parse(data) : null;
         }
         
-        // 检查会话状态
         function checkSession() {
             if (isLoggedIn()) {
                 console.log('用户已登录（当前会话）');
