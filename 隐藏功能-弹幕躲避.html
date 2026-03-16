@@ -1,0 +1,857 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>弹幕躲避 · 心之试炼 · 类型低频版</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f0f2f5;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        .tool-header {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background-color: #2c3e50;
+            color: white;
+            padding: 12px;
+            width: 100%;
+        }
+        .tool-header h2 {
+            color: white;
+            font-weight: 400;
+            margin: 0;
+        }
+        .back-button {
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: white;
+            padding: 6px 16px;
+            border-radius: 30px;
+            cursor: pointer;
+            margin-top: 6px;
+            font-size: 0.9rem;
+            text-decoration: none;
+            display: inline-block;
+        }
+        .back-button:hover {
+            background: rgba(255,255,255,0.3);
+        }
+        .content {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 16px;
+        }
+        .game-section {
+            background: white;
+            border-radius: 24px;
+            padding: 24px 20px;
+            max-width: 700px;
+            width: 100%;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+        }
+        .canvas-square-wrapper {
+            position: relative;
+            width: 100%;
+            max-width: 600px;
+            margin: 0 auto;
+            aspect-ratio: 1 / 1;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            overflow: hidden;
+            cursor: none;
+            border: 1px solid #ddd;
+        }
+        #gameCanvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+            background: white;
+        }
+        .info-panel {
+            display: flex;
+            gap: 12px;
+            margin: 18px 0 16px;
+            flex-wrap: wrap;
+        }
+        .result-box {
+            flex: 1 1 120px;
+            background: #f8fafc;
+            border-radius: 20px;
+            padding: 10px 6px;
+            text-align: center;
+            border-left: 4px solid #e74c3c;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.02);
+        }
+        .result-box .label {
+            font-size: 0.85rem;
+            color: #2c3e50;
+            font-weight: 600;
+        }
+        .result-box .value {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: #e74c3c;
+            line-height: 1.2;
+        }
+        #type-display .value {
+            font-size: 1.3rem;
+        }
+        .text-source {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin: 15px 0;
+        }
+        .textarea-row {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        textarea {
+            flex: 1;
+            height: 80px;
+            padding: 12px;
+            border: 1px solid #ccc;
+            border-radius: 20px;
+            font-family: 'Times New Roman', '宋体', serif;
+            resize: vertical;
+            font-size: 14px;
+        }
+        .file-row {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .custom-file-upload {
+            background: #2c3e50;
+            color: white;
+            padding: 10px 18px;
+            border-radius: 30px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.9rem;
+            white-space: nowrap;
+        }
+        input[type="file"] { display: none; }
+        .status-tip {
+            background: #ecf0f1;
+            padding: 8px 16px;
+            border-radius: 30px;
+            font-size: 0.9rem;
+        }
+        .button-group {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin: 10px 0 5px;
+        }
+        .reset-button {
+            padding: 12px 30px;
+            font-weight: bold;
+            border: none;
+            border-radius: 40px;
+            cursor: pointer;
+            font-size: 1rem;
+            background: #e74c3c;
+            color: white;
+            transition: 0.2s;
+        }
+        .reset-button:hover { background: #c0392b; }
+        .status-bar {
+            background: #2c3e50;
+            color: white;
+            text-align: center;
+            padding: 10px;
+            font-weight: 300;
+            font-size: 0.9rem;
+        }
+        .hint-text {
+            font-size: 0.8rem;
+            color: #7f8c8d;
+            text-align: center;
+            margin-top: 8px;
+        }
+    </style>
+</head>
+<body>
+<div class="tool-header">
+    <h2>弹幕躲避</h2>
+    <a href="javascript:history.back()" class="back-button">返回主界面</a>
+</div>
+<div class="content">
+    <div class="game-section">
+        <div class="canvas-square-wrapper" id="canvasWrapper">
+            <canvas id="gameCanvas" width="600" height="600"></canvas>
+        </div>
+
+        <div class="info-panel">
+            <div class="result-box"><span class="label">❤️ 血量</span><div class="value" id="hpDisplay">100</div></div>
+            <div class="result-box"><span class="label">📄 剩余字数</span><div class="value" id="remainingDisplay">0</div></div>
+            <div class="result-box" id="type-display"><span class="label">🎯 当前类型</span><div class="value" id="currentType">-</div></div>
+            <div class="result-box"><span class="label">⚡ 弹幕数</span><div class="value" id="bulletCount">0</div></div>
+        </div>
+
+        <div class="text-source">
+            <div class="textarea-row">
+                <textarea id="textInput" placeholder="在此粘贴文本（留空则使用默认化学元素+符号）"></textarea>
+                <button class="custom-file-upload" id="loadTextBtn" style="background:#3498db;">加载文本</button>
+            </div>
+            <div class="file-row">
+                <label for="fileUpload" class="custom-file-upload">📁 上传文件</label>
+                <input type="file" id="fileUpload" accept=".txt,.tsv,.fasta,.csv,text/plain">
+                <span class="status-tip" id="fileStatus">未选择</span>
+            </div>
+        </div>
+
+        <div class="button-group">
+            <button class="reset-button" id="resetBtn">⏹️ 清空重置</button>
+        </div>
+        <div class="hint-text">
+            PC:鼠标移动 | 移动端:陀螺仪/拖动红心 · 触摸画布/空格键开始
+        </div>
+    </div>
+</div>
+<div class="status-bar">江南大学 粮食发酵工艺与技术国家工程实验室 · 弹幕躲避</div>
+
+<script>
+(function() {
+    // ------ 固定参数 ------
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    const SIZE = 600;
+
+    // 红心
+    let heart = { x: SIZE/2, y: SIZE/2, r: 14 };
+
+    // 血量
+    let hp = 100;
+    const MAX_HP = 100;
+
+    // 游戏状态: 'waiting', 'playing', 'gameover', 'win'
+    let gameState = 'waiting';
+
+    // 子弹系统
+    let bullets = [];                // 所有活跃子弹对象
+    let charList = [];                // 从文本解析出的字符数组 (非空白)
+    let totalChars = 0;
+    let nextIndex = 0;                // 下一个要生成的字符索引
+    let lastGenTime = performance.now();
+    const GEN_INTERVAL = 166;         // 约6帧/秒 (原1.5倍)
+    const BASE_SPEED = 1.8;           // 基础速度
+
+    // ---------- 类型定义 ----------
+    const directionTypes = ['left','right','up','down','diag'];
+    const specialTypes = ['tracking','laser','firework','variable','fade'];
+    const allTypes = [...directionTypes, ...specialTypes];
+
+    const typeNameMap = {
+        'left':'←左向', 'right':'→右向', 'up':'↑上向', 'down':'↓下向', 'diag':'⬈斜向',
+        'tracking':'追踪', 'laser':'激光', 'firework':'烟花', 'variable':'快慢刀', 'fade':'虚化'
+    };
+
+    // 当前弹幕类型字符串 (用于显示)
+    let currentTypeString = '-';
+
+    // ---------- 新增：上一次生成的类型记录 (用于低频切换) ----------
+    let lastTypes = null;            // 存储上一次成功生成的类型数组 (单弹幕为[type], 双弹幕为[type1, type2])
+
+    // ---------- 生成子弹核心函数 (根据指定类型) ----------
+    function spawnBulletOfType(type) {
+        if (nextIndex >= totalChars) return false;
+
+        const ch = charList[nextIndex];
+        nextIndex++;
+
+        let bullet = {
+            ch: ch,
+            x: 0, y: 0,
+            vx: 0, vy: 0,
+            type: type,
+            age: 0,
+            extra: {}
+        };
+
+        // 根据类型初始化 (完全保持原样, 只增加新逻辑)
+        switch (type) {
+            // 方向类 -------------------------------------------------
+            case 'left':
+                bullet.x = 0;
+                bullet.y = Math.random() * SIZE;
+                bullet.vx = BASE_SPEED * (0.9 + Math.random() * 0.4);
+                bullet.vy = (Math.random() - 0.5) * BASE_SPEED * 0.3;
+                break;
+            case 'right':
+                bullet.x = SIZE;
+                bullet.y = Math.random() * SIZE;
+                bullet.vx = -BASE_SPEED * (0.9 + Math.random() * 0.4);
+                bullet.vy = (Math.random() - 0.5) * BASE_SPEED * 0.3;
+                break;
+            case 'up':
+                bullet.x = Math.random() * SIZE;
+                bullet.y = 0;
+                bullet.vx = (Math.random() - 0.5) * BASE_SPEED * 0.3;
+                bullet.vy = BASE_SPEED * (0.9 + Math.random() * 0.4);
+                break;
+            case 'down':
+                bullet.x = Math.random() * SIZE;
+                bullet.y = SIZE;
+                bullet.vx = (Math.random() - 0.5) * BASE_SPEED * 0.3;
+                bullet.vy = -BASE_SPEED * (0.9 + Math.random() * 0.4);
+                break;
+            case 'diag': {
+                let corner = Math.floor(Math.random() * 4);
+                if (corner === 0) {
+                    bullet.x = 10 + Math.random() * 60;
+                    bullet.y = 10 + Math.random() * 60;
+                    bullet.vx = BASE_SPEED * (0.8 + Math.random() * 0.6);
+                    bullet.vy = BASE_SPEED * (0.8 + Math.random() * 0.6);
+                } else if (corner === 1) {
+                    bullet.x = SIZE - 10 - Math.random() * 60;
+                    bullet.y = 10 + Math.random() * 60;
+                    bullet.vx = -BASE_SPEED * (0.8 + Math.random() * 0.6);
+                    bullet.vy = BASE_SPEED * (0.8 + Math.random() * 0.6);
+                } else if (corner === 2) {
+                    bullet.x = 10 + Math.random() * 60;
+                    bullet.y = SIZE - 10 - Math.random() * 60;
+                    bullet.vx = BASE_SPEED * (0.8 + Math.random() * 0.6);
+                    bullet.vy = -BASE_SPEED * (0.8 + Math.random() * 0.6);
+                } else {
+                    bullet.x = SIZE - 10 - Math.random() * 60;
+                    bullet.y = SIZE - 10 - Math.random() * 60;
+                    bullet.vx = -BASE_SPEED * (0.8 + Math.random() * 0.6);
+                    bullet.vy = -BASE_SPEED * (0.8 + Math.random() * 0.6);
+                }
+                break;
+            }
+            // 特殊类 -------------------------------------------------
+            case 'tracking': {
+                let side = Math.floor(Math.random() * 4);
+                if (side === 0) { bullet.x = 0; bullet.y = Math.random() * SIZE; }
+                else if (side === 1) { bullet.x = SIZE; bullet.y = Math.random() * SIZE; }
+                else if (side === 2) { bullet.x = Math.random() * SIZE; bullet.y = 0; }
+                else { bullet.x = Math.random() * SIZE; bullet.y = SIZE; }
+                bullet.extra.speed = BASE_SPEED * 0.9;
+                bullet.extra.trackingFrames = 0;
+                break;
+            }
+            case 'laser': {
+                bullet.type = 'laser_warning';
+                bullet.extra.countdown = 60;
+                bullet.extra.laserType = Math.floor(Math.random() * 4);
+                if (bullet.extra.laserType === 0) { bullet.extra.y0 = Math.random() * SIZE; }
+                else if (bullet.extra.laserType === 1) { bullet.extra.x0 = Math.random() * SIZE; }
+                else if (bullet.extra.laserType === 2) { bullet.extra.k = 1; bullet.extra.b = Math.random() * (SIZE - 200) + 100; }
+                else { bullet.extra.k = -1; bullet.extra.b = Math.random() * (SIZE - 200) + 100; }
+                bullet.x = 30; bullet.y = 30;
+                break;
+            }
+            case 'firework': {
+                let corner = Math.floor(Math.random() * 4);
+                let baseX, baseY;
+                if (corner === 0) { baseX = 0; baseY = 0; }
+                else if (corner === 1) { baseX = SIZE; baseY = 0; }
+                else if (corner === 2) { baseX = 0; baseY = SIZE; }
+                else { baseX = SIZE; baseY = SIZE; }
+                let fragmentCount = 6 + Math.floor(Math.random() * 7);
+                for (let i = 0; i < fragmentCount; i++) {
+                    if (nextIndex >= totalChars) break;
+                    let fragCh = charList[nextIndex];
+                    nextIndex++;
+                    let angle = Math.random() * 2 * Math.PI;
+                    let speed = BASE_SPEED * (1.0 + Math.random() * 2.0);
+                    let frag = {
+                        ch: fragCh,
+                        x: baseX, y: baseY,
+                        vx: Math.cos(angle) * speed,
+                        vy: Math.sin(angle) * speed,
+                        type: 'firework_fragment',
+                        age: 0,
+                        extra: {}
+                    };
+                    bullets.push(frag);
+                }
+                return true; // 原bullet不加入
+            }
+            case 'variable': {
+                let side = Math.floor(Math.random() * 4);
+                if (side === 0) { bullet.x = 0; bullet.y = Math.random() * SIZE; }
+                else if (side === 1) { bullet.x = SIZE; bullet.y = Math.random() * SIZE; }
+                else if (side === 2) { bullet.x = Math.random() * SIZE; bullet.y = 0; }
+                else { bullet.x = Math.random() * SIZE; bullet.y = SIZE; }
+                let dx = heart.x - bullet.x;
+                let dy = heart.y - bullet.y;
+                let len = Math.hypot(dx, dy) || 1;
+                let baseVx = (dx / len) * BASE_SPEED * 1.2;
+                let baseVy = (dy / len) * BASE_SPEED * 1.2;
+                bullet.extra.baseVx = baseVx;
+                bullet.extra.baseVy = baseVy;
+                bullet.extra.phase = Math.random() * 100;
+                bullet.vx = baseVx;
+                bullet.vy = baseVy;
+                break;
+            }
+            case 'fade': {
+                let side = Math.floor(Math.random() * 4);
+                if (side === 0) { bullet.x = 0; bullet.y = Math.random() * SIZE; bullet.vx = BASE_SPEED*1.2; bullet.vy = 0; }
+                else if (side === 1) { bullet.x = SIZE; bullet.y = Math.random() * SIZE; bullet.vx = -BASE_SPEED*1.2; bullet.vy = 0; }
+                else if (side === 2) { bullet.x = Math.random() * SIZE; bullet.y = 0; bullet.vx = 0; bullet.vy = BASE_SPEED*1.2; }
+                else { bullet.x = Math.random() * SIZE; bullet.y = SIZE; bullet.vx = 0; bullet.vy = -BASE_SPEED*1.2; }
+                break;
+            }
+        }
+        if (type !== 'firework' && type !== 'laser') {
+            bullets.push(bullet);
+        } else if (type === 'laser') {
+            bullets.push(bullet);
+        }
+        return true;
+    }
+
+    // ---------- 重写 trySpawn：类型切换频率变为原来的25% (75%沿用上一次, 25%重新随机) ----------
+    function trySpawn() {
+        if (nextIndex >= totalChars) return false;
+
+        // 决定单/双: 20%双, 80%单
+        const isDouble = Math.random() < 0.2;
+        const neededCount = isDouble ? 2 : 1;
+
+        // 决定本次要使用的类型数组 (toUseTypes)
+        let toUseTypes = null;
+
+        // 90%概率沿用 (即切换频率25%)，但必须类型数量匹配且 lastTypes 非空
+        if (lastTypes !== null && lastTypes.length === neededCount && Math.random() < 0.9) {
+            // 沿用上一次的类型 (浅拷贝, 因为后面不会修改)
+            toUseTypes = lastTypes.slice();
+        } else {
+            // 重新随机生成类型数组
+            if (isDouble) {
+                // 双弹幕: 从 allTypes 中均匀抽取两个 (可重复)
+                const type1 = allTypes[Math.floor(Math.random() * allTypes.length)];
+                const type2 = allTypes[Math.floor(Math.random() * allTypes.length)];
+                toUseTypes = [type1, type2];
+            } else {
+                // 单弹幕: 方向类25% 特殊类75%
+                if (Math.random() < 0.25) {
+                    // 方向类
+                    const dirIdx = Math.floor(Math.random() * directionTypes.length);
+                    toUseTypes = [directionTypes[dirIdx]];
+                } else {
+                    // 特殊类
+                    const specIdx = Math.floor(Math.random() * specialTypes.length);
+                    toUseTypes = [specialTypes[specIdx]];
+                }
+            }
+        }
+
+        // 现在依次生成子弹，记录实际成功生成的类型
+        const actualTypes = [];
+        for (let t of toUseTypes) {
+            if (nextIndex >= totalChars) break; // 字符耗尽
+            const success = spawnBulletOfType(t);
+            if (success) {
+                actualTypes.push(t);
+            }
+        }
+
+        if (actualTypes.length === 0) {
+            return false; // 什么都没生成
+        }
+
+        // 更新 lastTypes 为实际生成的类型数组 (保证后续沿用基于事实)
+        lastTypes = actualTypes.slice();
+
+        // 更新 currentTypeString 显示
+        if (actualTypes.length === 2) {
+            const name1 = typeNameMap[actualTypes[0]] || actualTypes[0];
+            const name2 = typeNameMap[actualTypes[1]] || actualTypes[1];
+            currentTypeString = `${name1}+${name2}`;
+        } else if (actualTypes.length === 1) {
+            currentTypeString = typeNameMap[actualTypes[0]] || actualTypes[0];
+        } else {
+            currentTypeString = '-';
+        }
+
+        return true;
+    }
+
+    // ---------- 更新子弹每一帧 ----------
+    function updateBullets() {
+        for (let i = bullets.length - 1; i >= 0; i--) {
+            const b = bullets[i];
+            b.age++;
+
+            if (b.type === 'laser_warning') {
+                b.extra.countdown--;
+                if (b.extra.countdown <= 0) {
+                    let laserCount = 5 + Math.floor(Math.random() * 6);
+                    for (let j = 0; j < laserCount; j++) {
+                        if (nextIndex >= totalChars) break;
+                        let ch = charList[nextIndex];
+                        nextIndex++;
+                        let bullet = {
+                            ch: ch,
+                            type: 'laser_bullet',
+                            age: 0,
+                            extra: {}
+                        };
+                        let lt = b.extra.laserType;
+                        if (lt === 0) {
+                            bullet.y = b.extra.y0;
+                            bullet.x = (j / laserCount) * SIZE;
+                            bullet.vx = BASE_SPEED * 1.5;
+                            bullet.vy = 0;
+                        } else if (lt === 1) {
+                            bullet.x = b.extra.x0;
+                            bullet.y = (j / laserCount) * SIZE;
+                            bullet.vx = 0;
+                            bullet.vy = BASE_SPEED * 1.5;
+                        } else if (lt === 2) {
+                            let t = (j / laserCount) * SIZE;
+                            bullet.x = t;
+                            bullet.y = t + b.extra.b;
+                            if (bullet.y < 0 || bullet.y > SIZE) continue;
+                            bullet.vx = BASE_SPEED * 1.2;
+                            bullet.vy = BASE_SPEED * 1.2;
+                        } else {
+                            let t = (j / laserCount) * SIZE;
+                            bullet.x = t;
+                            bullet.y = -t + b.extra.b;
+                            if (bullet.y < 0 || bullet.y > SIZE) continue;
+                            bullet.vx = BASE_SPEED * 1.2;
+                            bullet.vy = -BASE_SPEED * 1.2;
+                        }
+                        bullets.push(bullet);
+                    }
+                    bullets.splice(i, 1);
+                    continue;
+                }
+                continue;
+            }
+
+            if (b.type === 'tracking') {
+                b.extra.trackingFrames = (b.extra.trackingFrames || 0) + 1;
+                let dx = heart.x - b.x;
+                let dy = heart.y - b.y;
+                let dist = Math.hypot(dx, dy);
+                if (dist > 0.01) {
+                    let speed = b.extra.speed || BASE_SPEED * 0.9;
+                    b.vx = (dx / dist) * speed;
+                    b.vy = (dy / dist) * speed;
+                }
+                if (b.extra.trackingFrames > 300) {
+                    b.type = 'straight';
+                }
+            }
+
+            if (b.type === 'variable') {
+                let factor = 0.6 + 0.5 * Math.sin(b.age * 0.1 + b.extra.phase);
+                b.vx = b.extra.baseVx * factor;
+                b.vy = b.extra.baseVy * factor;
+            }
+
+            if (b.type !== 'laser_warning') {
+                b.x += b.vx;
+                b.y += b.vy;
+            }
+
+            if (b.x < -50 || b.x > SIZE + 50 || b.y < -50 || b.y > SIZE + 50) {
+                bullets.splice(i, 1);
+                continue;
+            }
+
+            let dx = b.x - heart.x;
+            let dy = b.y - heart.y;
+            let dist = Math.hypot(dx, dy);
+            if (dist < heart.r + 10) {
+                hp = Math.max(0, hp - 1);
+                bullets.splice(i, 1);
+                if (hp <= 0) {
+                    gameState = 'gameover';
+                    hp = 0;
+                }
+                continue;
+            }
+        }
+    }
+
+    function tryGenerateBullets(now) {
+        if (gameState !== 'playing') return;
+        if (now - lastGenTime > GEN_INTERVAL && nextIndex < totalChars) {
+            trySpawn();
+            lastGenTime = now;
+        }
+    }
+
+    // 重置游戏 (保留字符列表)
+    function resetGame(keepChars = true) {
+        hp = MAX_HP;
+        bullets = [];
+        nextIndex = 0;
+        currentTypeString = '-';
+        lastTypes = null;                // 重置类型记忆
+        if (!keepChars) {
+            charList = [];
+            totalChars = 0;
+        }
+        gameState = 'waiting';
+        updateUI();
+    }
+
+    function fullReset() {
+        document.getElementById('fileUpload').value = '';
+        document.getElementById('textInput').value = '';
+        document.getElementById('fileStatus').innerText = '未选择';
+        charList = [];
+        totalChars = 0;
+        resetGame(false);
+    }
+
+    function loadTextFromInput() {
+        let text = document.getElementById('textInput').value;
+        if (text.trim() === '') {
+            text = `氢氦锂铍硼碳氮氧氟氖钠镁铝硅磷硫氯氩钾钙钪钛钒铬锰铁钴镍铜锌镓锗砷硒溴氪铷锶钇锆铌钼锝钌铑钯银镉铟锡锑碲碘氙铯钡镧铈镨钕钷钐铕钆铽镝钬铒铥镱镥铪钽钨铼锇铱铂金汞铊铅铋钋砹氡钫镭锕钍镤铀镎钚镅锔锫锎锿镄钔锘铹 3.1415926535897932384626433832795028841971693993751058209749445923078164062862089986280348253421170679 龘靐齉爩蠿龗鱻爩麤灪爨癵籱麣纞虋讟鸜麷鞻鬱靊飝虪齺魕爧蠿齺虋讟爩鱻麤龗灪爨癵籱饢驫麣纞虋讟鸜麷鞻鬱靊飝虪齺魕爧蠿齺虋讟爩鱻麤龗灪爨癵籱饢驫麣纞虋讟鸜麷鞻鬱靊飝虪齺魕爧蠿齺虋讟爩鱻麤龗灪爨癵籱饢驫麣纞虋讟鸜麷鞻鬱靊飝虪齺魕爧蠿齺虋讟爩鱻麤龗灪爨癵籱饢驫麣纞虋讟 （）：“”《》；‘，。、|[]{【】}？!@#$%^&*()_+-=~·$%^&*()_+{}|:"<>?~!@#$%^&*()_+-=[]{};':",./<>?\\|\`~!@#$%^&*()_+-=[]{};':\",./<>?`;
+        }
+        let chars = text.match(/\S/g);
+        if (!chars || chars.length === 0) {
+            alert('至少包含一个有效字符');
+            return;
+        }
+        charList = chars;
+        totalChars = charList.length;
+        document.getElementById('fileStatus').innerText = `已加载 ${totalChars} 字符`;
+        resetGame(true);
+    }
+
+    document.getElementById('fileUpload').addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+            let content = ev.target.result;
+            let chars = content.match(/\S/g);
+            if (!chars || chars.length === 0) {
+                alert('文件无可见字符');
+                return;
+            }
+            charList = chars;
+            totalChars = charList.length;
+            document.getElementById('fileStatus').innerText = `文件 ${totalChars} 字符`;
+            document.getElementById('textInput').value = content;
+            resetGame(true);
+        };
+        reader.readAsText(file);
+    });
+
+    document.getElementById('loadTextBtn').addEventListener('click', loadTextFromInput);
+
+    function startGame() {
+        if (charList.length === 0) {
+            alert('请先加载文本');
+            return;
+        }
+        if (gameState === 'playing') return;
+        if (gameState === 'win' || gameState === 'gameover') {
+            hp = MAX_HP;
+            bullets = [];
+            nextIndex = 0;
+            lastTypes = null;          // 重置记忆
+        }
+        gameState = 'playing';
+        lastGenTime = performance.now();
+    }
+
+    function updateUI() {
+        document.getElementById('hpDisplay').innerText = hp;
+        let remaining = totalChars - nextIndex + bullets.length;
+        document.getElementById('remainingDisplay').innerText = remaining;
+        document.getElementById('bulletCount').innerText = bullets.length;
+        document.getElementById('currentType').innerText = currentTypeString;
+    }
+
+    function draw() {
+        ctx.clearRect(0, 0, SIZE, SIZE);
+        ctx.fillStyle = 'white';
+        ctx.fillRect(0, 0, SIZE, SIZE);
+
+        for (let b of bullets) {
+            let alpha = 1.0;
+            if (b.type === 'fade') {
+                let dx = b.x - heart.x;
+                let dy = b.y - heart.y;
+                let dist = Math.hypot(dx, dy);
+                if (dist < 100) alpha = Math.max(0.1, dist/100);
+            }
+            if (b.type === 'laser_warning') {
+                ctx.fillStyle = `rgba(255,0,0,${0.2 + 0.3*Math.sin(b.age*0.2)})`;
+                ctx.font = '18px "Times New Roman", "宋体"';
+                ctx.fillText('⚠', b.x-10, b.y-10);
+                ctx.strokeStyle = '#ff5555';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                let lt = b.extra.laserType;
+                if (lt === 0) {
+                    ctx.moveTo(0, b.extra.y0);
+                    ctx.lineTo(SIZE, b.extra.y0);
+                } else if (lt === 1) {
+                    ctx.moveTo(b.extra.x0, 0);
+                    ctx.lineTo(b.extra.x0, SIZE);
+                } else if (lt === 2) {
+                    ctx.moveTo(0, b.extra.b);
+                    ctx.lineTo(SIZE, SIZE + b.extra.b);
+                } else {
+                    ctx.moveTo(0, -b.extra.b + SIZE);
+                    ctx.lineTo(SIZE, -SIZE + b.extra.b);
+                }
+                ctx.strokeStyle = `rgba(255,100,100,0.5)`;
+                ctx.stroke();
+                continue;
+            }
+
+            ctx.save();
+            if (alpha < 1.0) ctx.globalAlpha = alpha;
+            if (/[\u4e00-\u9fa5]/.test(b.ch)) {
+                ctx.font = '24px "宋体", "SimSun", serif';
+            } else {
+                ctx.font = '24px "Times New Roman", Times, serif';
+            }
+            ctx.fillStyle = '#2c3e50';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(b.ch, b.x, b.y);
+            ctx.restore();
+        }
+
+        ctx.save();
+        ctx.translate(heart.x, heart.y);
+        ctx.scale(1, 0.6);
+        ctx.beginPath();
+        ctx.moveTo(0, 10);
+        ctx.bezierCurveTo(-12, -8, -8, -18, 0, -12);
+        ctx.bezierCurveTo(8, -18, 12, -8, 0, 10);
+        ctx.closePath();
+        ctx.fillStyle = '#e74c3c';
+        ctx.shadowColor = '#c0392b';
+        ctx.shadowBlur = 12;
+        ctx.fill();
+        ctx.restore();
+
+        if (gameState === 'waiting') {
+            ctx.fillStyle = '#aaa';
+            ctx.font = 'bold 24px sans-serif';
+            ctx.fillText('触摸/空格 开始', 180, 300);
+        } else if (gameState === 'gameover') {
+            ctx.fillStyle = '#e74c3c';
+            ctx.font = 'bold 32px sans-serif';
+            ctx.fillText('游戏结束', 200, 280);
+        } else if (gameState === 'win') {
+            ctx.fillStyle = '#27ae60';
+            ctx.font = 'bold 32px sans-serif';
+            ctx.fillText('通关 !', 220, 280);
+        }
+    }
+
+    function gameLoop(now) {
+        if (gameState === 'playing') {
+            tryGenerateBullets(now);
+            updateBullets();
+            if (nextIndex >= totalChars && bullets.length === 0 && totalChars > 0 && hp > 0) {
+                gameState = 'win';
+            }
+            updateUI();
+        }
+        draw();
+        requestAnimationFrame(gameLoop);
+    }
+    requestAnimationFrame(gameLoop);
+
+    function setHeartPos(px, py) {
+        heart.x = Math.min(SIZE - heart.r, Math.max(heart.r, px));
+        heart.y = Math.min(SIZE - heart.r, Math.max(heart.r, py));
+    }
+
+    if (!/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
+        canvas.addEventListener('mousemove', (e) => {
+            if (gameState !== 'gameover') {
+                const rect = canvas.getBoundingClientRect();
+                const scaleX = SIZE / rect.width;
+                const scaleY = SIZE / rect.height;
+                setHeartPos((e.clientX - rect.left) * scaleX, (e.clientY - rect.top) * scaleY);
+            }
+        });
+    } else {
+        let useGyro = false;
+        if (window.DeviceOrientationEvent) {
+            if (typeof DeviceOrientationEvent.requestPermission === 'function') {
+                DeviceOrientationEvent.requestPermission().then(p => {
+                    if (p === 'granted') {
+                        window.addEventListener('deviceorientation', handleOrientation);
+                        useGyro = true;
+                    }
+                }).catch(() => {});
+            } else {
+                window.addEventListener('deviceorientation', handleOrientation);
+                useGyro = true;
+            }
+        }
+        function handleOrientation(e) {
+            if (!useGyro) return;
+            let beta = e.beta, gamma = e.gamma;
+            if (beta == null || gamma == null) return;
+            let targetX = (gamma + 45) / 90 * SIZE;
+            let targetY = (beta + 45) / 90 * SIZE;
+            setHeartPos(targetX, targetY);
+        }
+        canvas.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            if (!useGyro) {
+                updateHeartFromTouch(e);
+            }
+            if (gameState === 'waiting' && charList.length > 0) {
+                startGame();
+            }
+        });
+        canvas.addEventListener('touchmove', (e) => {
+            e.preventDefault();
+            if (!useGyro) updateHeartFromTouch(e);
+        });
+        function updateHeartFromTouch(e) {
+            let touch = e.touches[0];
+            if (!touch) return;
+            const rect = canvas.getBoundingClientRect();
+            const scaleX = SIZE / rect.width;
+            const scaleY = SIZE / rect.height;
+            setHeartPos((touch.clientX - rect.left) * scaleX, (touch.clientY - rect.top) * scaleY);
+        }
+    }
+
+    window.addEventListener('keydown', (e) => {
+        if (e.code === 'Space') {
+            e.preventDefault();
+            if (gameState === 'waiting' && charList.length > 0) startGame();
+        }
+    });
+
+    document.getElementById('resetBtn').addEventListener('click', fullReset);
+
+    window.addEventListener('load', () => {
+        loadTextFromInput();
+    });
+})();
+</script>
+</body>
+</html>
