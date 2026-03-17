@@ -2,977 +2,856 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-    <title>Bioinformatics Analysis Toolkit</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>弹幕躲避 · 心之试炼 · 类型低频版</title>
     <style>
-        :root {
-            /* 新配色：主色 #32586d, 强调 #ca3032, 辅助 #b2d1d6 及其他衍射 */
-            --primary-color: #32586d;          /* 深蓝灰，用于主标题栏、页脚等 */
-            --secondary-color: #b2d1d6;         /* 浅蓝灰，用于卡片头、辅助背景 */
-            --accent-color: #ca3032;             /* 砖红，用于强调按钮、隐藏版块、错误提示等 */
-            --light-color: #e1f0f2;               /* 极浅蓝灰 (b2d1d6 的衍射) */
-            --dark-color: #1e3a47;                 /* 更深的蓝灰，用于文字或悬浮 */
-            --success-color: #2e8b57;               /* 保留微调，与原风格兼容 */
-            --warning-color: #f0ad4e;               
-            --border-radius: 8px;
-            --box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            --transition: all 0.3s ease;
-        }
-
         * {
             box-sizing: border-box;
             margin: 0;
             padding: 0;
         }
-
         body {
-            /* 字体严格按照参考：英文优先 Times New Roman，中文优先宋体 */
-            font-family: "Times New Roman", "宋体", SimSun, "Songti SC", serif;
-            line-height: 1.6;
-            color: #333;
-            background: linear-gradient(135deg, #f5f7fa 0%, #d4e3e9 100%);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f0f2f5;
             min-height: 100vh;
-        }
-
-        /* 所有表单元素、按钮及卡片均继承 body 字体，保证统一 */
-        input, button, textarea, select, .btn, .tool-card, .modal-content {
-            font-family: inherit;
-        }
-
-        /* 顶部标题栏 */
-        .main-header {
-            background-color: var(--primary-color);
-            color: white;
-            padding: 15px 0;
-            text-align: center;
-            width: 100%;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            position: relative;
-        }
-
-        .main-header h1 {
-            margin-bottom: 5px;
-            font-size: 2.2rem;
-            font-weight: 500;
-        }
-
-        .main-header p {
-            opacity: 0.9;
-            font-size: 1.1rem;
-        }
-
-        /* 左上角蝙蝠图标和BAT文字 */
-        .logo-container {
-            position: absolute;
-            left: 20px;
-            top: 50%;
-            transform: translateY(-50%);
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .bat-icon {
-            font-size: 2rem;
-            cursor: pointer;
-            transition: var(--transition);
-            color: white;
-        }
-
-        .bat-icon:hover {
-            transform: scale(1.1);
-            filter: brightness(1.2);
-        }
-
-        .logo-text {
-            font-size: 1.8rem;
-            font-weight: bold;
-            color: white;
-            /* 继承 body 字体，无需额外定义 */
-        }
-
-        /* 右上角关于按钮 */
-        .about-container {
-            position: absolute;
-            right: 20px;
-            top: 50%;
-            transform: translateY(-50%);
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .about-btn {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            background-color: rgba(255, 255, 255, 0.2);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            transition: var(--transition);
-            font-weight: bold;
-            font-size: 1.2rem;
-            border: 2px solid rgba(255, 255, 255, 0.5);
-            color: white;
-        }
-
-        .about-btn:hover {
-            background-color: rgba(255, 255, 255, 0.3);
-            transform: scale(1.1);
-        }
-
-        .about-text {
-            color: white;
-            font-weight: 500;
-        }
-
-        /* 版块样式 */
-        .section-block {
-            width: 100%;
-            padding: 25px 5%;
-            background: rgba(255, 255, 255, 0.9);
-            margin: 20px 0;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-            transition: var(--transition);
-        }
-
-        .section-title {
-            font-size: 1.8rem;
-            color: var(--primary-color);
-            margin-bottom: 20px;
-            padding-bottom: 10px;
-            border-bottom: 2px solid var(--secondary-color);
-            font-weight: 500;
-        }
-
-        .tools-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-            gap: 20px;
-        }
-
-        .tool-card {
-            background: white;
-            border-radius: var(--border-radius);
-            overflow: hidden;
-            box-shadow: var(--box-shadow);
-            transition: var(--transition);
-            cursor: pointer;
-            aspect-ratio: 1;
             display: flex;
             flex-direction: column;
-            text-decoration: none;
-            color: inherit;
-            border: 1px solid rgba(178, 209, 214, 0.4);
         }
-
-        .tool-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 12px 20px rgba(50, 88, 109, 0.15);
-            border-color: var(--accent-color);
-        }
-
-        .tool-card-header {
-            background-color: var(--secondary-color);
-            color: var(--dark-color);
-            padding: 15px;
-            text-align: center;
-            font-weight: bold;
-            font-size: 1.2rem;
-            flex-shrink: 0;
-        }
-
-        .tool-card-body {
-            padding: 20px;
-            flex-grow: 1;
+        .tool-header {
             display: flex;
+            flex-direction: column;
             align-items: center;
-            justify-content: center;
-        }
-
-        .tool-card-body p {
-            text-align: center;
-            line-height: 1.5;
-        }
-
-        .tool-card-footer {
+            background-color: #2c3e50;
+            color: white;
             padding: 12px;
-            background-color: #f8f9fa;
-            text-align: center;
-            color: #6c757d;
+            width: 100%;
+        }
+        .tool-header h2 {
+            color: white;
+            font-weight: 400;
+            margin: 0;
+        }
+        .back-button {
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: white;
+            padding: 6px 16px;
+            border-radius: 30px;
+            cursor: pointer;
+            margin-top: 6px;
             font-size: 0.9rem;
-            flex-shrink: 0;
-            border-top: 1px solid rgba(178, 209, 214, 0.3);
+            text-decoration: none;
+            display: inline-block;
         }
-
-        /* 受限工具样式 */
-        .restricted-tool .tool-card-footer {
-            background-color: #fff3cd;
-            color: #856404;
-            font-weight: bold;
-            border-top-color: #ffeeba;
+        .back-button:hover {
+            background: rgba(255,255,255,0.3);
         }
-
-        .restricted-tool .tool-card-footer::before {
-            content: "🔒 ";
+        .content {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 16px;
         }
-
-        .coming-soon {
+        .game-section {
+            background: white;
+            border-radius: 24px;
+            padding: 24px 20px;
+            max-width: 700px;
+            width: 100%;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+        }
+        .canvas-square-wrapper {
             position: relative;
-            opacity: 0.7;
-            cursor: not-allowed;
+            width: 100%;
+            max-width: 600px;
+            margin: 0 auto;
+            aspect-ratio: 1 / 1;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            overflow: hidden;
+            cursor: none;
+            border: 1px solid #ddd;
         }
-
-        .coming-soon::after {
-            content: "即将推出";
-            position: absolute;
-            top: 10px;
-            right: 10px;
-            background: var(--warning-color);
-            color: white;
-            padding: 3px 10px;
-            border-radius: 12px;
-            font-size: 0.8rem;
-        }
-
-        /* 隐藏版块样式 */
-        .hidden-section {
-            display: none;
-            background: linear-gradient(135deg, #fbe9e7 0%, #f8d7da 100%);
-            border: 2px dashed var(--accent-color);
-        }
-
-        .hidden-section .section-title {
-            color: var(--accent-color);
-            border-bottom: 2px dashed var(--accent-color);
-        }
-
-        .hidden-section .tool-card-header {
-            background-color: var(--accent-color);
-            color: white;
-        }
-
-        .footer {
-            text-align: center;
-            padding: 20px;
-            background: var(--primary-color);
-            color: white;
-            margin-top: 40px;
-            font-weight: 500;
-        }
-
-        /* 登录模态框样式 */
-        .modal-overlay {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
+        #gameCanvas {
+            display: block;
             width: 100%;
             height: 100%;
-            background-color: rgba(0, 0, 0, 0.5);
-            z-index: 1000;
-            align-items: center;
-            justify-content: center;
+            background: white;
         }
-
-        .modal-content {
-            background-color: white;
-            padding: 30px;
-            border-radius: var(--border-radius);
-            box-shadow: var(--box-shadow);
-            width: 90%;
-            max-width: 400px;
-            text-align: center;
-        }
-
-        .modal-title {
-            margin-bottom: 20px;
-            color: var(--primary-color);
-            font-size: 1.5rem;
-        }
-
-        .form-group {
-            margin-bottom: 20px;
-            text-align: left;
-        }
-
-        .form-group label {
-            display: block;
-            margin-bottom: 5px;
-            font-weight: bold;
-        }
-
-        .form-group input {
-            width: 100%;
-            padding: 10px;
-            border: 1px solid #ddd;
-            border-radius: var(--border-radius);
-            font-size: 1rem;
-            font-family: inherit; /* 继承 body 字体 */
-        }
-
-        .modal-buttons {
+        .info-panel {
             display: flex;
-            justify-content: space-between;
-            gap: 10px;
+            gap: 12px;
+            margin: 18px 0 16px;
+            flex-wrap: wrap;
         }
-
-        .btn {
-            padding: 10px 20px;
-            border: none;
-            border-radius: var(--border-radius);
-            cursor: pointer;
-            font-size: 1rem;
-            transition: var(--transition);
-            flex: 1;
-        }
-
-        .btn-primary {
-            background-color: var(--accent-color);
-            color: white;
-        }
-
-        .btn-primary:hover {
-            background-color: #aa2729;
-        }
-
-        .btn-secondary {
-            background-color: #95a5a6;
-            color: white;
-        }
-
-        .btn-secondary:hover {
-            background-color: #7f8c8d;
-        }
-
-        .error-message {
-            color: var(--accent-color);
-            margin-top: 10px;
-            font-size: 0.9rem;
-            display: none;
-        }
-
-        /* 关于模态框样式 */
-        .about-modal-content {
-            background-color: white;
-            padding: 30px;
-            border-radius: var(--border-radius);
-            box-shadow: var(--box-shadow);
-            width: 90%;
-            max-width: 500px;
-            text-align: left;
-        }
-
-        .about-modal-title {
-            margin-bottom: 20px;
-            color: var(--primary-color);
-            font-size: 1.8rem;
+        .result-box {
+            flex: 1 1 120px;
+            background: #f8fafc;
+            border-radius: 20px;
+            padding: 10px 6px;
             text-align: center;
+            border-left: 4px solid #e74c3c;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.02);
         }
-
-        .about-section {
-            margin-bottom: 20px;
-        }
-
-        .about-section h3 {
-            color: var(--secondary-color);
-            margin-bottom: 10px;
-            font-size: 1.2rem;
+        .result-box .label {
+            font-size: 0.85rem;
+            color: #2c3e50;
             font-weight: 600;
         }
-
-        .about-section p {
-            margin-bottom: 10px;
-            line-height: 1.6;
+        .result-box .value {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: #e74c3c;
+            line-height: 1.2;
         }
-
-        .contributors {
+        #type-display .value {
+            font-size: 1.3rem;
+        }
+        .text-source {
             display: flex;
-            flex-wrap: wrap;
+            flex-direction: column;
+            gap: 12px;
+            margin: 15px 0;
+        }
+        .textarea-row {
+            display: flex;
             gap: 10px;
-            margin-top: 10px;
+            flex-wrap: wrap;
         }
-
-        .contributor-tag {
-            background-color: var(--light-color);
-            padding: 5px 12px;
+        textarea {
+            flex: 1;
+            height: 80px;
+            padding: 12px;
+            border: 1px solid #ccc;
             border-radius: 20px;
-            font-size: 0.9rem;
-            color: var(--dark-color);
+            font-family: 'Times New Roman', '宋体', serif;
+            resize: vertical;
+            font-size: 14px;
         }
-
-        .close-about-btn {
-            display: block;
-            margin: 20px auto 0;
-            padding: 8px 20px;
-            background-color: var(--accent-color);
+        .file-row {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .custom-file-upload {
+            background: #2c3e50;
             color: white;
-            border: none;
-            border-radius: var(--border-radius);
+            padding: 10px 18px;
+            border-radius: 30px;
             cursor: pointer;
-            transition: var(--transition);
-            font-family: inherit;
+            font-weight: 600;
+            font-size: 0.9rem;
+            white-space: nowrap;
         }
-
-        .close-about-btn:hover {
-            background-color: #aa2729;
+        input[type="file"] { display: none; }
+        .status-tip {
+            background: #ecf0f1;
+            padding: 8px 16px;
+            border-radius: 30px;
+            font-size: 0.9rem;
         }
-
-        @media (max-width: 768px) {
-            .tools-grid {
-                grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-            }
-            
-            .tool-card-body p {
-                font-size: 0.9rem;
-            }
-            
-            .logo-container, .about-container {
-                position: static;
-                transform: none;
-                justify-content: center;
-                margin: 10px 0;
-            }
-            
-            .main-header {
-                display: flex;
-                flex-direction: column;
-                align-items: center;
-                padding: 10px 0;
-            }
+        .button-group {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin: 10px 0 5px;
+        }
+        .reset-button {
+            padding: 12px 30px;
+            font-weight: bold;
+            border: none;
+            border-radius: 40px;
+            cursor: pointer;
+            font-size: 1rem;
+            background: #e74c3c;
+            color: white;
+            transition: 0.2s;
+        }
+        .reset-button:hover { background: #c0392b; }
+        .status-bar {
+            background: #2c3e50;
+            color: white;
+            text-align: center;
+            padding: 10px;
+            font-weight: 300;
+            font-size: 0.9rem;
+        }
+        .hint-text {
+            font-size: 0.8rem;
+            color: #7f8c8d;
+            text-align: center;
+            margin-top: 8px;
         }
     </style>
 </head>
 <body>
-    <!-- 页面内容与之前完全相同，仅字体设置已修正 -->
-    <header class="main-header">
-        <div class="logo-container">
-            <div class="bat-icon">🦇</div>
-            <span class="logo-text">BAT</span>
+<div class="tool-header">
+    <h2>弹幕躲避</h2>
+    <a href="javascript:history.back()" class="back-button">返回主界面</a>
+</div>
+<div class="content">
+    <div class="game-section">
+        <div class="canvas-square-wrapper" id="canvasWrapper">
+            <canvas id="gameCanvas" width="600" height="600"></canvas>
         </div>
-        
-        <h1>Bioinformatics Analysis Toolkit</h1>
-        <p>高效、准确的生物信息分析解决方案</p>
-        
-        <div class="about-container">
-            <button class="about-btn" id="aboutBtn">!</button>
-            <span class="about-text">关于</span>
+
+        <div class="info-panel">
+            <div class="result-box"><span class="label">❤️ 血量</span><div class="value" id="hpDisplay">100</div></div>
+            <div class="result-box"><span class="label">📄 剩余字数</span><div class="value" id="remainingDisplay">0</div></div>
+            <div class="result-box" id="type-display"><span class="label">🎯 当前类型</span><div class="value" id="currentType">-</div></div>
+            <div class="result-box"><span class="label">⚡ 弹幕数</span><div class="value" id="bulletCount">0</div></div>
         </div>
-    </header>
 
-    <div class="section-block">
-        <h2 class="section-title">蛋白质工程</h2>
-        <div class="tools-grid">
-            <a href="蛋白质工程-氨基酸查询.html" class="tool-card">
-                <div class="tool-card-header">氨基酸查询</div>
-                <div class="tool-card-body">
-                    <p>查看氨基酸的中英文名称对照、缩写和特性信息</p>
-                </div>
-                <div class="tool-card-footer">点击进入</div>
-            </a>
-
-            <a href="蛋白质工程-模拟突变.html" class="tool-card">
-                <div class="tool-card-header">模拟突变</div>
-                <div class="tool-card-body">
-                    <p>上传FASTA文件，选择基因并指定突变位点，生成模拟突变体序列</p>
-                </div>
-                <div class="tool-card-footer">点击进入</div>
-            </a>
-
-            <a href="蛋白质工程-密码子翻译.html" class="tool-card">
-                <div class="tool-card-header">密码子翻译</div>
-                <div class="tool-card-body">
-                    <p>将单一的密码子或核苷酸序列快速翻译为氨基酸，查找序列中某一位置对应的氨基酸</p>
-                </div>
-                <div class="tool-card-footer">点击进入</div>
-            </a>
-
-            <a href="蛋白质工程-突变引物设计.html" class="tool-card">
-                <div class="tool-card-header">突变引物设计</div>
-                <div class="tool-card-body">
-                    <p>上传DNA序列及突变位置，直接获取上下游引物表格</p>
-                </div>
-                <div class="tool-card-footer">点击进入</div>
-            </a>
-            
-            <div class="tool-card coming-soon">
-                <div class="tool-card-header">开发中</div>
-                <div class="tool-card-body">
-                    <p>开发中</p>
-                </div>
-                <div class="tool-card-footer">开发中</div>
+        <div class="text-source">
+            <div class="textarea-row">
+                <textarea id="textInput" placeholder="在此粘贴文本（留空则使用默认化学元素+符号）"></textarea>
+                <button class="custom-file-upload" id="loadTextBtn" style="background:#3498db;">加载文本</button>
+            </div>
+            <div class="file-row">
+                <label for="fileUpload" class="custom-file-upload">📁 上传文件</label>
+                <input type="file" id="fileUpload" accept=".txt,.tsv,.fasta,.csv,text/plain">
+                <span class="status-tip" id="fileStatus">未选择</span>
             </div>
         </div>
-    </div>
 
-    <div class="section-block">
-        <h2 class="section-title">序列编辑</h2>
-        <div class="tools-grid">
-
-            <a href="序列编辑-序列反向互补.html" class="tool-card">
-                <div class="tool-card-header">序列反向/互补</div>
-                <div class="tool-card-body">
-                    <p>获取核苷酸序列的反向/DNA互补/RNA互补片段</p>
-                </div>
-                <div class="tool-card-footer">点击进入</div>
-            </a>
-
-            <a href="序列编辑-序列比对表格导出.html" class="tool-card">
-                <div class="tool-card-header">序列比对表格导出</div>
-                <div class="tool-card-body">
-                    <p>将fasta格式的氨基酸序列比对结果导出到xlsx表格</p>
-                </div>
-                <div class="tool-card-footer">点击进入</div>
-            </a>
-
-            <a href="序列编辑-基因文件合并.html" class="tool-card">
-                <div class="tool-card-header">基因文件合并</div>
-                <div class="tool-card-body">
-                    <p>将多个文件中的基因快速合并到一个fasta文件</p>
-                </div>
-                <div class="tool-card-footer">点击进入</div>
-            </a>
-            
-            <a href="序列编辑-基因名称批量修改.html" class="tool-card">
-                <div class="tool-card-header">基因名称批量修改</div>
-                <div class="tool-card-body">
-                    <p>通过模块化工作流形式，对fasta文件中的所有基因名称进行批量修改</p>
-                </div>
-                <div class="tool-card-footer">点击进入</div>
-            </a>
-
-            <a href="序列编辑-序列内容清洗.html" class="tool-card">
-                <div class="tool-card-header">序列内容清洗</div>
-                <div class="tool-card-body">
-                    <p>对fasta文件中的所有序列内容进行批量优化</p>
-                </div>
-                <div class="tool-card-footer">点击进入</div>
-            </a>
-            
-            <a href="序列编辑-特定长度氨基酸序列筛选.html" class="tool-card">
-                <div class="tool-card-header">特定长度氨基酸序列筛选</div>
-                <div class="tool-card-body">
-                    <p>筛选fasta文件中具有特定长度的氨基酸序列</p>
-                </div>
-                <div class="tool-card-footer">点击进入</div>
-            </a>
-            
-            <div class="tool-card coming-soon">
-                <div class="tool-card-header">开发中</div>
-                <div class="tool-card-body">
-                    <p>开发中</p>
-                </div>
-                <div class="tool-card-footer">开发中</div>
-            </div>
+        <div class="button-group">
+            <button class="reset-button" id="resetBtn">⏹️ 清空重置</button>
+        </div>
+        <div class="hint-text">
+            PC:鼠标移动 | 移动端:陀螺仪/拖动红心 · 触摸画布/空格键开始
         </div>
     </div>
+</div>
+<div class="status-bar">江南大学 粮食发酵工艺与技术国家工程实验室 · 弹幕躲避</div>
 
-    <div class="section-block">
-        <h2 class="section-title">科研助手</h2>
-        <div class="tools-grid">
+<script>
+(function() {
+    // ------ 固定参数 ------
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    const SIZE = 600;
 
-            <a href="科研助手-生物信息学工具汇总.html" class="tool-card">
-                <div class="tool-card-header">生物信息学工具汇总</div>
-                <div class="tool-card-body">
-                    <p>记录了大量生物计算所用的网站、软件以及数据库</p>
-                </div>
-                <div class="tool-card-footer">点击进入</div>
-            </a>
-            
-            <a href="科研助手-热图绘制.html" class="tool-card">
-                <div class="tool-card-header">热图绘制</div>
-                <div class="tool-card-body">
-                    <p>通过上传数据矩阵生成自定义热图，支持大型热图的生成</p>
-                </div>
-                <div class="tool-card-footer">点击进入</div>
-            </a>
+    // 红心
+    let heart = { x: SIZE/2, y: SIZE/2, r: 14 };
 
-            <a href="科研助手-溶液稀释体系计算.html" class="tool-card">
-                <div class="tool-card-header">溶液稀释体系计算</div>
-                <div class="tool-card-body">
-                    <p>根据需求计算原溶液和溶剂的添加量</p>
-                </div>
-                <div class="tool-card-footer">点击进入</div>
-            </a>
+    // 血量
+    let hp = 100;
+    const MAX_HP = 100;
 
-            <a href="科研助手-PDF文件合并与拆分.html" class="tool-card">
-                <div class="tool-card-header">PDF文件合并与拆分</div>
-                <div class="tool-card-body">
-                    <p>按需求合并多个PDF文件，或提取一个PDF文件中的目标页码</p>
-                </div>
-                <div class="tool-card-footer">点击进入</div>
-            </a>
-            
-            <div class="tool-card coming-soon">
-                <div class="tool-card-header">开发中</div>
-                <div class="tool-card-body">
-                    <p>开发中</p>
-                </div>
-                <div class="tool-card-footer">开发中</div>
-            </div>
+    // 游戏状态: 'waiting', 'playing', 'gameover', 'win'
+    let gameState = 'waiting';
 
-        </div>
-    </div>
+    // 子弹系统
+    let bullets = [];                // 所有活跃子弹对象
+    let charList = [];                // 从文本解析出的字符数组 (非空白)
+    let totalChars = 0;
+    let nextIndex = 0;                // 下一个要生成的字符索引
+    let lastGenTime = performance.now();
+    const GEN_INTERVAL = 166;         // 约6帧/秒 (原1.5倍)
+    const BASE_SPEED = 1.8;           // 基础速度
 
-    <div class="section-block">
-        <h2 class="section-title">软件工具</h2>
-        <div class="tools-grid">
+    // ---------- 类型定义 ----------
+    const directionTypes = ['left','right','up','down','diag'];
+    const specialTypes = ['tracking','laser','firework','variable','fade'];
+    const allTypes = [...directionTypes, ...specialTypes];
 
-            <a href="软件工具-DLKcat输入文件批量生成.html" class="tool-card restricted-tool" data-restricted="true">
-                <div class="tool-card-header">DLKcat输入文件批量生成</div>
-                <div class="tool-card-body">
-                    <p>快速生成多个突变体的DLKcat输入文件，加速催化效率预测</p>
-                </div>
-                <div class="tool-card-footer">仅限国工实验室</div>
-            </a>
+    const typeNameMap = {
+        'left':'←左向', 'right':'→右向', 'up':'↑上向', 'down':'↓下向', 'diag':'⬈斜向',
+        'tracking':'追踪', 'laser':'激光', 'firework':'烟花', 'variable':'快慢刀', 'fade':'虚化'
+    };
 
-            <a href="软件工具-AlphaFold3输入文件批量生成.html" class="tool-card restricted-tool" data-restricted="true">
-                <div class="tool-card-header">AlphaFold3输入文件生成</div>
-                <div class="tool-card-body">
-                    <p>搭配高性能计算平台进行蛋白同源建模及分子对接</p>
-                </div>
-                <div class="tool-card-footer">仅限国工实验室</div>
-            </a>
-            
-            <a href="软件工具-Amber24工作站批量生成.html" class="tool-card restricted-tool" data-restricted="true">
-                <div class="tool-card-header">Amber24工作站批量生成</div>
-                <div class="tool-card-body">
-                    <p>搭配高性能计算平台进行分子动力学模拟</p>
-                </div>
-                <div class="tool-card-footer">仅限国工实验室</div>
-            </a>
+    // 当前弹幕类型字符串 (用于显示)
+    let currentTypeString = '-';
 
-            <a href="软件工具-自由能景观构建.html" class="tool-card restricted-tool" data-restricted="true">
-                <div class="tool-card-header">自由能景观构建</div>
-                <div class="tool-card-body">
-                    <p>对分子动力学模拟结果进行自由能景观分析</p>
-                </div>
-                <div class="tool-card-footer">仅限国工实验室</div>
-            </a>
-            
-            <a href="软件工具-残基最短路径(SPM)计算.html" class="tool-card restricted-tool" data-restricted="true">
-                <div class="tool-card-header">残基最短路径(SPM)计算</div>
-                <div class="tool-card-body">
-                    <p>使用距离矩阵、相关性矩阵以及结构文件计算残基最短路径</p>
-                </div>
-                <div class="tool-card-footer">仅限国工实验室</div>
-            </a>
-            
-            <div class="tool-card coming-soon">
-                <div class="tool-card-header">开发中</div>
-                <div class="tool-card-body">
-                    <p>开发中</p>
-                </div>
-                <div class="tool-card-footer">开发中</div>
-            </div>
+    // ---------- 新增：上一次生成的类型记录 (用于低频切换) ----------
+    let lastTypes = null;            // 存储上一次成功生成的类型数组 (单弹幕为[type], 双弹幕为[type1, type2])
 
-        </div>
-    </div>
+    // ---------- 生成子弹核心函数 (根据指定类型) ----------
+    function spawnBulletOfType(type) {
+        if (nextIndex >= totalChars) return false;
 
-    <!-- 隐藏功能版块 -->
-    <div id="hiddenSection" class="section-block hidden-section">
-        <h2 class="section-title">隐藏功能</h2>
-        <div class="tools-grid">
-            
-            <a href="隐藏功能-超级五子棋.html" class="tool-card">
-                <div class="tool-card-header">超级五子棋</div>
-                <div class="tool-card-body">
-                    <p>体验特殊规则的五子棋游戏，放松心情</p>
-                </div>
-                <div class="tool-card-footer">点击进入</div>
-            </a>
+        const ch = charList[nextIndex];
+        nextIndex++;
 
-            <a href="隐藏功能-大规模象棋.html" class="tool-card">
-                <div class="tool-card-header">大规模象棋</div>
-                <div class="tool-card-body">
-                    <p>刘邦模拟器</p>
-                </div>
-                <div class="tool-card-footer">点击进入</div>
-            </a>
-
-            <a href="隐藏功能-Failure Communications.html" class="tool-card">
-                <div class="tool-card-header">Failure Communications</div>
-                <div class="tool-card-body">
-                    <p>《失败通讯》期刊官网</p>
-                </div>
-                <div class="tool-card-footer">点击进入</div>
-            </a>
-
-            <a href="隐藏功能-弹幕躲避.html" class="tool-card">
-                <div class="tool-card-header">弹幕躲避</div>
-                <div class="tool-card-body">
-                    <p>自定义文本弹幕躲避类游戏</p>
-                </div>
-                <div class="tool-card-footer">点击进入</div>
-            </a>
-            
-            <div class="tool-card coming-soon">
-                <div class="tool-card-header">更多功能</div>
-                <div class="tool-card-body">
-                    <p>更多隐藏功能开发中</p>
-                </div>
-                <div class="tool-card-footer">开发中</div>
-            </div>
-        </div>
-    </div>
-    
-    <!-- 登录模态框 -->
-    <div id="loginModal" class="modal-overlay">
-        <div class="modal-content">
-            <h2 class="modal-title">国工实验室认证</h2>
-            <p>本功能仅限国工实验室，请输入用户名及密码</p>
-            <form id="loginForm">
-                <div class="form-group">
-                    <label for="username">用户名</label>
-                    <input type="text" id="username" name="username" required>
-                </div>
-                <div class="form-group">
-                    <label for="password">密码</label>
-                    <input type="password" id="password" name="password" required>
-                </div>
-                <div class="error-message" id="errorMessage">用户名或密码错误，请重试</div>
-                <div class="modal-buttons">
-                    <button type="button" class="btn btn-secondary" id="cancelBtn">取消</button>
-                    <button type="submit" class="btn btn-primary">登录</button>
-                </div>
-            </form>
-        </div>
-    </div>
-    
-    <!-- 关于模态框 -->
-    <div id="aboutModal" class="modal-overlay">
-        <div class="about-modal-content">
-            <h2 class="about-modal-title">关于我们</h2>
-            
-            <div class="about-section">
-                <h3>团队信息</h3>
-                <p>本平台由江南大学粮食发酵工艺与技术国家工程实验室开发，致力于为生物信息学研究提供高效、便捷的分析工具。</p>
-            </div>
-            
-            <div class="about-section">
-                <h3>网站贡献者</h3>
-                <div class="contributors">
-                    <span class="contributor-tag">段沛辰</span>
-                    <span class="contributor-tag">张中强</span>
-                    <span class="contributor-tag">何锐宇</span>
-                </div>
-            </div>
-            
-            <div class="about-section">
-                <h3>功能简介</h3>
-                <p>Bioinformatics Analysis Toolkit (BAT) 是一个综合性生物信息学分析平台，提供蛋白质工程、序列编辑、科研助手和软件工具四大功能模块。平台集成了模拟突变、序列比对表格导出、基因名称批量修改、生物信息学工具汇总等实用模块，旨在简化生物信息分析流程，提高科研效率。</p>
-            </div>
-            
-            <button class="close-about-btn" id="closeAboutBtn">关闭</button>
-        </div>
-    </div>
-    
-    <div class="footer">
-        江南大学 粮食发酵工艺与技术国家工程实验室
-    </div>
-
-    <script>
-        // 用户认证配置
-        const VALID_USERS = {
-            "admin": "123456",
+        let bullet = {
+            ch: ch,
+            x: 0, y: 0,
+            vx: 0, vy: 0,
+            type: type,
+            age: 0,
+            extra: {}
         };
-        const SESSION_TIMEOUT = 30;
 
-        document.addEventListener('DOMContentLoaded', function() {
-            // ---------- 隐藏版块元素 ----------
-            const hiddenSection = document.getElementById('hiddenSection');
-
-            // ---------- 键盘快捷键 (Ctrl + Y + C) 保持不变 ----------
-            let keysPressed = {};
-            let requiredKeys = ['Control', 'y', 'c'];
-            
-            document.addEventListener('keydown', function(event) {
-                keysPressed[event.key] = true;
-                let allKeysPressed = requiredKeys.every(key => keysPressed[key]);
-                
-                if (allKeysPressed) {
-                    const isVisible = hiddenSection.style.display === 'block';
-                    hiddenSection.style.display = isVisible ? 'none' : 'block';
-                    keysPressed = {};
-                    event.preventDefault();
-                }
-            });
-            
-            document.addEventListener('keyup', function(event) {
-                delete keysPressed[event.key];
-            });
-
-            // ---------- 移动端手势: 到底部后上拉显示/隐藏 ----------
-            function initMobileGesture() {
-                if (!('ontouchstart' in window)) return;
-
-                const BOTTOM_THRESHOLD = 20;
-                const SWIPE_DISTANCE = 15;
-                const COOLDOWN_MS = 400;
-
-                let touchStartY = 0;
-                let startedAtBottom = false;
-                let gestureCooldown = false;
-
-                function isAtBottom() {
-                    const scrollY = window.scrollY;
-                    const visibleHeight = window.innerHeight;
-                    const totalHeight = document.documentElement.scrollHeight;
-                    return (totalHeight - (scrollY + visibleHeight)) <= BOTTOM_THRESHOLD;
-                }
-
-                function toggleHiddenViaGesture() {
-                    if (gestureCooldown) return;
-                    gestureCooldown = true;
-                    setTimeout(() => { gestureCooldown = false; }, COOLDOWN_MS);
-
-                    const isVisible = hiddenSection.style.display === 'block';
-                    hiddenSection.style.display = isVisible ? 'none' : 'block';
-                }
-
-                document.addEventListener('touchstart', function(e) {
-                    if (e.touches.length) {
-                        touchStartY = e.touches[0].clientY;
-                        startedAtBottom = isAtBottom();
-                    }
-                }, { passive: true });
-
-                document.addEventListener('touchend', function(e) {
-                    if (!startedAtBottom) return;
-                    if (!e.changedTouches.length) return;
-
-                    const touchEndY = e.changedTouches[0].clientY;
-                    const deltaY = touchEndY - touchStartY;
-
-                    if (deltaY < 0 && Math.abs(deltaY) >= SWIPE_DISTANCE) {
-                        toggleHiddenViaGesture();
-                    }
-                    startedAtBottom = false;
-                });
-
-                document.addEventListener('touchcancel', function() {
-                    startedAtBottom = false;
-                });
-            }
-
-            initMobileGesture();
-            initAuthentication();
-            initAboutModal();
-        });
-
-        function initAboutModal() {
-            const aboutBtn = document.getElementById('aboutBtn');
-            const aboutModal = document.getElementById('aboutModal');
-            const closeAboutBtn = document.getElementById('closeAboutBtn');
-            
-            aboutBtn.addEventListener('click', function() {
-                aboutModal.style.display = 'flex';
-            });
-            
-            closeAboutBtn.addEventListener('click', function() {
-                aboutModal.style.display = 'none';
-            });
-            
-            aboutModal.addEventListener('click', function(e) {
-                if (e.target === aboutModal) {
-                    aboutModal.style.display = 'none';
-                }
-            });
-        }
-
-        function initAuthentication() {
-            const loginModal = document.getElementById('loginModal');
-            const loginForm = document.getElementById('loginForm');
-            const cancelBtn = document.getElementById('cancelBtn');
-            const errorMessage = document.getElementById('errorMessage');
-            const restrictedTools = document.querySelectorAll('.tool-card[data-restricted="true"]');
-            
-            let targetUrl = '';
-            
-            checkSession();
-            
-            restrictedTools.forEach(tool => {
-                tool.addEventListener('click', function(e) {
-                    if (!isLoggedIn()) {
-                        e.preventDefault();
-                        targetUrl = this.getAttribute('href');
-                        loginModal.style.display = 'flex';
-                    }
-                });
-            });
-            
-            loginForm.addEventListener('submit', function(e) {
-                e.preventDefault();
-                const username = document.getElementById('username').value;
-                const password = document.getElementById('password').value;
-                
-                if (authenticateUser(username, password)) {
-                    loginModal.style.display = 'none';
-                    errorMessage.style.display = 'none';
-                    loginForm.reset();
-                    saveLoginState(username);
-                    if (targetUrl) {
-                        window.location.href = targetUrl;
-                    }
+        // 根据类型初始化 (完全保持原样, 只增加新逻辑)
+        switch (type) {
+            // 方向类 -------------------------------------------------
+            case 'left':
+                bullet.x = 0;
+                bullet.y = Math.random() * SIZE;
+                bullet.vx = BASE_SPEED * (0.9 + Math.random() * 0.4);
+                bullet.vy = (Math.random() - 0.5) * BASE_SPEED * 0.3;
+                break;
+            case 'right':
+                bullet.x = SIZE;
+                bullet.y = Math.random() * SIZE;
+                bullet.vx = -BASE_SPEED * (0.9 + Math.random() * 0.4);
+                bullet.vy = (Math.random() - 0.5) * BASE_SPEED * 0.3;
+                break;
+            case 'up':
+                bullet.x = Math.random() * SIZE;
+                bullet.y = 0;
+                bullet.vx = (Math.random() - 0.5) * BASE_SPEED * 0.3;
+                bullet.vy = BASE_SPEED * (0.9 + Math.random() * 0.4);
+                break;
+            case 'down':
+                bullet.x = Math.random() * SIZE;
+                bullet.y = SIZE;
+                bullet.vx = (Math.random() - 0.5) * BASE_SPEED * 0.3;
+                bullet.vy = -BASE_SPEED * (0.9 + Math.random() * 0.4);
+                break;
+            case 'diag': {
+                let corner = Math.floor(Math.random() * 4);
+                if (corner === 0) {
+                    bullet.x = 10 + Math.random() * 60;
+                    bullet.y = 10 + Math.random() * 60;
+                    bullet.vx = BASE_SPEED * (0.8 + Math.random() * 0.6);
+                    bullet.vy = BASE_SPEED * (0.8 + Math.random() * 0.6);
+                } else if (corner === 1) {
+                    bullet.x = SIZE - 10 - Math.random() * 60;
+                    bullet.y = 10 + Math.random() * 60;
+                    bullet.vx = -BASE_SPEED * (0.8 + Math.random() * 0.6);
+                    bullet.vy = BASE_SPEED * (0.8 + Math.random() * 0.6);
+                } else if (corner === 2) {
+                    bullet.x = 10 + Math.random() * 60;
+                    bullet.y = SIZE - 10 - Math.random() * 60;
+                    bullet.vx = BASE_SPEED * (0.8 + Math.random() * 0.6);
+                    bullet.vy = -BASE_SPEED * (0.8 + Math.random() * 0.6);
                 } else {
-                    errorMessage.style.display = 'block';
+                    bullet.x = SIZE - 10 - Math.random() * 60;
+                    bullet.y = SIZE - 10 - Math.random() * 60;
+                    bullet.vx = -BASE_SPEED * (0.8 + Math.random() * 0.6);
+                    bullet.vy = -BASE_SPEED * (0.8 + Math.random() * 0.6);
                 }
-            });
-            
-            cancelBtn.addEventListener('click', function() {
-                loginModal.style.display = 'none';
-                errorMessage.style.display = 'none';
-                loginForm.reset();
-                targetUrl = '';
-            });
-            
-            loginModal.addEventListener('click', function(e) {
-                if (e.target === loginModal) {
-                    loginModal.style.display = 'none';
-                    errorMessage.style.display = 'none';
-                    loginForm.reset();
-                    targetUrl = '';
-                }
-            });
-        }
-        
-        function authenticateUser(username, password) {
-            return VALID_USERS[username] === password;
-        }
-        
-        function isLoggedIn() {
-            const loginData = getLoginData();
-            if (!loginData) return false;
-            const now = new Date().getTime();
-            if (now - loginData.loginTime > SESSION_TIMEOUT * 60 * 1000) {
-                sessionStorage.removeItem('labLoginData');
-                return false;
+                break;
             }
-            return true;
+            // 特殊类 -------------------------------------------------
+            case 'tracking': {
+                let side = Math.floor(Math.random() * 4);
+                if (side === 0) { bullet.x = 0; bullet.y = Math.random() * SIZE; }
+                else if (side === 1) { bullet.x = SIZE; bullet.y = Math.random() * SIZE; }
+                else if (side === 2) { bullet.x = Math.random() * SIZE; bullet.y = 0; }
+                else { bullet.x = Math.random() * SIZE; bullet.y = SIZE; }
+                bullet.extra.speed = BASE_SPEED * 0.9;
+                bullet.extra.trackingFrames = 0;
+                break;
+            }
+            case 'laser': {
+                bullet.type = 'laser_warning';
+                bullet.extra.countdown = 60;
+                bullet.extra.laserType = Math.floor(Math.random() * 4);
+                if (bullet.extra.laserType === 0) { bullet.extra.y0 = Math.random() * SIZE; }
+                else if (bullet.extra.laserType === 1) { bullet.extra.x0 = Math.random() * SIZE; }
+                else if (bullet.extra.laserType === 2) { bullet.extra.k = 1; bullet.extra.b = Math.random() * (SIZE - 200) + 100; }
+                else { bullet.extra.k = -1; bullet.extra.b = Math.random() * (SIZE - 200) + 100; }
+                bullet.x = 30; bullet.y = 30;
+                break;
+            }
+            case 'firework': {
+                let corner = Math.floor(Math.random() * 4);
+                let baseX, baseY;
+                if (corner === 0) { baseX = 0; baseY = 0; }
+                else if (corner === 1) { baseX = SIZE; baseY = 0; }
+                else if (corner === 2) { baseX = 0; baseY = SIZE; }
+                else { baseX = SIZE; baseY = SIZE; }
+                let fragmentCount = 6 + Math.floor(Math.random() * 7);
+                for (let i = 0; i < fragmentCount; i++) {
+                    if (nextIndex >= totalChars) break;
+                    let fragCh = charList[nextIndex];
+                    nextIndex++;
+                    let angle = Math.random() * 2 * Math.PI;
+                    let speed = BASE_SPEED * (1.0 + Math.random() * 2.0);
+                    let frag = {
+                        ch: fragCh,
+                        x: baseX, y: baseY,
+                        vx: Math.cos(angle) * speed,
+                        vy: Math.sin(angle) * speed,
+                        type: 'firework_fragment',
+                        age: 0,
+                        extra: {}
+                    };
+                    bullets.push(frag);
+                }
+                return true; // 原bullet不加入
+            }
+            case 'variable': {
+                let side = Math.floor(Math.random() * 4);
+                if (side === 0) { bullet.x = 0; bullet.y = Math.random() * SIZE; }
+                else if (side === 1) { bullet.x = SIZE; bullet.y = Math.random() * SIZE; }
+                else if (side === 2) { bullet.x = Math.random() * SIZE; bullet.y = 0; }
+                else { bullet.x = Math.random() * SIZE; bullet.y = SIZE; }
+                let dx = heart.x - bullet.x;
+                let dy = heart.y - bullet.y;
+                let len = Math.hypot(dx, dy) || 1;
+                let baseVx = (dx / len) * BASE_SPEED * 1.2;
+                let baseVy = (dy / len) * BASE_SPEED * 1.2;
+                bullet.extra.baseVx = baseVx;
+                bullet.extra.baseVy = baseVy;
+                bullet.extra.phase = Math.random() * 100;
+                bullet.vx = baseVx;
+                bullet.vy = baseVy;
+                break;
+            }
+            case 'fade': {
+                let side = Math.floor(Math.random() * 4);
+                if (side === 0) { bullet.x = 0; bullet.y = Math.random() * SIZE; bullet.vx = BASE_SPEED*1.2; bullet.vy = 0; }
+                else if (side === 1) { bullet.x = SIZE; bullet.y = Math.random() * SIZE; bullet.vx = -BASE_SPEED*1.2; bullet.vy = 0; }
+                else if (side === 2) { bullet.x = Math.random() * SIZE; bullet.y = 0; bullet.vx = 0; bullet.vy = BASE_SPEED*1.2; }
+                else { bullet.x = Math.random() * SIZE; bullet.y = SIZE; bullet.vx = 0; bullet.vy = -BASE_SPEED*1.2; }
+                break;
+            }
         }
-        
-        function saveLoginState(username) {
-            const loginData = {
-                username: username,
-                loginTime: new Date().getTime()
-            };
-            sessionStorage.setItem('labLoginData', JSON.stringify(loginData));
+        if (type !== 'firework' && type !== 'laser') {
+            bullets.push(bullet);
+        } else if (type === 'laser') {
+            bullets.push(bullet);
         }
-        
-        function getLoginData() {
-            const data = sessionStorage.getItem('labLoginData');
-            return data ? JSON.parse(data) : null;
-        }
-        
-        function checkSession() {
-            if (isLoggedIn()) {
-                console.log('用户已登录（当前会话）');
+        return true;
+    }
+
+    // ---------- 重写 trySpawn：类型切换频率变为原来的25% (75%沿用上一次, 25%重新随机) ----------
+    function trySpawn() {
+        if (nextIndex >= totalChars) return false;
+
+        // 决定单/双: 20%双, 80%单
+        const isDouble = Math.random() < 0.2;
+        const neededCount = isDouble ? 2 : 1;
+
+        // 决定本次要使用的类型数组 (toUseTypes)
+        let toUseTypes = null;
+
+        // 90%概率沿用 (即切换频率25%)，但必须类型数量匹配且 lastTypes 非空
+        if (lastTypes !== null && lastTypes.length === neededCount && Math.random() < 0.9) {
+            // 沿用上一次的类型 (浅拷贝, 因为后面不会修改)
+            toUseTypes = lastTypes.slice();
+        } else {
+            // 重新随机生成类型数组
+            if (isDouble) {
+                // 双弹幕: 从 allTypes 中均匀抽取两个 (可重复)
+                const type1 = allTypes[Math.floor(Math.random() * allTypes.length)];
+                const type2 = allTypes[Math.floor(Math.random() * allTypes.length)];
+                toUseTypes = [type1, type2];
             } else {
-                console.log('用户未登录或会话已过期');
+                // 单弹幕: 方向类25% 特殊类75%
+                if (Math.random() < 0.25) {
+                    // 方向类
+                    const dirIdx = Math.floor(Math.random() * directionTypes.length);
+                    toUseTypes = [directionTypes[dirIdx]];
+                } else {
+                    // 特殊类
+                    const specIdx = Math.floor(Math.random() * specialTypes.length);
+                    toUseTypes = [specialTypes[specIdx]];
+                }
             }
         }
-    </script>
+
+        // 现在依次生成子弹，记录实际成功生成的类型
+        const actualTypes = [];
+        for (let t of toUseTypes) {
+            if (nextIndex >= totalChars) break; // 字符耗尽
+            const success = spawnBulletOfType(t);
+            if (success) {
+                actualTypes.push(t);
+            }
+        }
+
+        if (actualTypes.length === 0) {
+            return false; // 什么都没生成
+        }
+
+        // 更新 lastTypes 为实际生成的类型数组 (保证后续沿用基于事实)
+        lastTypes = actualTypes.slice();
+
+        // 更新 currentTypeString 显示
+        if (actualTypes.length === 2) {
+            const name1 = typeNameMap[actualTypes[0]] || actualTypes[0];
+            const name2 = typeNameMap[actualTypes[1]] || actualTypes[1];
+            currentTypeString = `${name1}+${name2}`;
+        } else if (actualTypes.length === 1) {
+            currentTypeString = typeNameMap[actualTypes[0]] || actualTypes[0];
+        } else {
+            currentTypeString = '-';
+        }
+
+        return true;
+    }
+
+    // ---------- 更新子弹每一帧 ----------
+    function updateBullets() {
+        for (let i = bullets.length - 1; i >= 0; i--) {
+            const b = bullets[i];
+            b.age++;
+
+            if (b.type === 'laser_warning') {
+                b.extra.countdown--;
+                if (b.extra.countdown <= 0) {
+                    let laserCount = 5 + Math.floor(Math.random() * 6);
+                    for (let j = 0; j < laserCount; j++) {
+                        if (nextIndex >= totalChars) break;
+                        let ch = charList[nextIndex];
+                        nextIndex++;
+                        let bullet = {
+                            ch: ch,
+                            type: 'laser_bullet',
+                            age: 0,
+                            extra: {}
+                        };
+                        let lt = b.extra.laserType;
+                        if (lt === 0) {
+                            bullet.y = b.extra.y0;
+                            bullet.x = (j / laserCount) * SIZE;
+                            bullet.vx = BASE_SPEED * 1.5;
+                            bullet.vy = 0;
+                        } else if (lt === 1) {
+                            bullet.x = b.extra.x0;
+                            bullet.y = (j / laserCount) * SIZE;
+                            bullet.vx = 0;
+                            bullet.vy = BASE_SPEED * 1.5;
+                        } else if (lt === 2) {
+                            let t = (j / laserCount) * SIZE;
+                            bullet.x = t;
+                            bullet.y = t + b.extra.b;
+                            if (bullet.y < 0 || bullet.y > SIZE) continue;
+                            bullet.vx = BASE_SPEED * 1.2;
+                            bullet.vy = BASE_SPEED * 1.2;
+                        } else {
+                            let t = (j / laserCount) * SIZE;
+                            bullet.x = t;
+                            bullet.y = -t + b.extra.b;
+                            if (bullet.y < 0 || bullet.y > SIZE) continue;
+                            bullet.vx = BASE_SPEED * 1.2;
+                            bullet.vy = -BASE_SPEED * 1.2;
+                        }
+                        bullets.push(bullet);
+                    }
+                    bullets.splice(i, 1);
+                    continue;
+                }
+                continue;
+            }
+
+            if (b.type === 'tracking') {
+                b.extra.trackingFrames = (b.extra.trackingFrames || 0) + 1;
+                let dx = heart.x - b.x;
+                let dy = heart.y - b.y;
+                let dist = Math.hypot(dx, dy);
+                if (dist > 0.01) {
+                    let speed = b.extra.speed || BASE_SPEED * 0.9;
+                    b.vx = (dx / dist) * speed;
+                    b.vy = (dy / dist) * speed;
+                }
+                if (b.extra.trackingFrames > 300) {
+                    b.type = 'straight';
+                }
+            }
+
+            if (b.type === 'variable') {
+                let factor = 0.6 + 0.5 * Math.sin(b.age * 0.1 + b.extra.phase);
+                b.vx = b.extra.baseVx * factor;
+                b.vy = b.extra.baseVy * factor;
+            }
+
+            if (b.type !== 'laser_warning') {
+                b.x += b.vx;
+                b.y += b.vy;
+            }
+
+            if (b.x < -50 || b.x > SIZE + 50 || b.y < -50 || b.y > SIZE + 50) {
+                bullets.splice(i, 1);
+                continue;
+            }
+
+            let dx = b.x - heart.x;
+            let dy = b.y - heart.y;
+            let dist = Math.hypot(dx, dy);
+            if (dist < heart.r + 10) {
+                hp = Math.max(0, hp - 1);
+                bullets.splice(i, 1);
+                if (hp <= 0) {
+                    gameState = 'gameover';
+                    hp = 0;
+                }
+                continue;
+            }
+        }
+    }
+
+    function tryGenerateBullets(now) {
+        if (gameState !== 'playing') return;
+        if (now - lastGenTime > GEN_INTERVAL && nextIndex < totalChars) {
+            trySpawn();
+            lastGenTime = now;
+        }
+    }
+
+    // 重置游戏 (保留字符列表)
+    function resetGame(keepChars = true) {
+        hp = MAX_HP;
+        bullets = [];
+        nextIndex = 0;
+        currentTypeString = '-';
+        lastTypes = null;                // 重置类型记忆
+        if (!keepChars) {
+            charList = [];
+            totalChars = 0;
+        }
+        gameState = 'waiting';
+        updateUI();
+    }
+
+    function fullReset() {
+        document.getElementById('fileUpload').value = '';
+        document.getElementById('textInput').value = '';
+        document.getElementById('fileStatus').innerText = '未选择';
+        charList = [];
+        totalChars = 0;
+        resetGame(false);
+    }
+
+    function loadTextFromInput() {
+        let text = document.getElementById('textInput').value;
+        if (text.trim() === '') {
+            text = `氢氦锂铍硼碳氮氧氟氖钠镁铝硅磷硫氯氩钾钙钪钛钒铬锰铁钴镍铜锌镓锗砷硒溴氪铷锶钇锆铌钼锝钌铑钯银镉铟锡锑碲碘氙铯钡镧铈镨钕钷钐铕钆铽镝钬铒铥镱镥铪钽钨铼锇铱铂金汞铊铅铋钋砹氡钫镭锕钍镤铀镎钚镅锔锫锎锿镄钔锘铹 3.1415926535897932384626433832795028841971693993751058209749445923078164062862089986280348253421170679 龘靐齉爩蠿龗鱻爩麤灪爨癵籱麣纞虋讟鸜麷鞻鬱靊飝虪齺魕爧蠿齺虋讟爩鱻麤龗灪爨癵籱饢驫麣纞虋讟鸜麷鞻鬱靊飝虪齺魕爧蠿齺虋讟爩鱻麤龗灪爨癵籱饢驫麣纞虋讟鸜麷鞻鬱靊飝虪齺魕爧蠿齺虋讟爩鱻麤龗灪爨癵籱饢驫麣纞虋讟鸜麷鞻鬱靊飝虪齺魕爧蠿齺虋讟爩鱻麤龗灪爨癵籱饢驫麣纞虋讟 （）：“”《》；‘，。、|[]{【】}？!@#$%^&*()_+-=~·$%^&*()_+{}|:"<>?~!@#$%^&*()_+-=[]{};':",./<>?\\|\`~!@#$%^&*()_+-=[]{};':\",./<>?`;
+        }
+        let chars = text.match(/\S/g);
+        if (!chars || chars.length === 0) {
+            alert('至少包含一个有效字符');
+            return;
+        }
+        charList = chars;
+        totalChars = charList.length;
+        document.getElementById('fileStatus').innerText = `已加载 ${totalChars} 字符`;
+        resetGame(true);
+    }
+
+    document.getElementById('fileUpload').addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+            let content = ev.target.result;
+            let chars = content.match(/\S/g);
+            if (!chars || chars.length === 0) {
+                alert('文件无可见字符');
+                return;
+            }
+            charList = chars;
+            totalChars = charList.length;
+            document.getElementById('fileStatus').innerText = `文件 ${totalChars} 字符`;
+            document.getElementById('textInput').value = content;
+            resetGame(true);
+        };
+        reader.readAsText(file);
+    });
+
+    document.getElementById('loadTextBtn').addEventListener('click', loadTextFromInput);
+
+    function startGame() {
+        if (charList.length === 0) {
+            alert('请先加载文本');
+            return;
+        }
+        if (gameState === 'playing') return;
+        if (gameState === 'win' || gameState === 'gameover') {
+            hp = MAX_HP;
+            bullets = [];
+            nextIndex = 0;
+            lastTypes = null;          // 重置记忆
+        }
+        gameState = 'playing';
+        lastGenTime = performance.now();
+    }
+
+    function updateUI() {
+        document.getElementById('hpDisplay').innerText = hp;
+        let remaining = totalChars - nextIndex + bullets.length;
+        document.getElementById('remainingDisplay').innerText = remaining;
+        document.getElementById('bulletCount').innerText = bullets.length;
+        document.getElementById('currentType').innerText = currentTypeString;
+    }
+
+    function draw() {
+        ctx.clearRect(0, 0, SIZE, SIZE);
+        ctx.fillStyle = 'white';
+        ctx.fillRect(0, 0, SIZE, SIZE);
+
+        for (let b of bullets) {
+            let alpha = 1.0;
+            if (b.type === 'fade') {
+                let dx = b.x - heart.x;
+                let dy = b.y - heart.y;
+                let dist = Math.hypot(dx, dy);
+                if (dist < 100) alpha = Math.max(0.1, dist/100);
+            }
+            if (b.type === 'laser_warning') {
+                ctx.fillStyle = `rgba(255,0,0,${0.2 + 0.3*Math.sin(b.age*0.2)})`;
+                ctx.font = '18px "Times New Roman", "宋体"';
+                ctx.fillText('⚠', b.x-10, b.y-10);
+                ctx.strokeStyle = '#ff5555';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                let lt = b.extra.laserType;
+                if (lt === 0) {
+                    ctx.moveTo(0, b.extra.y0);
+                    ctx.lineTo(SIZE, b.extra.y0);
+                } else if (lt === 1) {
+                    ctx.moveTo(b.extra.x0, 0);
+                    ctx.lineTo(b.extra.x0, SIZE);
+                } else if (lt === 2) {
+                    ctx.moveTo(0, b.extra.b);
+                    ctx.lineTo(SIZE, SIZE + b.extra.b);
+                } else {
+                    ctx.moveTo(0, -b.extra.b + SIZE);
+                    ctx.lineTo(SIZE, -SIZE + b.extra.b);
+                }
+                ctx.strokeStyle = `rgba(255,100,100,0.5)`;
+                ctx.stroke();
+                continue;
+            }
+
+            ctx.save();
+            if (alpha < 1.0) ctx.globalAlpha = alpha;
+            if (/[\u4e00-\u9fa5]/.test(b.ch)) {
+                ctx.font = '24px "宋体", "SimSun", serif';
+            } else {
+                ctx.font = '24px "Times New Roman", Times, serif';
+            }
+            ctx.fillStyle = '#2c3e50';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(b.ch, b.x, b.y);
+            ctx.restore();
+        }
+
+        ctx.save();
+        ctx.translate(heart.x, heart.y);
+        ctx.scale(1, 0.6);
+        ctx.beginPath();
+        ctx.moveTo(0, 10);
+        ctx.bezierCurveTo(-12, -8, -8, -18, 0, -12);
+        ctx.bezierCurveTo(8, -18, 12, -8, 0, 10);
+        ctx.closePath();
+        ctx.fillStyle = '#e74c3c';
+        ctx.shadowColor = '#c0392b';
+        ctx.shadowBlur = 12;
+        ctx.fill();
+        ctx.restore();
+
+        if (gameState === 'waiting') {
+            ctx.fillStyle = '#aaa';
+            ctx.font = 'bold 24px sans-serif';
+            ctx.fillText('触摸/空格 开始', 180, 300);
+        } else if (gameState === 'gameover') {
+            ctx.fillStyle = '#e74c3c';
+            ctx.font = 'bold 32px sans-serif';
+            ctx.fillText('游戏结束', 200, 280);
+        } else if (gameState === 'win') {
+            ctx.fillStyle = '#27ae60';
+            ctx.font = 'bold 32px sans-serif';
+            ctx.fillText('通关 !', 220, 280);
+        }
+    }
+
+    function gameLoop(now) {
+        if (gameState === 'playing') {
+            tryGenerateBullets(now);
+            updateBullets();
+            if (nextIndex >= totalChars && bullets.length === 0 && totalChars > 0 && hp > 0) {
+                gameState = 'win';
+            }
+            updateUI();
+        }
+        draw();
+        requestAnimationFrame(gameLoop);
+    }
+    requestAnimationFrame(gameLoop);
+
+    function setHeartPos(px, py) {
+        heart.x = Math.min(SIZE - heart.r, Math.max(heart.r, px));
+        heart.y = Math.min(SIZE - heart.r, Math.max(heart.r, py));
+    }
+
+    if (!/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
+        canvas.addEventListener('mousemove', (e) => {
+            if (gameState !== 'gameover') {
+                const rect = canvas.getBoundingClientRect();
+                const scaleX = SIZE / rect.width;
+                const scaleY = SIZE / rect.height;
+                setHeartPos((e.clientX - rect.left) * scaleX, (e.clientY - rect.top) * scaleY);
+            }
+        });
+    } else {
+        let useGyro = false;
+        if (window.DeviceOrientationEvent) {
+            if (typeof DeviceOrientationEvent.requestPermission === 'function') {
+                DeviceOrientationEvent.requestPermission().then(p => {
+                    if (p === 'granted') {
+                        window.addEventListener('deviceorientation', handleOrientation);
+                        useGyro = true;
+                    }
+                }).catch(() => {});
+            } else {
+                window.addEventListener('deviceorientation', handleOrientation);
+                useGyro = true;
+            }
+        }
+        function handleOrientation(e) {
+            if (!useGyro) return;
+            let beta = e.beta, gamma = e.gamma;
+            if (beta == null || gamma == null) return;
+            let targetX = (gamma + 45) / 90 * SIZE;
+            let targetY = (beta + 45) / 90 * SIZE;
+            setHeartPos(targetX, targetY);
+        }
+        canvas.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            if (!useGyro) {
+                updateHeartFromTouch(e);
+            }
+            if (gameState === 'waiting' && charList.length > 0) {
+                startGame();
+            }
+        });
+        canvas.addEventListener('touchmove', (e) => {
+            e.preventDefault();
+            if (!useGyro) updateHeartFromTouch(e);
+        });
+        function updateHeartFromTouch(e) {
+            let touch = e.touches[0];
+            if (!touch) return;
+            const rect = canvas.getBoundingClientRect();
+            const scaleX = SIZE / rect.width;
+            const scaleY = SIZE / rect.height;
+            setHeartPos((touch.clientX - rect.left) * scaleX, (touch.clientY - rect.top) * scaleY);
+        }
+    }
+
+    window.addEventListener('keydown', (e) => {
+        if (e.code === 'Space') {
+            e.preventDefault();
+            if (gameState === 'waiting' && charList.length > 0) startGame();
+        }
+    });
+
+    document.getElementById('resetBtn').addEventListener('click', fullReset);
+
+    window.addEventListener('load', () => {
+        loadTextFromInput();
+    });
+})();
+</script>
 </body>
 </html>
