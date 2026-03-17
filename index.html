@@ -6,13 +6,14 @@
     <title>Bioinformatics Analysis Toolkit</title>
     <style>
         :root {
-            --primary-color: #2c3e50;
-            --secondary-color: #3498db;
-            --accent-color: #e74c3c;
-            --light-color: #ecf0f1;
-            --dark-color: #2c3e50;
-            --success-color: #27ae60;
-            --warning-color: #f39c12;
+            /* 新配色：主色 #32586d, 强调 #ca3032, 辅助 #b2d1d6 及其他衍射 */
+            --primary-color: #32586d;          /* 深蓝灰，用于主标题栏、页脚等 */
+            --secondary-color: #b2d1d6;         /* 浅蓝灰，用于卡片头、辅助背景 */
+            --accent-color: #ca3032;             /* 砖红，用于强调按钮、隐藏版块、错误提示等 */
+            --light-color: #e1f0f2;               /* 极浅蓝灰 (b2d1d6 的衍射) */
+            --dark-color: #1e3a47;                 /* 更深的蓝灰，用于文字或悬浮 */
+            --success-color: #2e8b57;               /* 保留微调，与原风格兼容 */
+            --warning-color: #f0ad4e;               
             --border-radius: 8px;
             --box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
             --transition: all 0.3s ease;
@@ -25,11 +26,17 @@
         }
 
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            /* 字体严格按照参考：英文优先 Times New Roman，中文优先宋体 */
+            font-family: "Times New Roman", "宋体", SimSun, "Songti SC", serif;
             line-height: 1.6;
             color: #333;
-            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            background: linear-gradient(135deg, #f5f7fa 0%, #d4e3e9 100%);
             min-height: 100vh;
+        }
+
+        /* 所有表单元素、按钮及卡片均继承 body 字体，保证统一 */
+        input, button, textarea, select, .btn, .tool-card, .modal-content {
+            font-family: inherit;
         }
 
         /* 顶部标题栏 */
@@ -46,6 +53,7 @@
         .main-header h1 {
             margin-bottom: 5px;
             font-size: 2.2rem;
+            font-weight: 500;
         }
 
         .main-header p {
@@ -68,6 +76,7 @@
             font-size: 2rem;
             cursor: pointer;
             transition: var(--transition);
+            color: white;
         }
 
         .bat-icon:hover {
@@ -78,6 +87,8 @@
         .logo-text {
             font-size: 1.8rem;
             font-weight: bold;
+            color: white;
+            /* 继承 body 字体，无需额外定义 */
         }
 
         /* 右上角关于按钮 */
@@ -104,6 +115,7 @@
             font-weight: bold;
             font-size: 1.2rem;
             border: 2px solid rgba(255, 255, 255, 0.5);
+            color: white;
         }
 
         .about-btn:hover {
@@ -132,6 +144,7 @@
             margin-bottom: 20px;
             padding-bottom: 10px;
             border-bottom: 2px solid var(--secondary-color);
+            font-weight: 500;
         }
 
         .tools-grid {
@@ -152,16 +165,18 @@
             flex-direction: column;
             text-decoration: none;
             color: inherit;
+            border: 1px solid rgba(178, 209, 214, 0.4);
         }
 
         .tool-card:hover {
             transform: translateY(-5px);
-            box-shadow: 0 12px 20px rgba(0, 0, 0, 0.15);
+            box-shadow: 0 12px 20px rgba(50, 88, 109, 0.15);
+            border-color: var(--accent-color);
         }
 
         .tool-card-header {
             background-color: var(--secondary-color);
-            color: white;
+            color: var(--dark-color);
             padding: 15px;
             text-align: center;
             font-weight: bold;
@@ -189,6 +204,7 @@
             color: #6c757d;
             font-size: 0.9rem;
             flex-shrink: 0;
+            border-top: 1px solid rgba(178, 209, 214, 0.3);
         }
 
         /* 受限工具样式 */
@@ -196,6 +212,7 @@
             background-color: #fff3cd;
             color: #856404;
             font-weight: bold;
+            border-top-color: #ffeeba;
         }
 
         .restricted-tool .tool-card-footer::before {
@@ -223,7 +240,7 @@
         /* 隐藏版块样式 */
         .hidden-section {
             display: none;
-            background: linear-gradient(135deg, #fceabb 0%, #f8b500 100%);
+            background: linear-gradient(135deg, #fbe9e7 0%, #f8d7da 100%);
             border: 2px dashed var(--accent-color);
         }
 
@@ -234,16 +251,16 @@
 
         .hidden-section .tool-card-header {
             background-color: var(--accent-color);
+            color: white;
         }
 
         .footer {
             text-align: center;
             padding: 20px;
-            color: var(--dark-color);
-            font-weight: bold;
             background: var(--primary-color);
             color: white;
             margin-top: 40px;
+            font-weight: 500;
         }
 
         /* 登录模态框样式 */
@@ -293,6 +310,7 @@
             border: 1px solid #ddd;
             border-radius: var(--border-radius);
             font-size: 1rem;
+            font-family: inherit; /* 继承 body 字体 */
         }
 
         .modal-buttons {
@@ -312,12 +330,12 @@
         }
 
         .btn-primary {
-            background-color: var(--secondary-color);
+            background-color: var(--accent-color);
             color: white;
         }
 
         .btn-primary:hover {
-            background-color: #2980b9;
+            background-color: #aa2729;
         }
 
         .btn-secondary {
@@ -362,6 +380,7 @@
             color: var(--secondary-color);
             margin-bottom: 10px;
             font-size: 1.2rem;
+            font-weight: 600;
         }
 
         .about-section p {
@@ -381,22 +400,24 @@
             padding: 5px 12px;
             border-radius: 20px;
             font-size: 0.9rem;
+            color: var(--dark-color);
         }
 
         .close-about-btn {
             display: block;
             margin: 20px auto 0;
             padding: 8px 20px;
-            background-color: var(--secondary-color);
+            background-color: var(--accent-color);
             color: white;
             border: none;
             border-radius: var(--border-radius);
             cursor: pointer;
             transition: var(--transition);
+            font-family: inherit;
         }
 
         .close-about-btn:hover {
-            background-color: #2980b9;
+            background-color: #aa2729;
         }
 
         @media (max-width: 768px) {
@@ -425,6 +446,7 @@
     </style>
 </head>
 <body>
+    <!-- 页面内容与之前完全相同，仅字体设置已修正 -->
     <header class="main-header">
         <div class="logo-container">
             <div class="bat-icon">🦇</div>
@@ -771,11 +793,8 @@
                 let allKeysPressed = requiredKeys.every(key => keysPressed[key]);
                 
                 if (allKeysPressed) {
-                    // 直接切换显示状态 (不经过冷却，保证快捷键即时响应)
                     const isVisible = hiddenSection.style.display === 'block';
                     hiddenSection.style.display = isVisible ? 'none' : 'block';
-                    
-                    // 清除按键状态，防止重复触发
                     keysPressed = {};
                     event.preventDefault();
                 }
@@ -785,14 +804,13 @@
                 delete keysPressed[event.key];
             });
 
-            // ---------- 移动端手势: 到底部后上拉显示/隐藏 (无任何提示) ----------
+            // ---------- 移动端手势: 到底部后上拉显示/隐藏 ----------
             function initMobileGesture() {
-                // 只对触摸设备生效
                 if (!('ontouchstart' in window)) return;
 
-                const BOTTOM_THRESHOLD = 20;      // 距离底部多少像素内算“到底”
-                const SWIPE_DISTANCE = 15;         // 上拉最少像素
-                const COOLDOWN_MS = 400;            // 避免连续触发
+                const BOTTOM_THRESHOLD = 20;
+                const SWIPE_DISTANCE = 15;
+                const COOLDOWN_MS = 400;
 
                 let touchStartY = 0;
                 let startedAtBottom = false;
@@ -822,19 +840,15 @@
                 }, { passive: true });
 
                 document.addEventListener('touchend', function(e) {
-                    // 只有触摸开始时在底部，才可能触发手势
                     if (!startedAtBottom) return;
                     if (!e.changedTouches.length) return;
 
                     const touchEndY = e.changedTouches[0].clientY;
-                    const deltaY = touchEndY - touchStartY;   // 向上滑动为负值
+                    const deltaY = touchEndY - touchStartY;
 
-                    // 向上滑动且距离足够
                     if (deltaY < 0 && Math.abs(deltaY) >= SWIPE_DISTANCE) {
                         toggleHiddenViaGesture();
                     }
-
-                    // 重置标志
                     startedAtBottom = false;
                 });
 
@@ -844,15 +858,10 @@
             }
 
             initMobileGesture();
-
-            // ---------- 用户认证功能 (原样保留) ----------
             initAuthentication();
-            
-            // ---------- 关于模态框 (原样保留) ----------
             initAboutModal();
         });
 
-        // 关于模态框功能 (保持不变)
         function initAboutModal() {
             const aboutBtn = document.getElementById('aboutBtn');
             const aboutModal = document.getElementById('aboutModal');
@@ -873,7 +882,6 @@
             });
         }
 
-        // 用户认证功能 (保持不变)
         function initAuthentication() {
             const loginModal = document.getElementById('loginModal');
             const loginForm = document.getElementById('loginForm');
