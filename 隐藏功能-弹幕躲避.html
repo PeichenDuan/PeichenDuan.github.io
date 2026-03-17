@@ -434,7 +434,7 @@
         let toUseTypes = null;
 
         // 90%概率沿用 (即切换频率25%)，但必须类型数量匹配且 lastTypes 非空
-        if (lastTypes !== null && lastTypes.length === neededCount && Math.random() < 0.9) {
+        if (lastTypes !== null && lastTypes.length === neededCount && Math.random() < 0.99) {
             // 沿用上一次的类型 (浅拷贝, 因为后面不会修改)
             toUseTypes = lastTypes.slice();
         } else {
