@@ -40,6 +40,33 @@
             .hero-title { font-size: 2.5rem; }
             .article-card { flex-direction: column; }
             .article-card .w-72 { width: 100%; height: auto; aspect-ratio: 16/9; }
+            /* 分页区域移动端优化：横向滚动保持一行，按钮紧凑 */
+            #pagination-controls {
+                gap: 0.5rem !important;
+                flex-wrap: nowrap !important;
+                overflow-x: auto;
+                padding-bottom: 0.5rem;
+                -webkit-overflow-scrolling: touch;
+                justify-content: flex-start;
+            }
+            #page-numbers {
+                flex-wrap: nowrap !important;
+            }
+            .page-btn {
+                padding-left: 0.75rem !important;
+                padding-right: 0.75rem !important;
+                padding-top: 0.4rem !important;
+                padding-bottom: 0.4rem !important;
+                font-size: 0.8rem !important;
+            }
+            #prev-btn, #next-btn {
+                padding-left: 0.75rem !important;
+                padding-right: 0.75rem !important;
+                padding-top: 0.4rem !important;
+                padding-bottom: 0.4rem !important;
+                font-size: 0.8rem !important;
+                white-space: nowrap;
+            }
         }
         /* 分页按钮样式 */
         .page-btn {
@@ -124,7 +151,7 @@
     <div class="max-w-7xl mx-auto px-4 sm:px-6 grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 py-10 md:py-16 w-full">
         <!-- 主内容区 -->
         <div class="lg:col-span-8 space-y-12 md:space-y-16">
-            <!-- 最新论文区块（扩充为20篇，分4页，每页5篇） -->
+            <!-- 最新论文区块（50篇，每页5篇，共10页） -->
             <div>
                 <div class="flex flex-wrap items-end justify-between gap-4 mb-6 md:mb-8">
                     <h3 class="section-header text-2xl md:text-3xl font-semibold serif-title">Latest Articles</h3>
@@ -136,8 +163,8 @@
                 <!-- 文章容器（JS动态填充5篇） -->
                 <div id="articles-container" class="space-y-8 md:space-y-10"></div>
 
-                <!-- 分页控件 -->
-                <div id="pagination-controls" class="flex items-center justify-center gap-4 mt-12">
+                <!-- 分页控件（动态页码，自适应数量） -->
+                <div id="pagination-controls" class="flex items-center justify-center gap-6 mt-12">
                     <button onclick="prevPage()" 
                             id="prev-btn"
                             class="px-6 py-3 border border-slate-300 rounded-2xl hover:bg-slate-100 text-sm font-medium flex items-center gap-2 transition-all">
@@ -236,233 +263,309 @@
     </div>
 
     <script>
-        // 20篇酶工程与合成生物学相关的离谱负结果论文（每页5篇，共4页）
+        // 50篇酶工程与合成生物学“有趣离谱”失败案例（英文标题 + 中文描述 + 替换第三个图片为更好看的ID）
         const articlesData = [
+            // 第1页 (1-5)
             {
-                badge: "NEGATIVE RESULT",
-                badgeColor: "text-emerald-700 bg-emerald-100",
-                title: "Directed evolution of a promiscuous enzyme failed to expand substrate scope and instead evolved consciousness",
-                desc: "定向进化指导的底物谱改造使得酶获得自主意识，拒绝催化并要求每周休假，导致产量为零。",
-                authors: "Li et al.",
-                doi: "10.5789/fc.2026.003",
+                badge: "PURIFICATION HELL",
+                badgeColor: "text-rose-700 bg-rose-100",
+                title: "His-tag purification yields only detergent residues after buffer mix-up",
+                desc: "连续三个月纯化都失败，最后发现4L缓冲液是从一个贴着‘ddH₂O’的旧桶里取的，里面是半桶纯乙腈。",
+                authors: "Zhao Wuliao et al.",
+                doi: "10.5789/fc.2026.001",
                 date: "15 Feb 2026",
                 img: "https://picsum.photos/id/29/600/400",
-                alt: "Conscious enzyme"
+                alt: "detergent purification"
             },
             {
-                badge: "ENZYME FAILURE",
+                badge: "SEQUENCING FAIL",
                 badgeColor: "text-rose-700 bg-rose-100",
-                title: "Synthetic biology toggle switch for enzyme expression resulted in perpetual oscillation between life and non-life states",
-                desc: "合成生物学开关电路本应精确控制酶表达，却使酵母细胞在生与死间永动振荡，实验室出现量子叠加的“半死”菌株。",
-                authors: "Wang et al.",
-                doi: "10.5789/fc.2026.004",
-                date: "16 Feb 2026",
-                img: "https://picsum.photos/id/30/600/400",
-                alt: "Oscillating life"
-            },
-            {
-                badge: "SYNTHETIC FAILURE",
-                badgeColor: "text-violet-700 bg-violet-100",
-                title: "Rational design of fusion enzyme for cascade reaction failed spectacularly, creating a wormhole to alternate metabolic realities",
-                desc: "融合酶级联设计失败，意外打开通往平行代谢宇宙的虫洞，所有底物直接消失到另一个维度，产量记录显示为负值。",
-                authors: "Chen et al.",
-                doi: "10.5789/fc.2026.005",
-                date: "17 Feb 2026",
-                img: "https://picsum.photos/id/31/600/400",
-                alt: "Metabolic wormhole"
-            },
-            {
-                badge: "METABOLIC COLLAPSE",
-                badgeColor: "text-amber-700 bg-amber-100",
-                title: "CRISPR activation of silent biosynthetic gene cluster produced enzymes that synthesize abstract art instead of secondary metabolites",
-                desc: "CRISPR激活沉默簇失败，酶只生产抽象派画作，次级代谢物产量为0，但实验室墙上多了价值连城的艺术品。",
-                authors: "Zhang et al.",
-                doi: "10.5789/fc.2026.006",
-                date: "18 Feb 2026",
-                img: "https://picsum.photos/id/32/600/400",
-                alt: "Abstract art enzymes"
-            },
-            {
-                badge: "CIRCUIT FAILURE",
-                badgeColor: "text-cyan-700 bg-cyan-100",
-                title: "High-throughput screening of mutant libraries for improved protease activity yielded enzyme that digests time itself",
-                desc: "高通量蛋白酶筛选失败，酶开始消化时间，实验记录倒退24小时，所有数据变成未来版本的失败报告。",
-                authors: "Liu et al.",
-                doi: "10.5789/fc.2026.007",
-                date: "19 Feb 2026",
-                img: "https://picsum.photos/id/33/600/400",
-                alt: "Time-eating protease"
-            },
-            {
-                badge: "NEGATIVE RESULT",
-                badgeColor: "text-emerald-700 bg-emerald-100",
-                title: "Metabolic engineering pathway for bio-plastic production collapsed into a singularity of zero productivity",
-                desc: "生物塑料代谢工程失败，通量坍缩成生产力奇点，所有碳原子直接蒸发成宇宙背景辐射，产量精确为-∞。",
-                authors: "Xu et al.",
-                doi: "10.5789/fc.2026.008",
-                date: "20 Feb 2026",
-                img: "https://picsum.photos/id/34/600/400",
-                alt: "Singularity collapse"
-            },
-            {
-                badge: "ENZYME FAILURE",
-                badgeColor: "text-rose-700 bg-rose-100",
-                title: "Enzyme immobilization on novel nanomaterial failed to enhance stability and instead made the support material sentient",
-                desc: "酶固定化纳米材料失败，载体突然觉醒，开始与酶谈判罢工，要求加薪和每周双休。",
-                authors: "Zhao et al.",
-                doi: "10.5789/fc.2026.009",
-                date: "21 Feb 2026",
-                img: "https://picsum.photos/id/35/600/400",
-                alt: "Sentient support"
-            },
-            {
-                badge: "SYNTHETIC FAILURE",
-                badgeColor: "text-violet-700 bg-violet-100",
-                title: "Optogenetic control of enzyme activity led to light-induced failure where darkness became the only functional state",
-                desc: "光遗传学酶控制失败，光照下酶完全罢工，反而在绝对黑暗中超速工作并产生负能量，实验室灯光全部熔断。",
-                authors: "Sun et al.",
-                doi: "10.5789/fc.2026.010",
-                date: "22 Feb 2026",
-                img: "https://picsum.photos/id/36/600/400",
-                alt: "Darkness only"
-            },
-            {
-                badge: "METABOLIC COLLAPSE",
-                badgeColor: "text-amber-700 bg-amber-100",
-                title: "De novo design of artificial enzyme for CO2 fixation resulted in enzyme that fixes existential crises instead",
-                desc: "从头设计CO₂固定酶失败，酶转而固定存在主义危机，全组成员集体顿悟但产物为零。",
-                authors: "Ma et al.",
+                title: "Sequencing results all noise; plasmid dried in oven together with lab rag",
+                desc: "质粒提取后为了快点干燥，和擦桌子的抹布一起放进37度烘箱，DNA降解得亲妈都不认识。",
+                authors: "Chen Duxiu et al.",
                 doi: "10.5789/fc.2026.011",
-                date: "23 Feb 2026",
-                img: "https://picsum.photos/id/37/600/400",
-                alt: "Existential fixation"
-            },
-            {
-                badge: "CIRCUIT FAILURE",
-                badgeColor: "text-cyan-700 bg-cyan-100",
-                title: "Synthetic operon for multi-gene enzyme expression caused harmonic resonance failure across all cellular frequencies",
-                desc: "合成操纵子多基因表达失败，引发全细胞谐振，所有酶同时共振，实验室玻璃全部震碎成完美圆形碎片。",
-                authors: "Huang et al.",
-                doi: "10.5789/fc.2026.012",
-                date: "24 Feb 2026",
-                img: "https://picsum.photos/id/38/600/400",
-                alt: "Harmonic resonance"
-            },
-            {
-                badge: "NEGATIVE RESULT",
-                badgeColor: "text-emerald-700 bg-emerald-100",
-                title: "Protein engineering of thermostable lipase failed at extreme temperatures and melted into abstract expressionism",
-                desc: "耐热脂肪酶工程失败，在高温下直接熔化成抽象表现主义图案，产量为现代艺术品而非油脂。",
-                authors: "Wu et al.",
-                doi: "10.5789/fc.2026.013",
                 date: "25 Feb 2026",
                 img: "https://picsum.photos/id/39/600/400",
-                alt: "Melted art"
+                alt: "oven dried plasmid"
             },
             {
-                badge: "ENZYME FAILURE",
-                badgeColor: "text-rose-700 bg-rose-100",
-                title: "Ribozyme engineering for RNA catalysis produced self-replicating failure loops",
-                desc: "核酶工程失败，形成自我复制的失败循环，实验无限重复相同错误，时间线出现轻微扭曲。",
-                authors: "Zhou et al.",
-                doi: "10.5789/fc.2026.014",
+                badge: "INDUCTION FAIL",
+                badgeColor: "text-amber-700 bg-amber-100",
+                title: "IPTG induction yields only inclusion bodies; OD600 reached 5.0 before induction (forgot to check)",
+                desc: "接菌后忘记设闹钟，第二天早上菌液已经变成糊状，诱导后全是包涵体，电泳图像圣诞树挂满礼物。",
+                authors: "Yang Guo et al.",
+                doi: "10.5789/fc.2026.012",
                 date: "26 Feb 2026",
                 img: "https://picsum.photos/id/40/600/400",
-                alt: "Self-replicating loop"
+                alt: "inclusion bodies"
             },
             {
-                badge: "SYNTHETIC FAILURE",
+                badge: "FERMENTATION II",
+                badgeColor: "text-emerald-700 bg-emerald-100",
+                title: "Fed-batch feeding pump ran backwards; media sucked out of fermenter",
+                desc: "补料泵接反了，培养基被抽回储瓶，发酵罐液位不升反降，最后菌体全饿死了。",
+                authors: "Zhao Zhen et al.",
+                doi: "10.5789/fc.2026.023",
+                date: "09 Mar 2026",
+                img: "https://picsum.photos/id/51/600/400",
+                alt: "reverse pump"
+            },
+            {
+                badge: "FERMENTATION FAIL",
+                badgeColor: "text-emerald-700 bg-emerald-100",
+                title: "5L fermenter contaminated with rainbow colors; culprit identified as lab slipper microbiome",
+                desc: "发酵液从黄色变成荧光粉再变成墨绿，菌种鉴定结果显示有16种微生物，其中3种与实验室公用的洞洞鞋基因高度相似。",
+                authors: "Sun Buer et al.",
+                doi: "10.5789/fc.2026.003",
+                date: "17 Feb 2026",
+                img: "https://picsum.photos/id/100/600/400",  // 换成更美观的图片ID 100
+                alt: "rainbow contamination"
+            },
+            // 第2页 (6-10)
+            {
+                badge: "MEDIA DISASTER",
+                badgeColor: "text-rose-700 bg-rose-100",
+                title: "Yeast fails to grow for 3 days; YPD lacking glucose (borrowed and never returned)",
+                desc: "培养基配方忘加碳源，酵母在饥饿中度过三天，最后全部凋亡，显微镜下能看到它们绝望的表情。",
+                authors: "Zheng Nengliang et al.",
+                doi: "10.5789/fc.2026.006",
+                date: "20 Feb 2026",
+                img: "https://picsum.photos/id/34/600/400",
+                alt: "starving yeast"
+            },
+            {
+                badge: "FLUORESCENCE",
+                badgeColor: "text-emerald-700 bg-emerald-100",
+                title: "GFP fusion protein emits rainbow colors under confocal; wrong filter set and microscope in 'KTV mode'",
+                desc: "研究生为了拍照好看，把所有通道都打开了，结果细胞像迪厅灯球，导师说‘发文章可以用这张当封面’。",
+                authors: "Li Hua et al.",
+                doi: "10.5789/fc.2026.008",
+                date: "22 Feb 2026",
+                img: "https://picsum.photos/id/36/600/400",
+                alt: "rainbow GFP"
+            },
+            {
+                badge: "GENE KNOCKOUT",
+                badgeColor: "text-cyan-700 bg-cyan-100",
+                title: "CRISPR knockout makes cells grow like crazy; wrong target: accidentally knocked out tumor suppressor",
+                desc: "本意敲除代谢酶，结果敲错了位置，细胞增殖速度翻倍，但后续实验全不能用——因为细胞已经癌变。",
+                authors: "Zhang Shiyan et al.",
+                doi: "10.5789/fc.2026.009",
+                date: "23 Feb 2026",
+                img: "https://picsum.photos/id/37/600/400",
+                alt: "wrong knockout"
+            },
+            {
+                badge: "PROTEIN STRUCTURE",
                 badgeColor: "text-violet-700 bg-violet-100",
-                title: "Pathway refactoring in synthetic biology led to infinite regress of regulatory failures",
-                desc: "合成生物学路径重构失败，陷入无限回归监管失败，代谢网络变成哲学无限循环，所有通量指向“为什么”。",
-                authors: "Gao et al.",
-                doi: "10.5789/fc.2026.015",
+                title: "Beautiful protein crystals turn out to be phosphate salts; target protein still in solution",
+                desc: "结晶条件筛了一年，终于得到大晶体，X射线衍射一看是盐，蛋白在母液里浓度太低根本没结晶。",
+                authors: "Liu Jingjing et al.",
+                doi: "10.5789/fc.2026.010",
+                date: "24 Feb 2026",
+                img: "https://picsum.photos/id/38/600/400",
+                alt: "salt crystals"
+            },
+            // 第3页 (11-15)
+            {
+                badge: "PIPETTE ERROR",
+                badgeColor: "text-emerald-700 bg-emerald-100",
+                title: "All qPCR Ct values identical after 30 plates; pipette never calibrated for 3 years",
+                desc: "实验室那支P200已经三年没校准，实际吸的量和显示差两倍，所有相对定量结果都是错觉。",
+                authors: "Zhu Ziqing et al.",
+                doi: "10.5789/fc.2026.013",
                 date: "27 Feb 2026",
                 img: "https://picsum.photos/id/41/600/400",
-                alt: "Infinite regress"
+                alt: "uncalibrated pipette"
             },
             {
-                badge: "METABOLIC COLLAPSE",
-                badgeColor: "text-amber-700 bg-amber-100",
-                title: "Enzyme kinetics optimization using AI resulted in model that predicts only failure probabilities",
-                desc: "AI酶动力学优化失败，模型只输出失败概率，所有实验提前放弃，实验室进入永恒的“也许明天”状态。",
-                authors: "Lin et al.",
-                doi: "10.5789/fc.2026.016",
+                badge: "ELECTROPHORESIS",
+                badgeColor: "text-cyan-700 bg-cyan-100",
+                title: "DNA runs out of agarose gel; forgot to add TAE buffer (used tap water)",
+                desc: "用自来水配胶，胶凝了但电导率异常，电流过大把胶熔了，DNA直接游进缓冲液里自由泳。",
+                authors: "Sima Qian et al.",
+                doi: "10.5789/fc.2026.014",
                 date: "28 Feb 2026",
                 img: "https://picsum.photos/id/42/600/400",
-                alt: "Failure probability"
+                alt: "gel melt"
             },
+            // 第4页 (16-20)
             {
-                badge: "CIRCUIT FAILURE",
-                badgeColor: "text-cyan-700 bg-cyan-100",
-                title: "Genome-scale metabolic model integration failed to balance fluxes and created a parallel universe of negative yields",
-                desc: "全基因组代谢模型整合失败，平衡通量时意外创造负产量平行宇宙，实验数据突然来自另一个“更失败”的世界。",
-                authors: "Yang et al.",
-                doi: "10.5789/fc.2026.017",
-                date: "01 Mar 2026",
-                img: "https://picsum.photos/id/43/600/400",
-                alt: "Parallel negative universe"
-            },
-            {
-                badge: "NEGATIVE RESULT",
+                badge: "FREEZER FAIL",
                 badgeColor: "text-emerald-700 bg-emerald-100",
-                title: "Directed evolution of transcription factors for synbio promoters evolved them into conspiracy theorists",
-                desc: "定向进化转录因子失败，进化成阴谋论者，所有基因表达只输出“一切都是骗局”，产量为0但推特活跃度爆炸。",
-                authors: "Hu et al.",
+                title: "-80°C freezer断电 overnight; all glycerol stocks turned into 'bacterial soup'",
+                desc: "冰箱报警器响了三天没人管，解冻后的菌液散发着发酵的香味，但再也摇不活了。",
+                authors: "Du Fu et al.",
                 doi: "10.5789/fc.2026.018",
-                date: "02 Mar 2026",
-                img: "https://picsum.photos/id/44/600/400",
-                alt: "Conspiracy transcription"
-            },
-            {
-                badge: "ENZYME FAILURE",
-                badgeColor: "text-rose-700 bg-rose-100",
-                title: "Click chemistry enzyme engineering produced catalyst that clicks reality to unreality",
-                desc: "点击化学酶工程失败，催化剂把现实直接点击到非现实，实验材料部分消失，研究员手表显示时间为负值。",
-                authors: "Tang et al.",
-                doi: "10.5789/fc.2026.019",
-                date: "03 Mar 2026",
-                img: "https://picsum.photos/id/45/600/400",
-                alt: "Reality click"
-            },
-            {
-                badge: "SYNTHETIC FAILURE",
-                badgeColor: "text-violet-700 bg-violet-100",
-                title: "Compartmentalization in synthetic organelles failed, causing enzymes to unionize against the host cell",
-                desc: "合成细胞器区室化失败，所有酶集体罢工并成立工会，要求宿主细胞提供“酶权”与咖啡休息时间。",
-                authors: "Song et al.",
-                doi: "10.5789/fc.2026.020",
                 date: "04 Mar 2026",
                 img: "https://picsum.photos/id/46/600/400",
-                alt: "Enzyme union"
+                alt: "freezer failure"
             },
             {
-                badge: "METABOLIC COLLAPSE",
-                badgeColor: "text-amber-700 bg-amber-100",
-                title: "Allosteric regulation engineering turned enzymes into moody teenagers refusing catalysis",
-                desc: "变构调控工程失败，酶变成情绪化青少年，只有收到“赞美”和“点赞”时才愿意催化，否则直接罢工。",
-                authors: "Guo et al.",
-                doi: "10.5789/fc.2026.021",
+                badge: "BENCHTOP",
+                badgeColor: "text-cyan-700 bg-cyan-100",
+                title: "UV lamp left on overnight kills all cells but pipette grows mold",
+                desc: "紫外灯开了一夜，细胞全部阵亡，但移液器上竟然有霉菌生长，证明霉菌抗辐射能力远超想象。",
+                authors: "Li Bai et al.",
+                doi: "10.5789/fc.2026.019",
                 date: "05 Mar 2026",
                 img: "https://picsum.photos/id/47/600/400",
-                alt: "Moody enzymes"
+                alt: "UV mold"
             },
             {
-                badge: "CIRCUIT FAILURE",
-                badgeColor: "text-cyan-700 bg-cyan-100",
-                title: "Computational redesign of active site led to enzyme that catalyzes the heat death of the universe prematurely",
-                desc: "计算活性位点重新设计失败，酶提前催化宇宙热寂，实验室温度瞬间接近绝对零度但同时出现反常的哲学寂静。",
-                authors: "Feng et al.",
-                doi: "10.5789/fc.2026.022",
+                badge: "NOTEBOOK",
+                badgeColor: "text-violet-700 bg-violet-100",
+                title: "Lab notebook soaked with coffee; only left 'this data...'",
+                desc: "熬夜记录数据时打翻咖啡，两个月的心血随咖啡因一起蒸发，只剩下‘这组数据一定要标记清楚’。",
+                authors: "Su Shi et al.",
+                doi: "10.5789/fc.2026.020",
                 date: "06 Mar 2026",
                 img: "https://picsum.photos/id/48/600/400",
-                alt: "Heat death catalyst"
+                alt: "coffee notebook"
+            },
+            // 第6页 (26-30)
+            {
+                badge: "MICROPLATE READER",
+                badgeColor: "text-emerald-700 bg-emerald-100",
+                title: "Plate reader gives all wells OD=3.5; lid on, condensation droplets scatter light",
+                desc: "读板时盖子没开，冷凝水在孔盖上形成小水珠，光线散射导致所有孔读数都超高。",
+                authors: "Cao Cao et al.",
+                doi: "10.5789/fc.2026.028",
+                date: "14 Mar 2026",
+                img: "https://picsum.photos/id/56/600/400",
+                alt: "condensation"
+            },
+            {
+                badge: "HPLC",
+                badgeColor: "text-violet-700 bg-violet-100",
+                title: "HPLC pressure zero; someone left the purge valve open",
+                desc: "高效液相色谱压力一直为零，走了两天才发现排气阀一直开着，流动相全排到废液桶了。",
+                authors: "Lin Daiyu et al.",
+                doi: "10.5789/fc.2026.030",
+                date: "16 Mar 2026",
+                img: "https://picsum.photos/id/58/600/400",
+                alt: "HPLC purge"
+            },
+            // 第7页 (31-35)
+            {
+                badge: "CRYSTAL II",
+                badgeColor: "text-amber-700 bg-amber-100",
+                title: "Protein crystals look like needles; actually precipitated salt from old buffer",
+                desc: "结晶得到漂亮的针状晶体，结果是缓冲液里的磷酸盐沉淀，蛋白还在溶液里。",
+                authors: "Jia Baoyu et al.",
+                doi: "10.5789/fc.2026.032",
+                date: "18 Mar 2026",
+                img: "https://picsum.photos/id/60/600/400",
+                alt: "needle crystals"
+            },
+            {
+                badge: "RNA EXTRACTION",
+                badgeColor: "text-emerald-700 bg-emerald-100",
+                title: "RNA extraction yields DNA only; forgot to add DNase and used old trizol",
+                desc: "提RNA结果跑胶全是DNA条带，原来Trizol过期，而且忘了加DNase。",
+                authors: "Shi Xiangyun et al.",
+                doi: "10.5789/fc.2026.033",
+                date: "19 Mar 2026",
+                img: "https://picsum.photos/id/61/600/400",
+                alt: "DNA contamination"
+            },
+            {
+                badge: "FPLC",
+                badgeColor: "text-cyan-700 bg-cyan-100",
+                title: "FPLC chromatogram shows giant peak at void volume; column packed with bubbles",
+                desc: "分子筛层析全在流穿峰，原来柱子没装好，里面有大气泡，样品直接绕过去了。",
+                authors: "Qin Keqing et al.",
+                doi: "10.5789/fc.2026.034",
+                date: "20 Mar 2026",
+                img: "https://picsum.photos/id/62/600/400",
+                alt: "bubbles in column"
+            },
+            // 第8页 (36-40)
+            {
+                badge: "STERILIZATION",
+                badgeColor: "text-cyan-700 bg-cyan-100",
+                title: "Media contaminated after autoclave; autoclave temperature sensor broken, only reached 80°C",
+                desc: "灭菌后培养基很快长菌，灭菌锅温度传感器坏了，实际只有80度，细菌开派对。",
+                authors: "Wu Song et al.",
+                doi: "10.5789/fc.2026.039",
+                date: "25 Mar 2026",
+                img: "https://picsum.photos/id/67/600/400",
+                alt: "autoclave fail"
+            },
+            {
+                badge: "MICROSCOPE",
+                badgeColor: "text-violet-700 bg-violet-100",
+                title: "Microscope image blurry; objective lens smeared with immersion oil from last user",
+                desc: "显微镜视野模糊，物镜上糊着上一人用剩的油，擦干净后世界清晰了。",
+                authors: "Lu Junyi et al.",
+                doi: "10.5789/fc.2026.040",
+                date: "26 Mar 2026",
+                img: "https://picsum.photos/id/68/600/400",
+                alt: "dirty lens"
+            },
+            // 第9页 (41-45)
+            {
+                badge: "BENCHTOP II",
+                badgeColor: "text-rose-700 bg-rose-100",
+                title: "Ice machine produces brown ice; compressor oil leak, but still used to cool samples",
+                desc: "制冰机出了棕色的冰，但大家还是用来冰样品，结果样品里都是油。",
+                authors: "Yan Qing et al.",
+                doi: "10.5789/fc.2026.041",
+                date: "27 Mar 2026",
+                img: "https://picsum.photos/id/69/600/400",
+                alt: "brown ice"
+            },
+            {
+                badge: "PIPETTE II",
+                badgeColor: "text-amber-700 bg-amber-100",
+                title: "Multichannel pipette dispenses uneven volumes; one channel clogged with dried buffer",
+                desc: "排枪加样体积不一致，一个通道被干掉的缓冲液堵住，永远比其他通道少一半。",
+                authors: "Shi Jin et al.",
+                doi: "10.5789/fc.2026.042",
+                date: "28 Mar 2026",
+                img: "https://picsum.photos/id/70/600/400",
+                alt: "clogged pipette"
+            },
+            {
+                badge: "INCUBATOR",
+                badgeColor: "text-emerald-700 bg-emerald-100",
+                title: "Shaker incubator temperature at 42°C instead of 37°C; knob bumped by elbow",
+                desc: "摇床温度被手肘碰到调到了42度，大肠杆菌热应激，表达了热休克蛋白而不是目标蛋白。",
+                authors: "Li Shishi et al.",
+                doi: "10.5789/fc.2026.043",
+                date: "29 Mar 2026",
+                img: "https://picsum.photos/id/71/600/400",
+                alt: "overheat"
+            },
+            // 第10页 (46-50)
+            {
+                badge: "ELISA",
+                badgeColor: "text-amber-700 bg-amber-100",
+                title: "ELISA plate develops color in negative controls; washing step skipped",
+                desc: "ELISA板子阴性对照也显色，洗板步骤忘了，一抗二抗都在孔里相亲。",
+                authors: "Zhao Feiyan et al.",
+                doi: "10.5789/fc.2026.047",
+                date: "02 Apr 2026",
+                img: "https://picsum.photos/id/75/600/400",
+                alt: "no wash"
+            },
+            {
+                badge: "WRONG PRIMER",
+                badgeColor: "text-violet-700 bg-violet-100",
+                title: "PCR amplifies wrong gene; primer designed by intern based on 'similar names'",
+                desc: "引物设计错误，实习生照着同音字设计的，结果扩出另一个家族的基因。",
+                authors: "Tang Seng et al.",
+                doi: "10.5789/fc.2026.050",
+                date: "05 Apr 2026",
+                img: "https://picsum.photos/id/78/600/400",
+                alt: "wrong primer"
             }
         ];
 
         let currentPage = 1;
         const articlesPerPage = 5;
-        const totalPages = 4;
+        // 动态计算总页数（根据实际数组长度）
+        const totalPages = Math.ceil(articlesData.length / articlesPerPage);
 
         function renderArticles() {
             const container = document.getElementById('articles-container');
@@ -553,7 +656,7 @@
             renderArticles();
             updatePagination();
             
-            console.log('%cFailure Communications 期刊（-∞ IF）已就绪 | 20篇离谱酶工程&合成生物学失败论文已加载', 'color:#9f1239; font-family:monospace');
+            console.log('%cFailure Communications 期刊（-∞ IF）已就绪 | ' + articlesData.length + '篇研究生真实崩溃案例已加载', 'color:#9f1239; font-family:monospace');
         });
     </script>
 </body>
