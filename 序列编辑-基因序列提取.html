@@ -1,0 +1,640 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>基因序列提取 · 根据名称列表</title>
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --secondary-color: #3498db;
+            --accent-color: #e74c3c;
+            --light-color: #ecf0f1;
+            --dark-color: #2c3e50;
+            --success-color: #27ae60;
+            --warning-color: #f39c12;
+            --border-radius: 8px;
+            --box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            --transition: all 0.3s ease;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            min-height: 100vh;
+        }
+
+        /* 顶部标题栏 */
+        .tool-header {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background-color: var(--primary-color);
+            color: white;
+            padding: 20px;
+            width: 100%;
+            text-align: center;
+        }
+
+        .back-button {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            padding: 8px 16px;
+            border-radius: var(--border-radius);
+            cursor: pointer;
+            transition: var(--transition);
+            font-size: 0.9rem;
+            margin-top: 15px;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .back-button:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        /* 内容区域样式 */
+        .content {
+            padding: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .section {
+            background: white;
+            border-radius: var(--border-radius);
+            padding: 20px;
+            margin-bottom: 30px;
+            box-shadow: var(--box-shadow);
+        }
+
+        h2 {
+            color: var(--primary-color);
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        h3 {
+            color: var(--secondary-color);
+            margin-bottom: 15px;
+            text-align: center;
+        }
+
+        /* 表单样式 */
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+
+        input[type="file"] {
+            width: 100%;
+            padding: 10px;
+            border: 2px dashed #ddd;
+            border-radius: var(--border-radius);
+            background-color: #f9f9f9;
+            cursor: pointer;
+        }
+
+        input[type="text"] {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: var(--border-radius);
+            font-size: 14px;
+        }
+
+        .file-info {
+            background-color: #f0f8ff;
+            padding: 10px;
+            border-radius: var(--border-radius);
+            margin-top: 10px;
+            font-size: 0.9rem;
+        }
+
+        /* 按钮组 */
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 12px 20px;
+            border: none;
+            border-radius: var(--border-radius);
+            cursor: pointer;
+            transition: var(--transition);
+            font-weight: bold;
+            flex: 1 1 auto;
+            min-width: 120px;
+        }
+
+        .btn-primary {
+            background-color: var(--secondary-color);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background-color: #2980b9;
+        }
+
+        .btn-success {
+            background-color: var(--success-color);
+            color: white;
+        }
+
+        .btn-success:hover {
+            background-color: #219653;
+        }
+
+        .btn-accent {
+            background-color: var(--accent-color);
+            color: white;
+        }
+
+        .btn-accent:hover {
+            background-color: #c0392b;
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* 结果区域 */
+        .result-box {
+            padding: 15px;
+            background-color: #f9f9f9;
+            border-radius: var(--border-radius);
+            margin-top: 20px;
+            border-left: 4px solid var(--secondary-color);
+        }
+
+        .filter-info {
+            background-color: #e8f5e8;
+            padding: 15px;
+            border-radius: var(--border-radius);
+            margin-bottom: 20px;
+        }
+
+        .sequence-count {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: var(--success-color);
+        }
+
+        .warning-text {
+            color: var(--accent-color);
+            font-weight: 500;
+        }
+
+        .gene-list-preview {
+            max-height: 150px;
+            overflow-y: auto;
+            background: #f1f1f1;
+            padding: 8px;
+            border-radius: 6px;
+            font-family: monospace;
+            font-size: 0.85rem;
+            margin-top: 10px;
+            border: 1px solid #ccc;
+        }
+
+        .loader {
+            display: none;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid var(--secondary-color);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .status-bar {
+            padding: 10px;
+            background-color: var(--primary-color);
+            color: white;
+            text-align: center;
+            font-weight: bold;
+            width: 100%;
+            margin-top: 20px;
+        }
+
+        .flex-row {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .flex-row .form-group {
+            flex: 1;
+            min-width: 200px;
+        }
+
+        @media (max-width: 768px) {
+            .content {
+                padding: 15px;
+            }
+            .button-group {
+                flex-direction: column;
+            }
+            .flex-row {
+                flex-direction: column;
+                gap: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="tool-header">
+        <h1>基因序列提取</h1>
+        <a href="index.html" class="back-button">返回主界面</a>
+    </div>
+
+    <div class="content">
+        <!-- 文件上传卡片 -->
+        <div class="section">
+            <h2>📂 上传文件</h2>
+            <div class="form-group">
+                <label for="fasta-file-input">① FASTA文件（包含基因序列）:</label>
+                <input type="file" id="fasta-file-input" accept=".fasta,.fa,.fna,.txt">
+                <div id="fasta-file-info" class="file-info" style="display: none;"></div>
+            </div>
+            <div class="form-group">
+                <label for="gene-list-input">② 基因名称列表 (每行一个基因名称，纯文本):</label>
+                <input type="file" id="gene-list-input" accept=".txt,.list,.names">
+                <div id="gene-file-info" class="file-info" style="display: none;"></div>
+            </div>
+            <div class="button-group">
+                <button id="extract-btn" class="btn btn-success">🔍 提取匹配序列</button>
+                <button id="reset-extract-btn" class="btn btn-accent">🔄 重置所有</button>
+            </div>
+            <div class="loader" id="loader"></div>
+        </div>
+
+        <!-- 提取结果与下载卡片 -->
+        <div class="section">
+            <h2>📋 提取结果</h2>
+            <div id="result-panel" style="display: none;">
+                <div class="filter-info" id="summary-info">
+                    <!-- 动态填充统计信息 -->
+                </div>
+
+                <!-- 未匹配基因预览（可选） -->
+                <div id="missing-genes-container" style="margin-top: 15px; display: none;">
+                    <h4 style="color: var(--accent-color);">⚠️ 未找到的基因名称</h4>
+                    <div id="missing-genes-list" class="gene-list-preview"></div>
+                </div>
+
+                <!-- 下载命名与按钮 -->
+                <div class="flex-row" style="margin-top: 20px; align-items: flex-end;">
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label for="download-filename">输出文件名 (无需扩展名):</label>
+                        <input type="text" id="download-filename" placeholder="例如: extracted_genes" value="extracted_sequences">
+                    </div>
+                    <button id="download-btn" class="btn btn-primary" disabled>⬇️ 下载 FASTA</button>
+                </div>
+                <p style="font-size: 0.85rem; color: #666; margin-top: 8px;">下载文件将自动添加 .fasta 扩展名</p>
+            </div>
+
+            <!-- 初始提示或空状态 -->
+            <div id="result-placeholder" style="color: #999; text-align: center; padding: 30px 0;">
+                上传文件后点击「提取匹配序列」查看结果
+            </div>
+        </div>
+    </div>
+
+    <div class="status-bar">
+        江南大学 粮食发酵工艺与技术国家工程实验室
+    </div>
+
+    <script>
+        (function() {
+            // DOM 元素
+            const fastaInput = document.getElementById('fasta-file-input');
+            const geneInput = document.getElementById('gene-list-input');
+            const fastaInfo = document.getElementById('fasta-file-info');
+            const geneInfo = document.getElementById('gene-file-info');
+            const extractBtn = document.getElementById('extract-btn');
+            const resetBtn = document.getElementById('reset-extract-btn');
+            const loader = document.getElementById('loader');
+            const resultPanel = document.getElementById('result-panel');
+            const resultPlaceholder = document.getElementById('result-placeholder');
+            const summaryInfo = document.getElementById('summary-info');
+            const missingGenesContainer = document.getElementById('missing-genes-container');
+            const missingGenesList = document.getElementById('missing-genes-list');
+            const downloadBtn = document.getElementById('download-btn');
+            const filenameInput = document.getElementById('download-filename');
+
+            // 存储数据
+            let fastaSequences = [];            // 解析后的序列 { header, sequence, id }
+            let geneNames = [];                  // 去重后的基因名称列表
+            let extractedSequences = [];          // 提取的序列（去重后的）
+            let missingGenes = [];                // 未匹配到的基因名称
+
+            // 文件信息展示
+            function updateFastaInfo() {
+                if (fastaInput.files.length > 0) {
+                    const file = fastaInput.files[0];
+                    fastaInfo.innerHTML = `<p><strong>已选择:</strong> ${file.name} (${(file.size / 1024).toFixed(2)} KB)</p>`;
+                    fastaInfo.style.display = 'block';
+                } else {
+                    fastaInfo.style.display = 'none';
+                }
+            }
+
+            function updateGeneInfo() {
+                if (geneInput.files.length > 0) {
+                    const file = geneInput.files[0];
+                    geneInfo.innerHTML = `<p><strong>已选择:</strong> ${file.name} (${(file.size / 1024).toFixed(2)} KB)</p>`;
+                    geneInfo.style.display = 'block';
+                } else {
+                    geneInfo.style.display = 'none';
+                }
+            }
+
+            fastaInput.addEventListener('change', updateFastaInfo);
+            geneInput.addEventListener('change', updateGeneInfo);
+
+            // 解析FASTA文件 (返回序列数组，包含header, sequence, 以及提取的id)
+            function parseFasta(content) {
+                const sequences = [];
+                const lines = content.split(/\r?\n/);
+                let currentHeader = '';
+                let currentSeq = '';
+
+                for (let line of lines) {
+                    line = line.trim();
+                    if (line.startsWith('>')) {
+                        if (currentHeader && currentSeq) {
+                            // 提取基因id (第一个空格前的部分)
+                            const headerId = currentHeader.split(/\s+/)[0];
+                            sequences.push({
+                                header: currentHeader,
+                                sequence: currentSeq,
+                                id: headerId,
+                                fullHeader: '>' + currentHeader   // 用于重建
+                            });
+                        }
+                        currentHeader = line.substring(1).trim();  // 去掉 '>'
+                        currentSeq = '';
+                    } else if (line) {
+                        // 移除数字和空格（只保留字母）
+                        currentSeq += line.replace(/[\s\d]/g, '');
+                    }
+                }
+                // 最后一条
+                if (currentHeader && currentSeq) {
+                    const headerId = currentHeader.split(/\s+/)[0];
+                    sequences.push({
+                        header: currentHeader,
+                        sequence: currentSeq,
+                        id: headerId,
+                        fullHeader: '>' + currentHeader
+                    });
+                }
+                return sequences;
+            }
+
+            // 解析基因列表文件 (按行，去空，去重)
+            function parseGeneList(content) {
+                const lines = content.split(/\r?\n/);
+                const genes = [];
+                for (let line of lines) {
+                    line = line.trim();
+                    if (line !== '') {
+                        genes.push(line);
+                    }
+                }
+                // 去重 (保留顺序)
+                return [...new Set(genes)];
+            }
+
+            // 提取匹配序列的主逻辑
+            function performExtraction(fastaText, geneText) {
+                // 解析
+                fastaSequences = parseFasta(fastaText);
+                geneNames = parseGeneList(geneText);
+
+                if (fastaSequences.length === 0) {
+                    throw new Error('FASTA文件中未解析到任何序列');
+                }
+                if (geneNames.length === 0) {
+                    throw new Error('基因名称列表为空');
+                }
+
+                // 匹配：遍历基因名称，在fastaSequences中查找 id 完全匹配的序列（忽略大小写？ 默认精确匹配，但常见名称大小写敏感，这里使用精确比较）
+                // 同时去重：如果同一个序列被多个名称匹配（例如相同基因不同名称），只保留一次。使用 header 作为唯一标识。
+                const matchedMap = new Map();   // key: header 字符串, value: 序列对象
+                const missing = [];
+
+                // 为了方便快速查找，建立从 id 到序列数组的映射（一个id可能对应多个序列？保守起见，建立多值映射）
+                const idToSequences = new Map();
+                fastaSequences.forEach(seq => {
+                    const id = seq.id;
+                    if (!idToSequences.has(id)) {
+                        idToSequences.set(id, []);
+                    }
+                    idToSequences.get(id).push(seq);
+                });
+
+                // 遍历基因名称
+                geneNames.forEach(gene => {
+                    const trimmedGene = gene.trim();  // 已trim过
+                    if (idToSequences.has(trimmedGene)) {
+                        const seqs = idToSequences.get(trimmedGene);
+                        seqs.forEach(seq => {
+                            matchedMap.set(seq.fullHeader, seq);  // 用 fullHeader 去重
+                        });
+                    } else {
+                        missing.push(trimmedGene);
+                    }
+                });
+
+                extractedSequences = Array.from(matchedMap.values());
+                missingGenes = missing;
+
+                return {
+                    matchedCount: extractedSequences.length,
+                    totalGenes: geneNames.length,
+                    missingCount: missing.length,
+                    missingList: missing
+                };
+            }
+
+            // 展示结果
+            function displayResults(stats) {
+                // 显示统计
+                summaryInfo.innerHTML = `
+                    <p><span class="sequence-count">✅ 匹配序列数: ${stats.matchedCount}</span> (基因名称总数: ${stats.totalGenes})</p>
+                    <p>📊 FASTA原始序列总数: ${fastaSequences.length}</p>
+                    <p>❌ 未匹配到的基因: ${stats.missingCount} 个</p>
+                `;
+
+                if (stats.missingCount > 0) {
+                    // 显示最多前30个缺失基因
+                    const showMissing = stats.missingList.slice(0, 30);
+                    let html = showMissing.map(g => `<span style="display:inline-block; background:#ffe6e6; margin:2px; padding:2px 6px; border-radius:4px;">${g}</span>`).join('');
+                    if (stats.missingList.length > 30) {
+                        html += `<span> ... 等${stats.missingList.length}个</span>`;
+                    }
+                    missingGenesList.innerHTML = html;
+                    missingGenesContainer.style.display = 'block';
+                } else {
+                    missingGenesContainer.style.display = 'none';
+                }
+
+                // 启用下载按钮
+                downloadBtn.disabled = (stats.matchedCount === 0);
+                resultPanel.style.display = 'block';
+                resultPlaceholder.style.display = 'none';
+            }
+
+            // 重置所有
+            function resetAll() {
+                fastaInput.value = '';
+                geneInput.value = '';
+                fastaInfo.style.display = 'none';
+                geneInfo.style.display = 'none';
+                loader.style.display = 'none';
+                resultPanel.style.display = 'none';
+                resultPlaceholder.style.display = 'block';
+                downloadBtn.disabled = true;
+                filenameInput.value = 'extracted_sequences';
+                fastaSequences = [];
+                geneNames = [];
+                extractedSequences = [];
+                missingGenes = [];
+                missingGenesContainer.style.display = 'none';
+            }
+
+            // 提取按钮点击
+            extractBtn.addEventListener('click', function() {
+                // 检查文件
+                if (!fastaInput.files[0] || !geneInput.files[0]) {
+                    alert('请先上传FASTA文件和基因名称列表文件');
+                    return;
+                }
+
+                loader.style.display = 'block';
+                resultPanel.style.display = 'none';
+                resultPlaceholder.style.display = 'none';
+
+                // 读取两个文件
+                const fastaFile = fastaInput.files[0];
+                const geneFile = geneInput.files[0];
+
+                const fastaReader = new FileReader();
+                const geneReader = new FileReader();
+
+                let fastaContent = null;
+                let geneContent = null;
+                let readerError = false;
+
+                // 两个读取完成后的处理
+                function checkBothCompleted() {
+                    if (fastaContent !== null && geneContent !== null && !readerError) {
+                        try {
+                            const stats = performExtraction(fastaContent, geneContent);
+                            displayResults(stats);
+                        } catch (error) {
+                            alert('处理文件时出错: ' + error.message);
+                            resultPlaceholder.style.display = 'block';
+                        } finally {
+                            loader.style.display = 'none';
+                        }
+                    }
+                }
+
+                fastaReader.onload = function(e) {
+                    fastaContent = e.target.result;
+                    checkBothCompleted();
+                };
+                fastaReader.onerror = function() {
+                    alert('读取FASTA文件失败');
+                    readerError = true;
+                    loader.style.display = 'none';
+                };
+
+                geneReader.onload = function(e) {
+                    geneContent = e.target.result;
+                    checkBothCompleted();
+                };
+                geneReader.onerror = function() {
+                    alert('读取基因列表文件失败');
+                    readerError = true;
+                    loader.style.display = 'none';
+                };
+
+                fastaReader.readAsText(fastaFile);
+                geneReader.readAsText(geneFile);
+            });
+
+            // 下载按钮
+            downloadBtn.addEventListener('click', function() {
+                if (extractedSequences.length === 0) {
+                    alert('没有可下载的序列');
+                    return;
+                }
+
+                // 生成FASTA内容
+                let fastaString = '';
+                extractedSequences.forEach(seq => {
+                    fastaString += `>${seq.header}\n`;
+                    // 每行60个字符
+                    const s = seq.sequence;
+                    for (let i = 0; i < s.length; i += 60) {
+                        fastaString += s.substring(i, i + 60) + '\n';
+                    }
+                });
+
+                // 文件名
+                let baseName = filenameInput.value.trim();
+                if (baseName === '') baseName = 'extracted_sequences';
+                // 去除可能的扩展名
+                baseName = baseName.replace(/\.fasta$|\.fa$/i, '');
+                const fileName = `${baseName}.fasta`;
+
+                const blob = new Blob([fastaString], { type: 'text/plain' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = fileName;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            });
+
+            // 重置按钮
+            resetBtn.addEventListener('click', resetAll);
+
+            // 页面加载完成后的初始状态
+            resetAll();
+        })();
+    </script>
+</body>
+</html>
