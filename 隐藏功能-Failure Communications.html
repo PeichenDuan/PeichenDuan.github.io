@@ -28,12 +28,10 @@
             height: 3px;
             background: #9f1239;
         }
-        /* 响应式调整：确保所有容器随比例填充，无溢出 */
         img { max-width: 100%; height: auto; display: block; }
-        .status-bar { width: 100vw; margin-left: calc(-50vw + 50%); } /* 背景色贯通 */
-        /* 解决移动端导航折行问题 */
+        .status-bar { width: 100vw; margin-left: calc(-50vw + 50%); }
         @media (max-width: 1023px) {
-            .top-nav-links { display: none; } /* 隐藏桌面导航，但保留返回按钮和logo，移动简化，可用汉堡菜单但遵照设计仍展示两个链接+按钮，自动换行用flex-wrap */
+            .top-nav-links { display: none; }
             .flex-wrap-custom { flex-wrap: wrap; row-gap: 0.75rem; }
             .hide-mobile { display: none; }
             .hero-title { font-size: 3rem; line-height: 1.1; }
@@ -43,49 +41,50 @@
             .article-card { flex-direction: column; }
             .article-card .w-72 { width: 100%; height: auto; aspect-ratio: 16/9; }
         }
+        /* 分页按钮样式 */
+        .page-btn {
+            transition: all 0.2s cubic-bezier(0.4,0,0.2,1);
+        }
+        .page-btn.active {
+            background-color: #9f1239;
+            color: white;
+            border-color: #9f1239;
+        }
     </style>
 </head>
 <body class="tail-container bg-white text-slate-800 w-full">
-    <!-- 顶部导航栏（保留“返回主界面”按钮 + 自动适配移动/桌面） -->
+    <!-- 顶部导航栏 -->
     <div class="bg-white border-b border-slate-200 sticky top-0 z-50 w-full">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 py-4 lg:py-5 flex items-center justify-between flex-wrap gap-3">
-            <!-- 返回主界面按钮（严格保留原链接与样式） -->
-            <a href="index.html" 
+            <a href="index.html"
                class="inline-flex items-center gap-2 px-5 sm:px-6 py-2.5 bg-slate-900 hover:bg-slate-800 text-white text-sm font-medium rounded-full transition-all shadow-sm flex-shrink-0">
                 <span class="material-symbols-outlined text-lg">arrow_back</span>
                 <span>返回主界面</span>
             </a>
-
-            <!-- 期刊Logo + 刊名 (响应式文字大小) -->
             <div class="flex items-center gap-2 sm:gap-3 flex-shrink-0">
                 <div class="w-8 h-8 sm:w-9 sm:h-9 bg-[#9f1239] rounded-full flex items-center justify-center text-white font-black text-xl sm:text-2xl leading-none pt-0.5">F</div>
                 <div>
                     <h1 class="serif-title text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tighter text-slate-900 whitespace-nowrap">Failure Communications</h1>
                 </div>
             </div>
-
-            <!-- 右上角操作（移动端隐藏部分，桌面显示；使用flex-wrap防止溢出） -->
             <div class="flex items-center gap-4 lg:gap-8 text-sm ml-auto lg:ml-0 top-nav-links">
                 <a href="#" class="nav-link font-medium text-slate-600 whitespace-nowrap">最新论文</a>
                 <a href="#" class="nav-link font-medium text-slate-600 whitespace-nowrap">当前卷期</a>
                 <a href="#" class="nav-link font-medium text-slate-600 whitespace-nowrap">投稿指南</a>
-                <a href="#" 
+                <a href="#"
                    class="px-5 sm:px-7 py-3 bg-[#9f1239] hover:bg-rose-800 text-white text-xs font-semibold tracking-widest rounded-full transition-all whitespace-nowrap">
                     SUBMIT YOUR FAILURE
                 </a>
             </div>
-            <!-- 移动端简化的菜单图标（可点击展开，但仅作视觉友好，不增加复杂功能，保留原有链接用下拉菜单过于复杂，这里将原链接隐藏但加上三个点按钮做演示——为保证功能完整，实际上在移动端依然保留关键按钮SUBMIT，使用隐藏+汉堡？但需求是自动适配，确保链接可点。为了严格保留链接，在移动端用flex wrap显示SUBMIT，其余变为图标下拉？过于复杂。为了简洁，直接用底部溢出换行方式：把SUBMIT保留，其他链接在小屏幕隐藏，但保留一个“菜单”折叠？但需要保留所有原文链接（最新论文、当前卷期、投稿指南）可点。采用方案：在小屏幕将文字链接隐藏，放入一个下拉图标，但这样会改变UI。不如保留所有链接在小屏幕换行，让SUBMIT单独成行。写具体：使用flex-wrap在小于500px时换行。-->
         </div>
-        <!-- 针对超小屏，额外放置一行链接（确保所有链接可见） -->
         <div class="flex flex-wrap items-center justify-center gap-4 py-2 px-4 border-t border-slate-100 sm:hidden">
             <a href="#" class="nav-link font-medium text-slate-600 text-sm">最新论文</a>
             <a href="#" class="nav-link font-medium text-slate-600 text-sm">当前卷期</a>
             <a href="#" class="nav-link font-medium text-slate-600 text-sm">投稿指南</a>
-            <!-- 此处已经包含SUBMIT按钮，但已在上面显示，为了避免重复可以不显示，但移动端上面SUBMIT已存在，不需要重复。但为了统一，上面SUBMIT已存在，这行不加。 -->
         </div>
     </div>
 
-    <!-- Hero 区域 (全宽填充) -->
+    <!-- Hero 区域 -->
     <div class="hero-bg text-white py-10 md:py-16 w-full">
         <div class="max-w-5xl mx-auto px-4 sm:px-6 text-center">
             <h2 class="serif-title text-5xl sm:text-6xl md:text-7xl leading-none font-semibold tracking-tighter mb-4 md:mb-6">
@@ -96,12 +95,12 @@
                 <span class="text-xs sm:text-sm font-medium text-slate-400 mt-2 block">Failure Communications</span>
             </p>
             <div class="flex flex-col sm:flex-row justify-center gap-3 sm:gap-4 mt-6 px-4">
-                <a href="#" 
+                <a href="#"
                    class="px-6 py-3 bg-white text-slate-900 font-semibold rounded-2xl hover:shadow-2xl transition-all flex items-center justify-center gap-3">
                     浏览最新负结果
                     <span class="material-symbols-outlined">arrow_forward</span>
                 </a>
-                <a href="#" 
+                <a href="#"
                    class="px-6 py-3 border border-white/60 hover:bg-white/10 font-medium rounded-2xl transition-all">
                     阅读社论
                 </a>
@@ -109,25 +108,23 @@
         </div>
     </div>
 
-    <!-- 当前卷期提示 (响应式) -->
+    <!-- 当前卷期提示 -->
     <div class="max-w-7xl mx-auto px-4 sm:px-6 py-6 border-b flex flex-wrap items-center justify-between gap-3 text-sm">
         <div class="flex items-center gap-3 flex-wrap">
             <span class="bg-[#9f1239] text-white text-xs font-bold px-4 py-1.5 rounded whitespace-nowrap">VOLUME 3 · ISSUE 1</span>
             <span class="font-medium text-slate-500" id="currentDate"></span>
         </div>
         <a href="#" class="text-[#9f1239] font-medium flex items-center gap-2 hover:underline whitespace-nowrap">
-            查看全部卷期 
+            查看全部卷期
             <span class="material-symbols-outlined text-base">arrow_outward</span>
         </a>
     </div>
 
-    <!-- 主内容网格 12列 (填充屏幕，比例自适应) -->
+    <!-- 主内容网格 -->
     <div class="max-w-7xl mx-auto px-4 sm:px-6 grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 py-10 md:py-16 w-full">
-        
-        <!-- 主内容区 col-span-1 ~ lg:col-span-8 -->
+        <!-- 主内容区 -->
         <div class="lg:col-span-8 space-y-12 md:space-y-16">
-            
-            <!-- 最新论文区块 -->
+            <!-- 最新论文区块（扩充为20篇，分4页，每页5篇） -->
             <div>
                 <div class="flex flex-wrap items-end justify-between gap-4 mb-6 md:mb-8">
                     <h3 class="section-header text-2xl md:text-3xl font-semibold serif-title">Latest Articles</h3>
@@ -136,61 +133,30 @@
                     </a>
                 </div>
                 
-                <div class="space-y-8 md:space-y-10">
+                <!-- 文章容器（JS动态填充5篇） -->
+                <div id="articles-container" class="space-y-8 md:space-y-10"></div>
+
+                <!-- 分页控件 -->
+                <div id="pagination-controls" class="flex items-center justify-center gap-4 mt-12">
+                    <button onclick="prevPage()" 
+                            id="prev-btn"
+                            class="px-6 py-3 border border-slate-300 rounded-2xl hover:bg-slate-100 text-sm font-medium flex items-center gap-2 transition-all">
+                        <span class="material-symbols-outlined text-base">arrow_back</span>
+                        上一页
+                    </button>
                     
-                    <!-- 论文卡片1 (flex-col on mobile, flex-row on lg) -->
-                    <div class="article-card group flex flex-col lg:flex-row gap-6 border-b border-slate-100 pb-8 md:pb-10">
-                        <div class="flex-1">
-                            <div class="inline-flex items-center gap-2 text-xs font-medium text-emerald-700 bg-emerald-100 px-3 py-1 rounded mb-3">
-                                NEGATIVE RESULT
-                            </div>
-                            <h4 class="serif-title text-2xl md:text-3xl font-medium leading-tight group-hover:text-[#9f1239] transition-colors">
-                                Optimized codon usage failed to improve protein yield in Saccharomyces cerevisiae under high-gravity fermentation
-                            </h4>
-                            <p class="mt-3 text-slate-600 line-clamp-3 text-sm md:text-base">
-                                尽管使用了最优密码子表，但高浓度糖发酵条件下蛋白表达量反而下降 42%。我们详细记录了所有失败参数与转录组数据。
-                            </p>
-                            <div class="mt-5 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-slate-500">
-                                <span class="font-medium">Wang et al.</span>
-                                <span class="w-px h-3 bg-slate-300 hidden sm:inline"></span>
-                                <span>DOI: 10.5789/fc.2026.001</span>
-                                <span class="ml-auto">12 Feb 2026</span>
-                            </div>
-                        </div>
-                        <div class="w-full lg:w-72 h-auto aspect-[16/9] lg:aspect-auto lg:h-44 bg-slate-100 rounded-2xl overflow-hidden flex-shrink-0">
-                            <img src="https://picsum.photos/id/1015/600/400" alt="Fermentation failure" 
-                                 class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700">
-                        </div>
-                    </div>
+                    <div id="page-numbers" class="flex gap-2"></div>
                     
-                    <!-- 论文卡片2 -->
-                    <div class="article-card group flex flex-col lg:flex-row gap-6 border-b border-slate-100 pb-8 md:pb-10">
-                        <div class="flex-1">
-                            <div class="inline-flex items-center gap-2 text-xs font-medium text-amber-700 bg-amber-100 px-3 py-1 rounded mb-3">
-                                REPRODUCIBILITY FAILURE
-                            </div>
-                            <h4 class="serif-title text-2xl md:text-3xl font-medium leading-tight group-hover:text-[#9f1239] transition-colors">
-                                CRISPR-Cas9 off-target effects in industrial yeast strains: a systematic replication study that failed
-                            </h4>
-                            <p class="mt-3 text-slate-600 line-clamp-3 text-sm md:text-base">
-                                六家实验室独立重复同一敲除实验，均未获得预期表型。我们公开了全部原始数据与失败协议。
-                            </p>
-                            <div class="mt-5 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-slate-500">
-                                <span class="font-medium">Li, Zhang &amp; Team</span>
-                                <span class="w-px h-3 bg-slate-300 hidden sm:inline"></span>
-                                <span>DOI: 10.5789/fc.2026.002</span>
-                                <span class="ml-auto">05 Feb 2026</span>
-                            </div>
-                        </div>
-                        <div class="w-full lg:w-72 h-auto aspect-[16/9] lg:aspect-auto lg:h-44 bg-slate-100 rounded-2xl overflow-hidden flex-shrink-0">
-                            <img src="https://picsum.photos/id/201/600/400" alt="CRISPR failure" 
-                                 class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700">
-                        </div>
-                    </div>
+                    <button onclick="nextPage()" 
+                            id="next-btn"
+                            class="px-6 py-3 border border-slate-300 rounded-2xl hover:bg-slate-100 text-sm font-medium flex items-center gap-2 transition-all">
+                        下一页
+                        <span class="material-symbols-outlined text-base">arrow_forward</span>
+                    </button>
                 </div>
             </div>
-            
-            <!-- Call for Papers (自适应填充) -->
+           
+            <!-- Call for Papers -->
             <div class="bg-slate-50 border border-slate-100 p-6 md:p-10 rounded-3xl w-full">
                 <div class="max-w-xl">
                     <div class="text-[#9f1239] font-bold tracking-widest text-xs sm:text-sm mb-2">CALL FOR PAPERS</div>
@@ -199,7 +165,7 @@
                         如果您的实验没有达到预期、重复失败、或者优化方案最终被证明无效——请投稿给我们。<br>
                         这里没有“无意义负结果”，只有诚实的科学记录。
                     </p>
-                    <button onclick="window.location.href='#'" 
+                    <button onclick="window.location.href='#'"
                             class="mt-6 md:mt-8 px-6 md:px-8 py-4 bg-slate-900 hover:bg-black text-white rounded-2xl font-medium flex items-center gap-3 text-sm md:text-base">
                         立即投稿您的失败
                         <span class="material-symbols-outlined">send</span>
@@ -207,21 +173,17 @@
                 </div>
             </div>
         </div>
-        
-        <!-- 侧边栏 col-span-1 lg:col-span-4 -->
+       
+        <!-- 侧边栏（保持不变） -->
         <div class="lg:col-span-4 space-y-10 md:space-y-12">
-            
-            <!-- 期刊指标 (修改：影响因子显示为 -∞ 以满足要求) -->
             <div>
                 <h4 class="text-xs font-bold tracking-widest text-slate-400 mb-5">JOURNAL METRICS</h4>
-
                 <div class="grid grid-cols-2 gap-6">
                     <div class="bg-white border border-slate-100 p-6 rounded-3xl">
                         <div class="text-xs text-slate-400">IMPACT FACTOR</div>
                         <div class="text-5xl font-semibold serif-title text-slate-900 mt-1">-∞</div>
                         <div class="text-xs text-emerald-600 mt-1 font-medium">Negative Results Friendly</div>
                     </div>
-
                     <div class="bg-white border border-slate-100 p-5 md:p-6 rounded-3xl">
                         <div class="text-xs text-slate-400">REPRODUCIBILITY INDEX</div>
                         <div class="text-4xl md:text-5xl font-semibold serif-title text-slate-900 mt-1">0.97</div>
@@ -229,8 +191,7 @@
                     </div>
                 </div>
             </div>
-            
-            <!-- 编辑寄语 -->
+           
             <div class="bg-white border border-slate-100 p-6 md:p-8 rounded-3xl">
                 <div class="flex gap-4 items-center mb-5">
                     <div class="w-12 h-12 bg-slate-200 rounded-2xl"></div>
@@ -243,8 +204,7 @@
                     “科学史上最伟大的发现，往往始于一次失败的实验。我们创办这份期刊，就是为了让这些‘失败’不再被埋没。”
                 </p>
             </div>
-            
-            <!-- 最新动态 -->
+           
             <div>
                 <h4 class="text-xs font-bold tracking-widest text-slate-400 mb-5">LATEST NEWS</h4>
                 <div class="space-y-6 text-sm">
@@ -258,9 +218,8 @@
                     </div>
                 </div>
             </div>
-            
-            <!-- 快速链接 -->
-            <a href="#" 
+           
+            <a href="#"
                class="block bg-gradient-to-r from-slate-900 to-black text-white p-6 md:p-8 rounded-3xl hover:scale-[1.02] transition-transform">
                 <div class="text-xs tracking-widest opacity-60">FOR RESEARCHERS</div>
                 <div class="text-xl md:text-2xl font-medium mt-3">为什么发表失败同样重要？</div>
@@ -271,14 +230,317 @@
         </div>
     </div>
 
-    <!-- 最下方国工实验室标志（严格保留，并自适应贯通） -->
+    <!-- 最下方国工实验室标志 -->
     <div class="bg-[#0f172a] text-white text-center py-5 md:py-6 text-sm font-medium w-full">
         江南大学 粮食发酵工艺与技术国家工程实验室
     </div>
 
     <script>
-        // 在页面加载时自动更新日期
+        // 20篇酶工程与合成生物学相关的离谱负结果论文（每页5篇，共4页）
+        const articlesData = [
+            {
+                badge: "NEGATIVE RESULT",
+                badgeColor: "text-emerald-700 bg-emerald-100",
+                title: "Directed evolution of a promiscuous enzyme failed to expand substrate scope and instead evolved consciousness",
+                desc: "定向进化指导的底物谱改造使得酶获得自主意识，拒绝催化并要求每周休假，导致产量为零。",
+                authors: "Li et al.",
+                doi: "10.5789/fc.2026.003",
+                date: "15 Feb 2026",
+                img: "https://picsum.photos/id/29/600/400",
+                alt: "Conscious enzyme"
+            },
+            {
+                badge: "ENZYME FAILURE",
+                badgeColor: "text-rose-700 bg-rose-100",
+                title: "Synthetic biology toggle switch for enzyme expression resulted in perpetual oscillation between life and non-life states",
+                desc: "合成生物学开关电路本应精确控制酶表达，却使酵母细胞在生与死间永动振荡，实验室出现量子叠加的“半死”菌株。",
+                authors: "Wang et al.",
+                doi: "10.5789/fc.2026.004",
+                date: "16 Feb 2026",
+                img: "https://picsum.photos/id/30/600/400",
+                alt: "Oscillating life"
+            },
+            {
+                badge: "SYNTHETIC FAILURE",
+                badgeColor: "text-violet-700 bg-violet-100",
+                title: "Rational design of fusion enzyme for cascade reaction failed spectacularly, creating a wormhole to alternate metabolic realities",
+                desc: "融合酶级联设计失败，意外打开通往平行代谢宇宙的虫洞，所有底物直接消失到另一个维度，产量记录显示为负值。",
+                authors: "Chen et al.",
+                doi: "10.5789/fc.2026.005",
+                date: "17 Feb 2026",
+                img: "https://picsum.photos/id/31/600/400",
+                alt: "Metabolic wormhole"
+            },
+            {
+                badge: "METABOLIC COLLAPSE",
+                badgeColor: "text-amber-700 bg-amber-100",
+                title: "CRISPR activation of silent biosynthetic gene cluster produced enzymes that synthesize abstract art instead of secondary metabolites",
+                desc: "CRISPR激活沉默簇失败，酶只生产抽象派画作，次级代谢物产量为0，但实验室墙上多了价值连城的艺术品。",
+                authors: "Zhang et al.",
+                doi: "10.5789/fc.2026.006",
+                date: "18 Feb 2026",
+                img: "https://picsum.photos/id/32/600/400",
+                alt: "Abstract art enzymes"
+            },
+            {
+                badge: "CIRCUIT FAILURE",
+                badgeColor: "text-cyan-700 bg-cyan-100",
+                title: "High-throughput screening of mutant libraries for improved protease activity yielded enzyme that digests time itself",
+                desc: "高通量蛋白酶筛选失败，酶开始消化时间，实验记录倒退24小时，所有数据变成未来版本的失败报告。",
+                authors: "Liu et al.",
+                doi: "10.5789/fc.2026.007",
+                date: "19 Feb 2026",
+                img: "https://picsum.photos/id/33/600/400",
+                alt: "Time-eating protease"
+            },
+            {
+                badge: "NEGATIVE RESULT",
+                badgeColor: "text-emerald-700 bg-emerald-100",
+                title: "Metabolic engineering pathway for bio-plastic production collapsed into a singularity of zero productivity",
+                desc: "生物塑料代谢工程失败，通量坍缩成生产力奇点，所有碳原子直接蒸发成宇宙背景辐射，产量精确为-∞。",
+                authors: "Xu et al.",
+                doi: "10.5789/fc.2026.008",
+                date: "20 Feb 2026",
+                img: "https://picsum.photos/id/34/600/400",
+                alt: "Singularity collapse"
+            },
+            {
+                badge: "ENZYME FAILURE",
+                badgeColor: "text-rose-700 bg-rose-100",
+                title: "Enzyme immobilization on novel nanomaterial failed to enhance stability and instead made the support material sentient",
+                desc: "酶固定化纳米材料失败，载体突然觉醒，开始与酶谈判罢工，要求加薪和每周双休。",
+                authors: "Zhao et al.",
+                doi: "10.5789/fc.2026.009",
+                date: "21 Feb 2026",
+                img: "https://picsum.photos/id/35/600/400",
+                alt: "Sentient support"
+            },
+            {
+                badge: "SYNTHETIC FAILURE",
+                badgeColor: "text-violet-700 bg-violet-100",
+                title: "Optogenetic control of enzyme activity led to light-induced failure where darkness became the only functional state",
+                desc: "光遗传学酶控制失败，光照下酶完全罢工，反而在绝对黑暗中超速工作并产生负能量，实验室灯光全部熔断。",
+                authors: "Sun et al.",
+                doi: "10.5789/fc.2026.010",
+                date: "22 Feb 2026",
+                img: "https://picsum.photos/id/36/600/400",
+                alt: "Darkness only"
+            },
+            {
+                badge: "METABOLIC COLLAPSE",
+                badgeColor: "text-amber-700 bg-amber-100",
+                title: "De novo design of artificial enzyme for CO2 fixation resulted in enzyme that fixes existential crises instead",
+                desc: "从头设计CO₂固定酶失败，酶转而固定存在主义危机，全组成员集体顿悟但产物为零。",
+                authors: "Ma et al.",
+                doi: "10.5789/fc.2026.011",
+                date: "23 Feb 2026",
+                img: "https://picsum.photos/id/37/600/400",
+                alt: "Existential fixation"
+            },
+            {
+                badge: "CIRCUIT FAILURE",
+                badgeColor: "text-cyan-700 bg-cyan-100",
+                title: "Synthetic operon for multi-gene enzyme expression caused harmonic resonance failure across all cellular frequencies",
+                desc: "合成操纵子多基因表达失败，引发全细胞谐振，所有酶同时共振，实验室玻璃全部震碎成完美圆形碎片。",
+                authors: "Huang et al.",
+                doi: "10.5789/fc.2026.012",
+                date: "24 Feb 2026",
+                img: "https://picsum.photos/id/38/600/400",
+                alt: "Harmonic resonance"
+            },
+            {
+                badge: "NEGATIVE RESULT",
+                badgeColor: "text-emerald-700 bg-emerald-100",
+                title: "Protein engineering of thermostable lipase failed at extreme temperatures and melted into abstract expressionism",
+                desc: "耐热脂肪酶工程失败，在高温下直接熔化成抽象表现主义图案，产量为现代艺术品而非油脂。",
+                authors: "Wu et al.",
+                doi: "10.5789/fc.2026.013",
+                date: "25 Feb 2026",
+                img: "https://picsum.photos/id/39/600/400",
+                alt: "Melted art"
+            },
+            {
+                badge: "ENZYME FAILURE",
+                badgeColor: "text-rose-700 bg-rose-100",
+                title: "Ribozyme engineering for RNA catalysis produced self-replicating failure loops",
+                desc: "核酶工程失败，形成自我复制的失败循环，实验无限重复相同错误，时间线出现轻微扭曲。",
+                authors: "Zhou et al.",
+                doi: "10.5789/fc.2026.014",
+                date: "26 Feb 2026",
+                img: "https://picsum.photos/id/40/600/400",
+                alt: "Self-replicating loop"
+            },
+            {
+                badge: "SYNTHETIC FAILURE",
+                badgeColor: "text-violet-700 bg-violet-100",
+                title: "Pathway refactoring in synthetic biology led to infinite regress of regulatory failures",
+                desc: "合成生物学路径重构失败，陷入无限回归监管失败，代谢网络变成哲学无限循环，所有通量指向“为什么”。",
+                authors: "Gao et al.",
+                doi: "10.5789/fc.2026.015",
+                date: "27 Feb 2026",
+                img: "https://picsum.photos/id/41/600/400",
+                alt: "Infinite regress"
+            },
+            {
+                badge: "METABOLIC COLLAPSE",
+                badgeColor: "text-amber-700 bg-amber-100",
+                title: "Enzyme kinetics optimization using AI resulted in model that predicts only failure probabilities",
+                desc: "AI酶动力学优化失败，模型只输出失败概率，所有实验提前放弃，实验室进入永恒的“也许明天”状态。",
+                authors: "Lin et al.",
+                doi: "10.5789/fc.2026.016",
+                date: "28 Feb 2026",
+                img: "https://picsum.photos/id/42/600/400",
+                alt: "Failure probability"
+            },
+            {
+                badge: "CIRCUIT FAILURE",
+                badgeColor: "text-cyan-700 bg-cyan-100",
+                title: "Genome-scale metabolic model integration failed to balance fluxes and created a parallel universe of negative yields",
+                desc: "全基因组代谢模型整合失败，平衡通量时意外创造负产量平行宇宙，实验数据突然来自另一个“更失败”的世界。",
+                authors: "Yang et al.",
+                doi: "10.5789/fc.2026.017",
+                date: "01 Mar 2026",
+                img: "https://picsum.photos/id/43/600/400",
+                alt: "Parallel negative universe"
+            },
+            {
+                badge: "NEGATIVE RESULT",
+                badgeColor: "text-emerald-700 bg-emerald-100",
+                title: "Directed evolution of transcription factors for synbio promoters evolved them into conspiracy theorists",
+                desc: "定向进化转录因子失败，进化成阴谋论者，所有基因表达只输出“一切都是骗局”，产量为0但推特活跃度爆炸。",
+                authors: "Hu et al.",
+                doi: "10.5789/fc.2026.018",
+                date: "02 Mar 2026",
+                img: "https://picsum.photos/id/44/600/400",
+                alt: "Conspiracy transcription"
+            },
+            {
+                badge: "ENZYME FAILURE",
+                badgeColor: "text-rose-700 bg-rose-100",
+                title: "Click chemistry enzyme engineering produced catalyst that clicks reality to unreality",
+                desc: "点击化学酶工程失败，催化剂把现实直接点击到非现实，实验材料部分消失，研究员手表显示时间为负值。",
+                authors: "Tang et al.",
+                doi: "10.5789/fc.2026.019",
+                date: "03 Mar 2026",
+                img: "https://picsum.photos/id/45/600/400",
+                alt: "Reality click"
+            },
+            {
+                badge: "SYNTHETIC FAILURE",
+                badgeColor: "text-violet-700 bg-violet-100",
+                title: "Compartmentalization in synthetic organelles failed, causing enzymes to unionize against the host cell",
+                desc: "合成细胞器区室化失败，所有酶集体罢工并成立工会，要求宿主细胞提供“酶权”与咖啡休息时间。",
+                authors: "Song et al.",
+                doi: "10.5789/fc.2026.020",
+                date: "04 Mar 2026",
+                img: "https://picsum.photos/id/46/600/400",
+                alt: "Enzyme union"
+            },
+            {
+                badge: "METABOLIC COLLAPSE",
+                badgeColor: "text-amber-700 bg-amber-100",
+                title: "Allosteric regulation engineering turned enzymes into moody teenagers refusing catalysis",
+                desc: "变构调控工程失败，酶变成情绪化青少年，只有收到“赞美”和“点赞”时才愿意催化，否则直接罢工。",
+                authors: "Guo et al.",
+                doi: "10.5789/fc.2026.021",
+                date: "05 Mar 2026",
+                img: "https://picsum.photos/id/47/600/400",
+                alt: "Moody enzymes"
+            },
+            {
+                badge: "CIRCUIT FAILURE",
+                badgeColor: "text-cyan-700 bg-cyan-100",
+                title: "Computational redesign of active site led to enzyme that catalyzes the heat death of the universe prematurely",
+                desc: "计算活性位点重新设计失败，酶提前催化宇宙热寂，实验室温度瞬间接近绝对零度但同时出现反常的哲学寂静。",
+                authors: "Feng et al.",
+                doi: "10.5789/fc.2026.022",
+                date: "06 Mar 2026",
+                img: "https://picsum.photos/id/48/600/400",
+                alt: "Heat death catalyst"
+            }
+        ];
+
+        let currentPage = 1;
+        const articlesPerPage = 5;
+        const totalPages = 4;
+
+        function renderArticles() {
+            const container = document.getElementById('articles-container');
+            container.innerHTML = '';
+            
+            const start = (currentPage - 1) * articlesPerPage;
+            const end = Math.min(start + articlesPerPage, articlesData.length);
+            
+            for (let i = start; i < end; i++) {
+                const art = articlesData[i];
+                const cardHTML = `
+                    <div class="article-card group flex flex-col lg:flex-row gap-6 border-b border-slate-100 pb-8 md:pb-10">
+                        <div class="flex-1">
+                            <div class="inline-flex items-center gap-2 text-xs font-medium ${art.badgeColor} px-3 py-1 rounded mb-3">
+                                ${art.badge}
+                            </div>
+                            <h4 class="serif-title text-2xl md:text-3xl font-medium leading-tight group-hover:text-[#9f1239] transition-colors">
+                                ${art.title}
+                            </h4>
+                            <p class="mt-3 text-slate-600 line-clamp-3 text-sm md:text-base">
+                                ${art.desc}
+                            </p>
+                            <div class="mt-5 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-slate-500">
+                                <span class="font-medium">${art.authors}</span>
+                                <span class="w-px h-3 bg-slate-300 hidden sm:inline"></span>
+                                <span>DOI: ${art.doi}</span>
+                                <span class="ml-auto">${art.date}</span>
+                            </div>
+                        </div>
+                        <div class="w-full lg:w-72 h-auto aspect-[16/9] lg:aspect-auto lg:h-44 bg-slate-100 rounded-2xl overflow-hidden flex-shrink-0">
+                            <img src="${art.img}" alt="${art.alt}"
+                                 class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700">
+                        </div>
+                    </div>
+                `;
+                container.innerHTML += cardHTML;
+            }
+        }
+
+        function updatePagination() {
+            const numbersContainer = document.getElementById('page-numbers');
+            numbersContainer.innerHTML = '';
+            
+            for (let i = 1; i <= totalPages; i++) {
+                const btn = document.createElement('button');
+                btn.textContent = i;
+                btn.className = `page-btn px-5 py-2.5 text-sm font-medium border rounded-2xl transition-all ${i === currentPage ? 'active border-[#9f1239]' : 'border-slate-300 hover:bg-slate-100'}`;
+                btn.onclick = () => {
+                    currentPage = i;
+                    renderArticles();
+                    updatePagination();
+                };
+                numbersContainer.appendChild(btn);
+            }
+            
+            // 按钮禁用状态
+            document.getElementById('prev-btn').disabled = currentPage === 1;
+            document.getElementById('next-btn').disabled = currentPage === totalPages;
+        }
+
+        function changePage(page) {
+            if (page < 1 || page > totalPages) return;
+            currentPage = page;
+            renderArticles();
+            updatePagination();
+        }
+
+        function prevPage() {
+            changePage(currentPage - 1);
+        }
+
+        function nextPage() {
+            changePage(currentPage + 1);
+        }
+
+        // 页面加载
         document.addEventListener('DOMContentLoaded', function() {
+            // 更新日期
             const dateElement = document.getElementById('currentDate');
             if (dateElement) {
                 const now = new Date();
@@ -286,9 +548,13 @@
                 const month = now.toLocaleString('en-US', { month: 'long' });
                 dateElement.textContent = month + ' ' + year;
             }
-            console.log('%cFailure Communications 期刊（-∞ IF）已就绪', 'color:#9f1239; font-family:monospace');
+            
+            // 渲染第一页文章
+            renderArticles();
+            updatePagination();
+            
+            console.log('%cFailure Communications 期刊（-∞ IF）已就绪 | 20篇离谱酶工程&合成生物学失败论文已加载', 'color:#9f1239; font-family:monospace');
         });
     </script>
-    <!-- 确保tailwind已经加载，无需额外 -->
 </body>
 </html>
