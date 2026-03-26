@@ -1,0 +1,848 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>保守位点分析 - 生物信息分析工具包</title>
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --secondary-color: #3498db;
+            --accent-color: #e74c3c;
+            --light-color: #ecf0f1;
+            --dark-color: #2c3e50;
+            --success-color: #27ae60;
+            --warning-color: #f39c12;
+            --border-radius: 8px;
+            --box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            --transition: all 0.3s ease;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            min-height: 100vh;
+        }
+
+        .tool-header {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background-color: var(--primary-color);
+            color: white;
+            padding: 20px;
+            width: 100%;
+            text-align: center;
+        }
+
+        .back-button {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            padding: 8px 16px;
+            border-radius: var(--border-radius);
+            cursor: pointer;
+            transition: var(--transition);
+            font-size: 0.9rem;
+            margin-top: 15px;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .back-button:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .content {
+            padding: 20px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .section {
+            background: white;
+            border-radius: var(--border-radius);
+            padding: 20px;
+            margin-bottom: 30px;
+            box-shadow: var(--box-shadow);
+        }
+
+        h2 {
+            color: var(--primary-color);
+            text-align: center;
+        }
+
+        h3 {
+            color: var(--secondary-color);
+            margin-bottom: 15px;
+            border-left: 4px solid var(--secondary-color);
+            padding-left: 12px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: var(--primary-color);
+        }
+
+        input[type="text"], 
+        input[type="number"],
+        textarea, 
+        select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: var(--border-radius);
+            font-size: 14px;
+            transition: var(--transition);
+        }
+
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: var(--secondary-color);
+            box-shadow: 0 0 0 2px rgba(52,152,219,0.2);
+        }
+
+        .file-upload-area {
+            border: 2px dashed #ddd;
+            padding: 30px;
+            text-align: center;
+            border-radius: var(--border-radius);
+            background: #fafafa;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .file-upload-area:hover {
+            border-color: var(--secondary-color);
+            background: #f0f7ff;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 15px;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 10px 24px;
+            border: none;
+            border-radius: var(--border-radius);
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+            font-size: 14px;
+        }
+
+        .btn-primary {
+            background-color: var(--secondary-color);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background-color: #2980b9;
+            transform: translateY(-1px);
+        }
+
+        .btn-success {
+            background-color: var(--success-color);
+            color: white;
+        }
+
+        .btn-success:hover {
+            background-color: #219a52;
+        }
+
+        .btn-outline {
+            background: white;
+            border: 1px solid var(--secondary-color);
+            color: var(--secondary-color);
+        }
+
+        .btn-outline:hover {
+            background: var(--secondary-color);
+            color: white;
+        }
+
+        .info-box {
+            background: #e8f4fc;
+            padding: 12px;
+            border-radius: var(--border-radius);
+            margin-top: 15px;
+            font-size: 14px;
+        }
+
+        .result-box {
+            background: #f9f9f9;
+            border-radius: var(--border-radius);
+            margin-top: 20px;
+            overflow-x: auto;
+            border-left: 4px solid var(--secondary-color);
+        }
+
+        .result-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+        }
+
+        .result-table th,
+        .result-table td {
+            border: 1px solid #ddd;
+            padding: 10px 8px;
+            text-align: center;
+        }
+
+        .result-table th {
+            background-color: var(--secondary-color);
+            color: white;
+            font-weight: 600;
+            position: sticky;
+            top: 0;
+        }
+
+        .result-table tr:nth-child(even) {
+            background-color: #f2f2f2;
+        }
+
+        .result-table tr:hover {
+            background-color: #e9f7fe;
+        }
+
+        .status-bar {
+            padding: 12px;
+            background-color: var(--primary-color);
+            color: white;
+            text-align: center;
+            font-weight: bold;
+            margin-top: 20px;
+        }
+
+        .mode-hint {
+            font-size: 13px;
+            color: #7f8c8d;
+            margin-top: 5px;
+        }
+
+        .custom-group {
+            background: #f8f9fa;
+            padding: 12px;
+            border-radius: var(--border-radius);
+            margin-top: 10px;
+        }
+
+        @media (max-width: 768px) {
+            .content {
+                padding: 15px;
+            }
+            .result-table {
+                font-size: 12px;
+            }
+            .button-group {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="tool-header">
+        <h2 style="color: white;">保守位点分析</h2>
+        <a href="#" class="back-button" id="backButton">返回主界面</a>
+    </div>
+
+    <div class="content">
+        <!-- 文件上传区 -->
+        <div class="section">
+            <h2>📁 上传比对文件</h2>
+            <div class="file-upload-area" id="fileUploadArea">
+                <p>📂 点击或拖拽上传 FASTA 文件 (已比对好的多序列文件)</p>
+                <p style="font-size:12px; color:#666; margin-top:8px">支持 .fasta / .fa 格式，序列可包含 '-' 表示gap</p>
+                <input type="file" id="fastaFileInput" accept=".fasta,.fa,.txt" style="display: none;">
+            </div>
+            <div id="fileInfo" class="info-box" style="display: none;">
+                <!-- 显示文件概要 -->
+            </div>
+            <div class="button-group">
+                <button id="loadExampleBtn" class="btn btn-outline">🔬 加载示例数据</button>
+            </div>
+        </div>
+
+        <!-- 参数设置区 -->
+        <div class="section">
+            <h2>⚙️ 分析参数</h2>
+            <div class="form-group">
+                <label>🔢 位点有效氨基酸占比阈值 (%)</label>
+                <input type="number" id="validRatio" min="0" max="100" step="0.1" value="50">
+                <div class="mode-hint">某一位点中非"-"的数量占总序列数的比例需大于此值，才会被纳入计算</div>
+            </div>
+
+            <div class="form-group">
+                <label>📊 保守性阈值 (%)</label>
+                <input type="number" id="conservationThreshold" min="0" max="100" step="0.1" value="70">
+                <div class="mode-hint">某一位点中最大保守类别占比 ≥ 此阈值时记录该位点</div>
+            </div>
+
+            <div class="form-group">
+                <label>🎯 模式选择</label>
+                <select id="modeSelect">
+                    <option value="strict">模式一：严格比对模式 (单一氨基酸保守)</option>
+                    <option value="property">模式二：相同性质氨基酸比对模式 (按理化性质分类)</option>
+                    <option value="custom">模式三：用户自定义氨基酸组合</option>
+                </select>
+            </div>
+
+            <div id="customModePanel" style="display: none;" class="custom-group">
+                <label>✏️ 自定义氨基酸组合 (单字母代码)</label>
+                <input type="text" id="customAAs" placeholder="例如: A,V,I,L 或 KRH 或 D,E" value="A,V,I,L,M,F">
+                <div class="mode-hint">支持逗号、空格分隔，例如 "K,R,H" 或 "KRH"。将统计这些氨基酸的总占比作为保守性。</div>
+            </div>
+
+            <div class="form-group">
+                <label>🔍 参考序列 (用于计算跳过gap后的实际位置)</label>
+                <select id="refSeqSelect">
+                    <option value="">-- 不指定序列 --</option>
+                </select>
+                <div class="mode-hint">选择一条序列，结果中将显示每个保守位点在该序列中(忽略gap)的索引位置。</div>
+            </div>
+
+            <div class="button-group">
+                <button id="analyzeBtn" class="btn btn-primary">⚡ 开始分析</button>
+            </div>
+        </div>
+
+        <!-- 结果展示区 -->
+        <div class="section">
+            <h2>📋 保守位点结果</h2>
+            <div id="resultContainer" style="min-height: 200px;">
+                <div class="info-box" style="text-align:center; color:#7f8c8d;">
+                    ⚡ 请上传FASTA文件并设置参数，点击“开始分析”
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="status-bar">
+        江南大学 粮食发酵工艺与技术国家工程实验室
+    </div>
+
+    <script>
+        // ----------------------------- 氨基酸分类定义 (模式二) ---------------------------------
+        const AMINO_CLASSES = {
+            '碱性氨基酸': ['K', 'R', 'H'],
+            '酸性氨基酸': ['D', 'E'],
+            '极性不带电氨基酸': ['S', 'T', 'N', 'Q', 'C', 'Y'],
+            '非极性疏水氨基酸': ['A', 'V', 'I', 'L', 'M', 'F', 'P', 'W', 'G']
+        };
+        
+        // 构建氨基酸 -> 类别映射
+        const aaToClassMap = new Map();
+        for (const [className, aaList] of Object.entries(AMINO_CLASSES)) {
+            aaList.forEach(aa => aaToClassMap.set(aa, className));
+        }
+
+        // 标准20种氨基酸集合 (用于校验)
+        const STANDARD_AAS = new Set([
+            'A','R','N','D','C','Q','E','G','H','I','L','K','M','F','P','S','T','W','Y','V'
+        ]);
+
+        // 全局存储解析后的数据
+        let sequences = [];       // 存储每条序列的字符串 (已去除>标识，合并换行)
+        let seqNames = [];        // 存储序列名称
+        let alignedLength = 0;    // 比对长度 (所有序列长度应一致)
+        let totalSeqs = 0;
+        let parsedFlag = false;
+
+        // DOM 元素
+        const fileInput = document.getElementById('fastaFileInput');
+        const uploadArea = document.getElementById('fileUploadArea');
+        const fileInfoDiv = document.getElementById('fileInfo');
+        const analyzeBtn = document.getElementById('analyzeBtn');
+        const loadExampleBtn = document.getElementById('loadExampleBtn');
+        const modeSelect = document.getElementById('modeSelect');
+        const customPanel = document.getElementById('customModePanel');
+        const customAAsInput = document.getElementById('customAAs');
+        const validRatioInput = document.getElementById('validRatio');
+        const thresholdInput = document.getElementById('conservationThreshold');
+        const resultContainer = document.getElementById('resultContainer');
+        const refSeqSelect = document.getElementById('refSeqSelect');
+
+        // 辅助函数: 解析FASTA文本
+        function parseFasta(text) {
+            const lines = text.split(/\r?\n/);
+            const sequencesTemp = [];
+            const namesTemp = [];
+            let currentSeq = '';
+            let currentName = '';
+            let inSeq = false;
+
+            for (let line of lines) {
+                line = line.trim();
+                if (line.length === 0) continue;
+                if (line.startsWith('>')) {
+                    // 保存上一条序列
+                    if (inSeq && currentSeq) {
+                        sequencesTemp.push(currentSeq);
+                        namesTemp.push(currentName);
+                    }
+                    currentName = line.substring(1).split(/\s+/)[0]; // 取第一个标识符
+                    currentSeq = '';
+                    inSeq = true;
+                } else {
+                    if (inSeq) {
+                        currentSeq += line.toUpperCase();
+                    } else {
+                        // 没有>开头的，视为无头序列，跳过或报错
+                        if (sequencesTemp.length === 0 && currentSeq === '') {
+                            currentName = `seq_${namesTemp.length+1}`;
+                            currentSeq = line.toUpperCase();
+                            inSeq = true;
+                        } else {
+                            currentSeq += line.toUpperCase();
+                        }
+                    }
+                }
+            }
+            // 最后一条
+            if (inSeq && currentSeq) {
+                sequencesTemp.push(currentSeq);
+                namesTemp.push(currentName);
+            }
+            return { sequences: sequencesTemp, names: namesTemp };
+        }
+
+        // 校验序列长度一致性，并过滤掉非法字符 (但保留标准字母和'-')
+        function validateAndClean(seqs) {
+            if (seqs.length === 0) throw new Error('文件中没有序列');
+            const len = seqs[0].length;
+            for (let i = 0; i < seqs.length; i++) {
+                const s = seqs[i];
+                if (s.length !== len) {
+                    throw new Error(`序列 ${i+1} 长度 ${s.length} 与其他序列长度 ${len} 不一致，请确保已比对对齐。`);
+                }
+                // 检查非法字符 (仅允许 A-Z 和 -)
+                const invalid = s.match(/[^A-Z\-]/g);
+                if (invalid && invalid.length > 0) {
+                    console.warn(`序列${i+1}包含非标准字符: ${[...new Set(invalid)].join(',')}，将被替换为'-'`);
+                    // 将非法字符转为 '-' 以避免干扰 (保守性计算忽略)
+                    seqs[i] = s.replace(/[^A-Z\-]/g, '-');
+                }
+            }
+            return len;
+        }
+
+        // 更新参考序列下拉框
+        function updateRefSeqSelect() {
+            refSeqSelect.innerHTML = '<option value="">-- 不指定序列 --</option>';
+            if (seqNames && seqNames.length > 0) {
+                seqNames.forEach((name, idx) => {
+                    const option = document.createElement('option');
+                    option.value = idx;
+                    option.textContent = `${idx+1}: ${name}`;
+                    refSeqSelect.appendChild(option);
+                });
+            }
+        }
+
+        // 加载文件并解析
+        async function loadFastaFromFile(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    try {
+                        const content = e.target.result;
+                        const { sequences: rawSeqs, names } = parseFasta(content);
+                        if (rawSeqs.length === 0) throw new Error('未找到有效序列');
+                        const cleanedSeqs = [...rawSeqs];
+                        const length = validateAndClean(cleanedSeqs);
+                        sequences = cleanedSeqs;
+                        seqNames = names;
+                        alignedLength = length;
+                        totalSeqs = sequences.length;
+                        parsedFlag = true;
+                        // 更新参考序列下拉框
+                        updateRefSeqSelect();
+                        // 显示文件信息
+                        fileInfoDiv.style.display = 'block';
+                        fileInfoDiv.innerHTML = `
+                            <strong>✅ 文件加载成功</strong><br>
+                            📌 序列数量: ${totalSeqs}<br>
+                            📏 比对长度: ${alignedLength} 个位点<br>
+                            🧬 示例序列: ${seqNames.slice(0,3).join(', ')}${seqNames.length>3 ? '...' : ''}
+                        `;
+                        resolve();
+                    } catch (err) {
+                        reject(err);
+                    }
+                };
+                reader.onerror = () => reject(new Error('文件读取失败'));
+                reader.readAsText(file);
+            });
+        }
+
+        // 示例数据 (3条短序列，模拟比对)
+        function loadExampleData() {
+            const exampleFasta = `>seq1_Human
+MARTK--QTARKSTGGKAPRKQLATKAARKSAPATGGVKKPHRYRPGTVALREIRRYQKSTELLIRKLPFQRLVREIAQDFKTDLRFQSSAVMALQEASEAYLVGLFEDTNLCAIHAKRVTIMPKDIQLARRIRGERA
+>seq2_Mouse
+MARTK--QTARKSTGGKAPRKQLATKAARKSAPATGGVKKPHRYRPGTVALREIRRYQKSTELLIRKLPFQRLVREIAQDFKTDLRFQSSAVMALQEASEAYLVGLFEDTNLCAIHAKRVTIMPKDIQLARRIRGERA
+>seq3_Rat
+MARTK--QTARKSTGGKAPRKQLATKAARKSAPATGGVKKPHRYRPGTVALREIRRYQKSTELLIRKLPFQRLVREIAQDFKTDLRFQSSAVMALQEASEAYLVGLFEDTNLCAIHAKRVTIMPKDIQLARRIRGERA
+>seq4_Xenopus
+MARTK--QTARKSTGGKAPRKQLATKAARKSAPATGGVKKPHRYRPGTVALREIRRYQKSTELLIRKLPFQRLVREIAQDFKTDLRFQSSAVMALQEASEAYLVGLFEDTNLCAIHAKRVTIMPKDIQLARRIRGERA
+>seq5_Zebrafish
+MARTK--QTARKSTGGKAPRKQLATKAARKSAPATGGVKKPHRYRPGTVALREIRRYQKSTELLIRKLPFQRLVREIAQDFKTDLRFQSSAVMALQEASEAYLVGLFEDTNLCAIHAKRVTIMPKDIQLARRIRGERA`;
+            const { sequences: rawSeqs, names } = parseFasta(exampleFasta);
+            const cleanedSeqs = [...rawSeqs];
+            const len = validateAndClean(cleanedSeqs);
+            sequences = cleanedSeqs;
+            seqNames = names;
+            alignedLength = len;
+            totalSeqs = sequences.length;
+            parsedFlag = true;
+            updateRefSeqSelect();
+            fileInfoDiv.style.display = 'block';
+            fileInfoDiv.innerHTML = `
+                <strong>📚 示例数据已加载 (组蛋白H3样序列)</strong><br>
+                📌 序列数量: ${totalSeqs}<br>
+                📏 比对长度: ${alignedLength} 个位点<br>
+                💡 提示: 可修改参数后点击"开始分析"
+            `;
+        }
+
+        // 计算指定序列在某个位点(列索引)处的有效位置(跳过gap)
+        function getEffectivePosition(seqIndex, columnIndex) {
+            if (seqIndex === undefined || seqIndex === null || seqIndex < 0 || seqIndex >= sequences.length) return null;
+            const seq = sequences[seqIndex];
+            let effectivePos = 0;
+            // 遍历从0到columnIndex(包含)的字符，统计非gap字符数
+            for (let i = 0; i <= columnIndex; i++) {
+                if (seq[i] !== '-') effectivePos++;
+            }
+            return effectivePos;
+        }
+
+        // 核心分析函数
+        function performAnalysis() {
+            if (!parsedFlag || sequences.length === 0) {
+                alert('请先上传FASTA文件或加载示例数据');
+                return;
+            }
+
+            // 获取参数
+            let validRatio = parseFloat(validRatioInput.value);
+            let conservationThr = parseFloat(thresholdInput.value);
+            if (isNaN(validRatio)) validRatio = 50;
+            if (isNaN(conservationThr)) conservationThr = 70;
+            validRatio = Math.min(100, Math.max(0, validRatio));
+            conservationThr = Math.min(100, Math.max(0, conservationThr));
+
+            const mode = modeSelect.value;
+            let customAASet = null;
+            if (mode === 'custom') {
+                let customStr = customAAsInput.value.trim();
+                if (!customStr) {
+                    alert('请在模式三中输入自定义氨基酸组合');
+                    return;
+                }
+                // 解析组合: 支持逗号/空格分隔，提取大写字母
+                const parts = customStr.split(/[ ,]+/);
+                const letters = [];
+                for (let p of parts) {
+                    if (p.length === 0) continue;
+                    for (let ch of p.toUpperCase()) {
+                        if (STANDARD_AAS.has(ch) && !letters.includes(ch)) letters.push(ch);
+                    }
+                }
+                if (letters.length === 0) {
+                    alert('自定义组合中未检测到有效氨基酸字母 (A-Z 标准20种)');
+                    return;
+                }
+                customAASet = new Set(letters);
+            }
+
+            // 获取参考序列索引
+            let refSeqIdx = refSeqSelect.value;
+            let useRefSeq = (refSeqIdx !== "" && !isNaN(parseInt(refSeqIdx)));
+            let refIndex = useRefSeq ? parseInt(refSeqIdx) : null;
+
+            // 有效占比阈值转化为最少有效序列数
+            const minValidCount = Math.ceil(totalSeqs * (validRatio / 100));
+
+            // 存储结果: 增加 effectivePosition 字段
+            const results = [];
+
+            // 遍历每个位点 (列)
+            for (let pos = 0; pos < alignedLength; pos++) {
+                // 收集该列所有字符
+                const column = sequences.map(seq => seq[pos]);
+                // 统计非gap字符 (不是 '-')
+                const nonGapChars = column.filter(ch => ch !== '-');
+                const validCount = nonGapChars.length;
+                
+                // 有效位点筛选
+                if (validCount < minValidCount) continue;
+                
+                let maxPercentage = 0;
+                let conservedLabel = '';
+                let detailInfo = '';
+
+                // 根据不同模式计算最大保守比例
+                if (mode === 'strict') {
+                    // 模式一: 单一氨基酸频率统计
+                    const freqMap = new Map();
+                    for (let ch of nonGapChars) {
+                        if (STANDARD_AAS.has(ch)) {
+                            freqMap.set(ch, (freqMap.get(ch) || 0) + 1);
+                        } else {
+                            // 非标准字母忽略 (不会计入保守)
+                        }
+                    }
+                    let maxFreq = 0;
+                    let bestAA = '';
+                    for (let [aa, cnt] of freqMap.entries()) {
+                        if (cnt > maxFreq) {
+                            maxFreq = cnt;
+                            bestAA = aa;
+                        }
+                    }
+                    if (maxFreq > 0) {
+                        maxPercentage = (maxFreq / validCount) * 100;
+                        conservedLabel = `${bestAA} (单一氨基酸)`;
+                        detailInfo = `${bestAA} 出现 ${maxFreq}/${validCount}`;
+                    } else {
+                        maxPercentage = 0;
+                    }
+                } 
+                else if (mode === 'property') {
+                    // 模式二: 按理化性质分类统计
+                    const classFreq = new Map(); // 类别 -> 计数
+                    for (let ch of nonGapChars) {
+                        if (aaToClassMap.has(ch)) {
+                            const className = aaToClassMap.get(ch);
+                            classFreq.set(className, (classFreq.get(className) || 0) + 1);
+                        } else {
+                            // 未知氨基酸不计入任何分类
+                        }
+                    }
+                    let maxClassCnt = 0;
+                    let bestClass = '';
+                    for (let [cls, cnt] of classFreq.entries()) {
+                        if (cnt > maxClassCnt) {
+                            maxClassCnt = cnt;
+                            bestClass = cls;
+                        }
+                    }
+                    if (maxClassCnt > 0) {
+                        maxPercentage = (maxClassCnt / validCount) * 100;
+                        conservedLabel = `${bestClass} (组合)`;
+                        detailInfo = `${bestClass} 总占比 ${maxClassCnt}/${validCount}`;
+                    } else {
+                        maxPercentage = 0;
+                    }
+                } 
+                else if (mode === 'custom') {
+                    // 模式三: 用户自定义组合
+                    let customCount = 0;
+                    for (let ch of nonGapChars) {
+                        if (customAASet.has(ch)) {
+                            customCount++;
+                        }
+                    }
+                    maxPercentage = (customCount / validCount) * 100;
+                    const customAAList = Array.from(customAASet).join(',');
+                    conservedLabel = `自定义组合 {${customAAList}}`;
+                    detailInfo = `组合内氨基酸出现 ${customCount}/${validCount}`;
+                }
+
+                // 判断是否满足保守性阈值
+                if (maxPercentage >= conservationThr) {
+                    let effectivePosition = null;
+                    if (useRefSeq && refIndex !== null) {
+                        effectivePosition = getEffectivePosition(refIndex, pos);
+                    }
+                    results.push({
+                        position: pos + 1,   // 转为1-index
+                        conservedLabel: conservedLabel,
+                        percentage: maxPercentage.toFixed(2),
+                        validCount: validCount,
+                        totalSeqs: totalSeqs,
+                        validRatio: ((validCount / totalSeqs) * 100).toFixed(1),
+                        detail: detailInfo,
+                        effectivePos: effectivePosition ? effectivePosition : (useRefSeq ? '-' : null)
+                    });
+                }
+            }
+
+            // 渲染结果表格
+            renderResults(results, validRatio, conservationThr, mode, useRefSeq);
+        }
+
+        // 渲染结果
+        function renderResults(results, validRatio, consThr, mode, useRefSeq) {
+            if (results.length === 0) {
+                resultContainer.innerHTML = `
+                    <div class="info-box" style="background:#fff3cd; border-left-color: #f39c12;">
+                        ⚠️ 未找到满足条件的保守位点。<br>
+                        当前条件：有效占比阈值 ≥ ${validRatio}% , 保守性阈值 ≥ ${consThr}% 。<br>
+                        可尝试降低阈值或检查序列数据。
+                    </div>
+                `;
+                return;
+            }
+
+            let modeText = '';
+            if (mode === 'strict') modeText = '模式一：单一氨基酸保守';
+            else if (mode === 'property') modeText = '模式二：相同性质氨基酸保守';
+            else modeText = '模式三：用户自定义组合';
+
+            // 表头
+            let headers = `
+                <th>位点序号</th>
+                <th>在指定序列中的位点</th>
+                <th>保守类别/氨基酸</th>
+                <th>保守百分比 (%)</th>
+                <th>有效计数 / 总序列数</th>
+                <th>位点有效占比 (%)</th>
+                <th>详情</th>
+            `;
+
+            // 如果没有指定参考序列，则“在指定序列中的位点”列显示“未指定”
+            const effectiveColTitle = useRefSeq ? "在指定序列中的位点" : "参考序列位点(未指定)";
+
+            const html = `
+                <div style="margin-bottom: 12px; font-weight:600; padding:8px; background:#eef2f7; border-radius:6px;">
+                    🔍 共找到 <strong style="color:#e74c3c;">${results.length}</strong> 个保守位点 
+                    (有效占比 ≥ ${validRatio}%，保守阈值 ≥ ${consThr}%，${modeText})
+                </div>
+                <div style="overflow-x: auto;">
+                    <table class="result-table">
+                        <thead>
+                            <tr>
+                                <th>位点序号</th>
+                                <th>${effectiveColTitle}</th>
+                                <th>保守类别/氨基酸</th>
+                                <th>保守百分比 (%)</th>
+                                <th>有效计数 / 总序列数</th>
+                                <th>位点有效占比 (%)</th>
+                                <th>详情</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${results.map(r => `
+                                <tr>
+                                    <td><strong>${r.position}</strong></td>
+                                    <td>${r.effectivePos !== undefined && r.effectivePos !== null ? r.effectivePos : '-'}</td>
+                                    <td>${r.conservedLabel}</td>
+                                    <td style="color:#27ae60; font-weight:bold;">${r.percentage}%</td>
+                                    <td>${r.validCount} / ${r.totalSeqs}</td>
+                                    <td>${r.validRatio}%</td>
+                                    <td style="font-size:12px;">${r.detail}</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                </div>
+                <div class="mode-hint" style="margin-top: 12px;">
+                    💡 位点序号基于比对文件中的列位置（从1开始）。保守百分比 = 保守类别出现次数 / 该位点非gap字符数 × 100%。<br>
+                    ${useRefSeq ? "※ “在指定序列中的位点”表示忽略gap后该位点在该序列中的实际氨基酸序号。" : "※ 如需显示参考序列位点，请在上方选择一条参考序列。"}
+                </div>
+            `;
+            resultContainer.innerHTML = html;
+        }
+
+        // 模式切换显示自定义面板
+        function toggleCustomPanel() {
+            if (modeSelect.value === 'custom') {
+                customPanel.style.display = 'block';
+            } else {
+                customPanel.style.display = 'none';
+            }
+        }
+
+        // 初始化事件绑定
+        function initEventListeners() {
+            // 上传区域点击
+            uploadArea.addEventListener('click', () => fileInput.click());
+            uploadArea.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                uploadArea.style.borderColor = '#3498db';
+                uploadArea.style.background = '#e3f2fd';
+            });
+            uploadArea.addEventListener('dragleave', () => {
+                uploadArea.style.borderColor = '#ddd';
+                uploadArea.style.background = '#fafafa';
+            });
+            uploadArea.addEventListener('drop', async (e) => {
+                e.preventDefault();
+                uploadArea.style.borderColor = '#ddd';
+                uploadArea.style.background = '#fafafa';
+                const files = e.dataTransfer.files;
+                if (files.length > 0) {
+                    try {
+                        await loadFastaFromFile(files[0]);
+                    } catch (err) {
+                        alert('解析失败: ' + err.message);
+                        console.error(err);
+                    }
+                }
+            });
+
+            fileInput.addEventListener('change', async (e) => {
+                if (e.target.files.length > 0) {
+                    try {
+                        await loadFastaFromFile(e.target.files[0]);
+                    } catch (err) {
+                        alert('文件错误: ' + err.message);
+                        fileInfoDiv.style.display = 'none';
+                        parsedFlag = false;
+                    }
+                }
+            });
+
+            analyzeBtn.addEventListener('click', () => {
+                if (!parsedFlag) {
+                    alert('请先上传FASTA文件或加载示例数据');
+                    return;
+                }
+                performAnalysis();
+            });
+
+            loadExampleBtn.addEventListener('click', () => {
+                loadExampleData();
+                parsedFlag = true;
+            });
+
+            modeSelect.addEventListener('change', toggleCustomPanel);
+            toggleCustomPanel();
+
+            // 返回主界面按钮提示 (保留样式)
+            const backBtn = document.getElementById('backButton');
+            backBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                alert('返回主界面功能演示，可在此链接至工具主页。');
+            });
+        }
+
+        // 页面加载完成
+        document.addEventListener('DOMContentLoaded', () => {
+            initEventListeners();
+            resultContainer.innerHTML = '<div class="info-box" style="text-align:center;">请上传FASTA文件并设置参数，点击“开始分析”</div>';
+        });
+    </script>
+</body>
+</html>
