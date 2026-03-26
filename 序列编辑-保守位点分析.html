@@ -262,7 +262,7 @@
 <body>
     <div class="tool-header">
         <h2 style="color: white;">保守位点分析</h2>
-        <a href="#" class="back-button" id="backButton">返回主界面</a>
+        <a href="index.html" class="back-button">返回主界面</a>
     </div>
 
     <div class="content">
@@ -830,12 +830,6 @@ MARTK--QTARKSTGGKAPRKQLATKAARKSAPATGGVKKPHRYRPGTVALREIRRYQKSTELLIRKLPFQRLVREIAQD
             modeSelect.addEventListener('change', toggleCustomPanel);
             toggleCustomPanel();
 
-            // 返回主界面按钮提示 (保留样式)
-            const backBtn = document.getElementById('backButton');
-            backBtn.addEventListener('click', (e) => {
-                e.preventDefault();
-                alert('返回主界面功能演示，可在此链接至工具主页。');
-            });
         }
 
         // 页面加载完成
