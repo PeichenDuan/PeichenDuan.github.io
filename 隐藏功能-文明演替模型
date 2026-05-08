@@ -1,0 +1,2344 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>文明演替模型</title>
+    <style>
+        :root {
+            --bg: #f5f2eb;
+            --panel-bg: #fefefc;
+            --text: #2c2416;
+            --text-secondary: #5c5344;
+            --text-muted: #8a8070;
+            --border: #d5d0c6;
+            --border-light: #e6e2d9;
+            --accent: #3a5068;
+            --accent-light: #5a7894;
+            --war: #8b3a3a;
+            --ally: #4a6b4a;
+            --disaster: #9b6b2a;
+            --birth: #2a5a7b;
+            --report: #5c4a3a;
+            --split: #7b4a2a;
+            --nuke: #6b1a1a;
+            --radioactive: #8a7a65;
+            --button-bg: #f8f6f0;
+            --button-hover: #ebe6da;
+            --button-active: #3a5068;
+            --log-bg: #faf9f5;
+            --tool-active: #e8dcc8;
+            --shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+            --shadow-lg: 0 4px 24px rgba(0, 0, 0, 0.10);
+            --radius: 6px;
+            --radius-sm: 3px;
+            --font-serif: 'Georgia', 'Noto Serif SC', 'Source Han Serif SC', 'SimSun', 'STSong', serif;
+            --font-sans: 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', 'Noto Sans SC', sans-serif;
+            --font-mono: 'SF Mono', 'Consolas', 'Courier New', 'PingFang SC', monospace;
+            --primary-color: #2c3e50;
+            --secondary-color: #3498db;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: var(--bg);
+            font-family: var(--font-sans);
+            min-height: 100vh;
+            color: var(--text);
+            -webkit-font-smoothing: antialiased;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        /* 顶部标题栏 */
+        .tool-header {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background-color: var(--primary-color);
+            color: white;
+            padding: 20px;
+            width: 100%;
+            text-align: center;
+        }
+        .tool-header h2 {
+            color: white;
+            font-family: var(--font-serif);
+            font-size: 1.5em;
+            letter-spacing: 0.04em;
+            font-weight: 600;
+        }
+        .back-button {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 0.9rem;
+            margin-top: 15px;
+            text-decoration: none;
+            font-family: var(--font-sans);
+        }
+        .back-button:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        /* 内容区域 */
+        .content {
+            padding: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+            width: 100%;
+            display: flex;
+            justify-content: center;
+        }
+
+        .container {
+            background: var(--panel-bg);
+            border-radius: 10px;
+            padding: 20px 22px;
+            max-width: 1100px;
+            width: 100%;
+            box-shadow: var(--shadow-lg);
+            border: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        .container .header {
+            text-align: center;
+            padding-bottom: 8px;
+            border-bottom: 1px solid var(--border-light);
+        }
+        .container .header h1 {
+            font-family: var(--font-serif);
+            font-size: 1.5em;
+            letter-spacing: 0.04em;
+            color: #2c2416;
+            font-weight: 600;
+        }
+        .main-content {
+            display: flex;
+            gap: 16px;
+            align-items: flex-start;
+        }
+        .left-panel {
+            flex: 1 1 auto;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            min-width: 0;
+        }
+        .right-panel {
+            flex: 0 0 270px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .canvas-wrapper {
+            position: relative;
+            background: #faf9f6;
+            border-radius: var(--radius);
+            overflow: hidden;
+            border: 1px solid var(--border);
+            line-height: 0;
+            cursor: crosshair;
+            box-shadow: var(--shadow);
+        }
+        .canvas-wrapper.info-mode {
+            cursor: default;
+        }
+        canvas {
+            display: block;
+            width: 100%;
+            height: auto;
+            image-rendering: auto;
+        }
+        .canvas-tooltip {
+            position: absolute;
+            pointer-events: none;
+            background: rgba(44, 36, 22, 0.88);
+            color: #f0ece4;
+            font-size: 0.65em;
+            padding: 4px 8px;
+            border-radius: 3px;
+            font-family: var(--font-mono);
+            white-space: nowrap;
+            display: none;
+            z-index: 10;
+            letter-spacing: 0.03em;
+        }
+        .info-bar {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px 14px;
+            font-size: 0.72em;
+            color: var(--text-secondary);
+            background: #faf9f5;
+            border-radius: var(--radius-sm);
+            padding: 7px 12px;
+            border: 1px solid var(--border-light);
+            font-family: var(--font-serif);
+            letter-spacing: 0.02em;
+        }
+        .info-item {
+            display: flex;
+            align-items: center;
+            gap: 3px;
+            white-space: nowrap;
+        }
+        .info-dot {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            display: inline-block;
+            flex-shrink: 0;
+            border: 1px solid rgba(0, 0, 0, 0.15);
+        }
+        .info-value {
+            font-weight: 600;
+            color: #2c2416;
+            min-width: 22px;
+            text-align: center;
+            font-family: var(--font-mono);
+            font-size: 0.95em;
+        }
+        .info-label {
+            color: var(--text-muted);
+            font-size: 0.85em;
+        }
+        .btn {
+            padding: 7px 16px;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            font-size: 0.75em;
+            font-weight: 500;
+            cursor: pointer;
+            letter-spacing: 0.03em;
+            transition: all 0.2s;
+            font-family: var(--font-sans);
+            background: var(--button-bg);
+            color: var(--text);
+            white-space: nowrap;
+            width: 100%;
+            margin-bottom: 4px;
+        }
+        .btn:hover {
+            background: var(--button-hover);
+            border-color: #c0b8a8;
+        }
+        .btn.btn-start {
+            background: #3a5068;
+            color: #f8f6f0;
+            border-color: #2a4058;
+            font-weight: 600;
+            letter-spacing: 0.05em;
+        }
+        .btn.btn-start:hover {
+            background: #4a6480;
+            border-color: #3a5068;
+        }
+        .btn.btn-start.running {
+            background: #8b3a3a;
+            border-color: #6b2a2a;
+            color: #f8f4f0;
+        }
+        .btn.btn-start.running:hover {
+            background: #a04a4a;
+        }
+        .btn-speed {
+            padding: 5px 8px;
+            font-size: 0.7em;
+            border-radius: 3px;
+            min-width: 36px;
+            text-align: center;
+            width: auto;
+            margin-bottom: 0;
+        }
+        .btn-speed.active {
+            background: #e8dcc8;
+            border-color: #b8a888;
+            font-weight: 600;
+            color: #3a2a10;
+        }
+        .btn-reset {
+            color: #6b5a4a;
+            font-size: 0.7em;
+            padding: 5px 11px;
+        }
+        .btn-reset:hover {
+            background: #f5e8e0;
+            border-color: #c0a090;
+            color: #8b3a3a;
+        }
+        .toolbar {
+            display: flex;
+            gap: 4px;
+            flex-wrap: wrap;
+            padding: 6px 8px;
+            background: #faf9f5;
+            border-radius: var(--radius-sm);
+            border: 1px solid var(--border-light);
+            font-size: 0.7em;
+        }
+        .toolbar-label {
+            font-size: 0.75em;
+            color: var(--text-muted);
+            font-family: var(--font-serif);
+            letter-spacing: 0.04em;
+            display: flex;
+            align-items: center;
+            margin-right: 2px;
+            font-style: italic;
+            width: 100%;
+            margin-bottom: 4px;
+        }
+        .btn-tool {
+            padding: 4px 8px;
+            font-size: 0.68em;
+            border-radius: 3px;
+            border: 1px solid var(--border-light);
+            background: #fefefc;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.2s;
+            font-family: var(--font-sans);
+            letter-spacing: 0.02em;
+            white-space: nowrap;
+            width: auto;
+            margin-bottom: 0;
+        }
+        .btn-tool:hover {
+            background: #f0ece2;
+            border-color: #c0b8a8;
+        }
+        .btn-tool.active {
+            background: var(--tool-active);
+            border-color: #b8a070;
+            font-weight: 600;
+            color: #3a2a10;
+            box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.06);
+        }
+        .btn-tool.dangerous {
+            color: #8b3a3a;
+            border-color: #e0c8c0;
+        }
+        .btn-tool.dangerous.active {
+            background: #f5e0d8;
+            border-color: #c09080;
+            color: #5a1a1a;
+        }
+        .btn-global {
+            padding: 5px 8px;
+            font-size: 0.6em;
+            border-radius: 3px;
+            border: 1px dashed var(--border);
+            background: #fefefc;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.2s;
+            font-family: var(--font-sans);
+            width: auto;
+        }
+        .btn-global:hover {
+            background: #f8f2e8;
+            border-color: #b8a080;
+            border-style: solid;
+        }
+        .log-panel {
+            background: var(--log-bg);
+            border-radius: var(--radius-sm);
+            padding: 9px 11px;
+            max-height: 165px;
+            overflow-y: auto;
+            font-size: 0.66em;
+            line-height: 1.55;
+            border: 1px solid var(--border-light);
+            font-family: var(--font-mono);
+            letter-spacing: 0.02em;
+        }
+        .log-panel::-webkit-scrollbar {
+            width: 4px;
+        }
+        .log-panel::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .log-panel::-webkit-scrollbar-thumb {
+            background: #d5d0c6;
+            border-radius: 2px;
+        }
+        .log-entry {
+            padding: 1px 0;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.02);
+            animation: fadeIn 0.25s ease;
+        }
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(-3px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        .log-war {
+            color: #8b3a3a;
+        }
+        .log-ally {
+            color: #4a6b4a;
+        }
+        .log-disaster {
+            color: #9b6b2a;
+        }
+        .log-birth {
+            color: #2a5a7b;
+        }
+        .log-report {
+            color: #5c4a3a;
+            font-weight: 600;
+        }
+        .log-split {
+            color: #7b4a2a;
+        }
+        .log-nuke {
+            color: #6b1a1a;
+            font-weight: 700;
+        }
+        .log-divine {
+            color: #3a5068;
+            font-style: italic;
+            font-weight: 600;
+        }
+        .log-asteroid {
+            color: #b03010;
+            font-weight: 700;
+            background: rgba(255, 200, 150, 0.15);
+        }
+        .log-plague {
+            color: #444;
+        }
+        .log-time {
+            color: #a09888;
+            margin-right: 4px;
+            font-size: 0.9em;
+            font-family: var(--font-serif);
+        }
+
+        /* 底部状态栏 */
+        .status-bar {
+            padding: 10px;
+            background-color: var(--primary-color);
+            color: white;
+            text-align: center;
+            font-weight: bold;
+            width: 100%;
+            margin-top: 20px;
+            font-family: var(--font-sans);
+        }
+
+        @media (max-width: 750px) {
+            .main-content {
+                flex-direction: column;
+            }
+            .right-panel {
+                flex: 0 0 auto;
+                width: 100%;
+            }
+            .btn {
+                width: auto;
+            }
+            .btn-speed {
+                width: auto;
+            }
+            .content {
+                padding: 10px;
+            }
+            .container {
+                padding: 12px 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="tool-header">
+        <h2>文明演替模型</h2>
+        <a href="index.html" class="back-button">返回主界面</a>
+    </div>
+
+    <div class="content">
+        <div class="container">
+            <div class="header"><h1>文明演替模型</h1></div>
+            <div class="main-content">
+                <div class="left-panel">
+                    <div class="canvas-wrapper" id="canvasWrapper">
+                        <canvas id="mapCanvas" width="1200" height="1200"></canvas>
+                        <div class="canvas-tooltip" id="canvasTooltip"></div>
+                    </div>
+                    <div class="info-bar" id="infoBar">
+                        <span class="info-item">🏛️ 文明体：<span class="info-value" id="tribeCount">0</span></span>
+                        <span class="info-item">👥 总人口：<span class="info-value" id="totalPop">0</span></span>
+                        <span class="info-item">📅 时间：<span class="info-value" id="gameTime" style="min-width:90px;">公元0年1月</span></span>
+                        <span class="info-item">⚔️ 冲突：<span class="info-value" id="warCount">0</span></span>
+                        <span class="info-item">🌪️ 灾害：<span class="info-value" id="disasterCount">0</span></span>
+                        <span class="info-item">💥 核爆：<span class="info-value" id="nukeCount">0</span></span>
+                        <span class="info-item">☢️ 污染格：<span class="info-value" id="radCount">0</span></span>
+                    </div>
+                </div>
+                <div class="right-panel">
+                    <button class="btn btn-start" id="btnStart" onclick="toggleSimulation()">▶ 开始演化</button>
+                    <div style="display:flex; gap:4px; flex-wrap:wrap;">
+                        <button class="btn btn-speed active" data-speed="1" onclick="setSpeed(1, this)">1×</button>
+                        <button class="btn btn-speed" data-speed="2" onclick="setSpeed(2, this)">2×</button>
+                        <button class="btn btn-speed" data-speed="4" onclick="setSpeed(4, this)">4×</button>
+                        <button class="btn btn-speed" data-speed="8" onclick="setSpeed(8, this)">8×</button>
+                    </div>
+                    <button class="btn btn-reset" onclick="resetGame()">🔄 重置世界</button>
+                    <button class="btn btn-global" onclick="downloadLog()">📄 下载日志</button>
+                    <div class="toolbar" id="toolbar">
+                        <span class="toolbar-label">上帝干预：</span>
+                        <button class="btn-tool active" data-tool="info" onclick="setTool('info', this)">🔍 观察</button>
+                        <button class="btn-tool" data-tool="spawn" onclick="setTool('spawn', this)">🏛️ 投放</button>
+                        <button class="btn-tool" data-tool="upgrade" onclick="setTool('upgrade', this)">⬆️ 升级</button>
+                        <button class="btn-tool dangerous" data-tool="nuke" onclick="setTool('nuke', this)">💥 核击</button>
+                        <button class="btn-tool dangerous" data-tool="disaster" onclick="setTool('disaster', this)">🌪️ 天灾</button>
+                        <button class="btn-tool" data-tool="bless" onclick="setTool('bless', this)">✨ 赐福</button>
+                        <button class="btn-tool dangerous" data-tool="curse" onclick="setTool('curse', this)">💀 诅咒</button>
+                        <button class="btn-tool dangerous" data-tool="split" onclick="setTool('split', this)">💔 分裂</button>
+                        <button class="btn-tool" data-tool="cleanse" onclick="setTool('cleanse', this)">🧹 净化</button>
+                        <button class="btn-global" onclick="globalPeace()">🕊️ 强制和平</button>
+                    </div>
+                    <div class="toolbar" id="toolbar2">
+                        <span class="toolbar-label">自然之力：</span>
+                        <button class="btn-tool dangerous" data-tool="asteroid" onclick="setTool('asteroid', this)">☄️ 星陨</button>
+                        <button class="btn-tool" data-tool="raiseMountain" onclick="setTool('raiseMountain', this)">⛰️ 造山</button>
+                        <button class="btn-tool" data-tool="removeMountain" onclick="setTool('removeMountain', this)">🏔️➡️🌄 移山</button>
+                        <button class="btn-tool" data-tool="landReclaim" onclick="setTool('landReclaim', this)">🌊➡️🏞️ 填海</button>
+                        <button class="btn-tool dangerous" data-tool="sinkLand" onclick="setTool('sinkLand', this)">🏞️➡️🌊 沉没</button>
+                        <button class="btn-tool dangerous" data-tool="plague" onclick="setTool('plague', this)">🦠 瘟疫</button>
+                        <button class="btn-tool" data-tool="prosperity" onclick="setTool('prosperity', this)">🌟 繁荣</button>
+                    </div>
+                    <div class="log-panel" id="logPanel">
+                        <div class="log-entry log-report">🕐 世界初始化完成。点击"开始演化"或使用上帝工具干预文明进程。</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="status-bar">
+        江南大学 粮食发酵工艺与技术国家工程实验室
+    </div>
+
+    <script>
+        (function() {
+            // ==================== DOM元素 ====================
+            const canvas = document.getElementById('mapCanvas');
+            const ctx = canvas.getContext('2d');
+            const canvasWrapper = document.getElementById('canvasWrapper');
+            const canvasTooltip = document.getElementById('canvasTooltip');
+            const logPanel = document.getElementById('logPanel');
+            const btnStart = document.getElementById('btnStart');
+
+            // ==================== 常量 ====================
+            const GRID_SIZE = 200;
+            const CELL_SIZE = canvas.width / GRID_SIZE;
+            const OCEAN = 0,
+                PLAINS = 1,
+                MOUNTAIN = 2,
+                RADIOACTIVE = 3;
+
+            const TRIBE_COLORS = [
+                '#7b4a3a', '#8b6d3a', '#5a6b4a', '#3a5a6b', '#6b4a6b',
+                '#9b5a3a', '#4a6b5a', '#5a4a6b', '#8b5a4a', '#3a6b5a',
+                '#7b5a2a', '#4a3a6b', '#6b3a4a', '#3a5a4a', '#8b4a5a',
+                '#5a7b4a', '#6b5a3a', '#4a5a7b', '#7b6b3a', '#3a4a6b',
+                '#9b4a3a', '#5a4a3a', '#3a7b6b', '#8b3a5a', '#4a7b3a',
+                '#6b3a6b', '#3a6b4a', '#9b6b3a', '#5a3a5a', '#3a5a5a',
+                '#b86b4a', '#618b4a', '#4a6b8b', '#8b4a6b', '#4a8b6b',
+                '#a56b3a', '#6b4a3b', '#3a8b7b', '#9b5a6b', '#5a8b3a',
+                '#7b3a6b', '#3b6b5a', '#8b6b4a', '#4a3b8b', '#6b8b3a',
+                '#b84a6b', '#5a6b8b', '#8b3a4a', '#3a6b8b', '#7b8b4a',
+                '#c07050', '#508b60', '#5070a0', '#a05070', '#50a070',
+                '#d08040', '#4080c0', '#c04080', '#40c080', '#8080c0',
+                '#e09060', '#60a0a0', '#a06090', '#60c060', '#c0a060',
+                '#b07070', '#70b070', '#7070b0', '#b0b070', '#70b0b0',
+            ];
+
+            const STAGES = [
+                { name: '采集狩猎', minPop: 0, r: 0.0025, baseKPerQuality: 30, combatMod: 0.5, expandRate: 0.025,
+                    canColonize: false, nuclearCapable: false, warDestruction: 0.6, unrestBase: 0.3, diseaseMod: 0.8,
+                    techLevel: 0 },
+                { name: '早期农业', minPop: 80, r: 0.005, baseKPerQuality: 60, combatMod: 0.7, expandRate: 0.05,
+                    canColonize: false, nuclearCapable: false, warDestruction: 0.7, unrestBase: 0.4, diseaseMod: 0.9,
+                    techLevel: 1 },
+                { name: '城邦时代', minPop: 300, r: 0.008, baseKPerQuality: 150, combatMod: 1.0, expandRate: 0.12,
+                    canColonize: false, nuclearCapable: false, warDestruction: 0.85, unrestBase: 0.5, diseaseMod: 1.0,
+                    techLevel: 2 },
+                { name: '王国时代', minPop: 2000, r: 0.013, baseKPerQuality: 350, combatMod: 1.4, expandRate: 0.20,
+                    canColonize: true, nuclearCapable: false, warDestruction: 1.0, unrestBase: 0.55, diseaseMod: 1.1,
+                    techLevel: 3 },
+                { name: '帝国时代', minPop: 8000, r: 0.020, baseKPerQuality: 800, combatMod: 2.0, expandRate: 0.26,
+                    canColonize: true, nuclearCapable: false, warDestruction: 1.3, unrestBase: 0.6, diseaseMod: 1.3,
+                    techLevel: 4 },
+                { name: '启蒙工业', minPop: 24000, r: 0.030, baseKPerQuality: 2000, combatMod: 3.0, expandRate: 0.34,
+                    canColonize: true, nuclearCapable: false, warDestruction: 1.8, unrestBase: 0.65, diseaseMod: 1.5,
+                    techLevel: 5 },
+                { name: '信息时代', minPop: 60000, r: 0.045, baseKPerQuality: 5000, combatMod: 5.0, expandRate: 0.48,
+                    canColonize: true, nuclearCapable: true, warDestruction: 3.0, unrestBase: 0.7, diseaseMod: 1.8,
+                    techLevel: 6 },
+                { name: '核能时代', minPop: 120000, r: 0.055, baseKPerQuality: 10000, combatMod: 8.0, expandRate: 0.55,
+                    canColonize: true, nuclearCapable: true, warDestruction: 6.0, unrestBase: 0.75, diseaseMod: 2.0,
+                    techLevel: 7 },
+            ];
+
+            const TRIBE_NAMES_POOL = [
+                '晨曦', '灰狼', '赤岩', '碧水', '高岭', '深林', '金沙', '苍鹰', '雪峰', '暗影',
+                '炎阳', '月辉', '铁山', '风暴', '龙牙', '翡翠', '琥珀', '霜刃', '雷霆', '圣树',
+                '沧澜', '烈风', '玄石', '银泉', '朱雀', '玄武', '青龙', '白虎', '麒麟', '凤凰',
+                '阿卡迪亚', '巴尔萨克', '卡尔德兰', '多拉基亚', '埃尔斯米尔', '弗罗林',
+                '冈瓦纳', '赫尔维蒂', '伊比利亚', '贾斯珀', '凯尔特', '卢西塔尼亚',
+                '诺瓦', '索拉里斯', '泰拉', '奥德赛', '潘多拉', '阿瓦隆', '亚特兰蒂斯', '香格里拉',
+                '罗德岛', '整合运动', '乌萨斯', '龙门', '维多利亚', '叙拉古', '莱塔尼亚', '谢拉格',
+                '卡西米尔', '哥伦比亚', '玻利瓦尔', '米诺斯', '萨尔贡', '萨米', '东国', '炎国',
+                '雷姆必拓', '伊比利亚', '阿戈尔', '卡兹戴尔', '拉特兰', '汐斯塔', '多索雷斯',
+                '瓦伊凡', '杜林', '鬼族', '萨科塔', '萨卡兹', '库兰塔', '沃尔珀', '鲁珀',
+                '黎博利', '阿纳缇', '佩洛', '菲林', '卡特斯', '埃拉菲亚', '安努拉', '匹特拉姆',
+                '塞拉图斯', '阿达克利斯', '瑞柏巴', '依特拉', '曼提柯', '德拉克', '迪瓦伊',
+                '杰斯顿', '深池', '塔露拉', '黑钢', '莱茵生命', '企鹅物流', '喀兰贸易',
+                '银灰', '推进之王', '星熊', '闪灵', '夜莺', '塞雷娅', '赫默', '伊芙利特',
+                '迷迭香', '泥岩', '风笛', '琴柳', '号角', '白铁', '斥罪', '伺夜',
+            ];
+
+            // ==================== 游戏状态 ====================
+            let terrain = [],
+                owner = [],
+                tribes = [];
+            let gameHour = 0,
+                running = false,
+                speedMultiplier = 1;
+            let totalWars = 0,
+                totalDisasters = 0,
+                totalNukes = 0,
+                totalSplits = 0;
+            let warEffects = [],
+                disasterEffects = [],
+                nukeEffects = [],
+                plagueEffects = [];
+            let activeWars = [],
+                eventQueue = [];
+            let animationFrameId = null,
+                lastUpdateTime = 0,
+                accumulatedTime = 0;
+            let lastReportGameHour = 0,
+                terrainDirty = true;
+            let offscreenCanvas = null,
+                offscreenCtx = null;
+            let availableNames = [...TRIBE_NAMES_POOL];
+            let currentTool = 'info',
+                mouseGridX = -1,
+                mouseGridY = -1,
+                totalRadCells = 0;
+
+            // ==================== 地形初始化 ====================
+            function initTerrain() {
+                terrain = [];
+                owner = [];
+                for (let y = 0; y < GRID_SIZE; y++) { terrain[y] = [];
+                    owner[y] = [];
+                    for (let x = 0; x < GRID_SIZE; x++) { terrain[y][x] = OCEAN;
+                        owner[y][x] = null; } }
+                const continentSeeds = [];
+                for (let i = 0; i < 8 + Math.floor(Math.random() * 10); i++) continentSeeds.push({ cx: 30 + Math
+                        .random() * 140, cy: 30 + Math.random() * 140, rx: 25 + Math.random() * 50, ry: 18 + Math
+                        .random() * 40, weight: 1.0 });
+                for (let i = 0; i < 16 + Math.floor(Math.random() * 25); i++) continentSeeds.push({ cx: 15 + Math
+                        .random() * 170, cy: 15 + Math.random() * 170, rx: 8 + Math.random() * 25, ry: 6 + Math.random() *
+                        20, weight: 0.55 + Math.random() * 0.45 });
+                for (let y = 0; y < GRID_SIZE; y++)
+                    for (let x = 0; x < GRID_SIZE; x++) {
+                        let landScore = 0;
+                        for (const s of continentSeeds) { const dx = (x - s.cx) / s.rx,
+                                dy = (y - s.cy) / s.ry,
+                                dist = Math.sqrt(dx * dx + dy * dy); if (dist < 1.0) landScore += s.weight * (1.0 -
+                                dist) * (1.0 - dist * 0.5); }
+                        landScore += (Math.sin(x * 2.7 + y * 1.9) * Math.cos(y * 3.3 - x * 1.4) + 1) / 2 * 0.22;
+                        if (landScore > 0.52) terrain[y][x] = PLAINS;
+                    }
+                for (let y = 0; y < GRID_SIZE; y++)
+                    for (let x = 0; x < GRID_SIZE; x++) { const e = Math.min(x, y, GRID_SIZE - 1 - x, GRID_SIZE - 1 - y); if (
+                            e < 8 && Math.random() < 0.55 - e * 0.06) terrain[y][x] = OCEAN; }
+                for (let y = 0; y < GRID_SIZE; y++)
+                    for (let x = 0; x < GRID_SIZE; x++)
+                        if (terrain[y][x] === PLAINS) { const mn = Math.sin(x * 4.1 + y * 3.3) * Math.cos(y * 5.1 - x * 2.7) +
+                                Math.sin(x * 6.7 - y * 4.9) * 0.7; if (mn > 1.15) terrain[y][x] = MOUNTAIN; }
+                terrainDirty = true;
+                updateRadCount();
+            }
+
+            function updateRadCount() { totalRadCells = 0; for (let y = 0; y < GRID_SIZE; y++)
+                    for (let x = 0; x < GRID_SIZE; x++)
+                        if (terrain[y][x] === RADIOACTIVE) totalRadCells++; }
+
+            function getAdjacentCells(x, y) { const a = []; if (x > 0) a.push({ x: x - 1, y }); if (x < GRID_SIZE - 1) a.push(
+                    { x: x + 1, y }); if (y > 0) a.push({ x, y: y - 1 }); if (y < GRID_SIZE - 1) a.push({ x, y: y + 1 });
+                return a; }
+
+            function isLand(x, y) { return terrain[y][x] !== OCEAN; }
+
+            function isUnclaimedLand(x, y) { return terrain[y][x] !== OCEAN && owner[y][x] === null; }
+
+            function getAdjacentUnclaimed(x, y) { return getAdjacentCells(x, y).filter(c => isUnclaimedLand(c.x, c.y)); }
+
+            // ==================== 部落系统 ====================
+            function getTribeStage(t) { let i = 0; for (let s = STAGES.length - 1; s >= 0; s--)
+                    if (t.population >= STAGES[s]
+                    .minPop) { i = s; break; } return i; }
+
+            function calcTerritoryQuality(t) { let q = 0; for (const k of t.territoryCells) { const x = k % GRID_SIZE,
+                        y = Math.floor(k / GRID_SIZE); const tt = terrain[y][x]; if (tt === PLAINS) q += 1; else if (tt ===
+                        MOUNTAIN) q += 0.3; else if (tt === RADIOACTIVE) q += 0.15; } return Math.max(1, q); }
+
+            function calcCarryingCapacity(t) { const s = STAGES[t.stageIndex]; return Math.max(10, calcTerritoryQuality(t) *
+                    s.baseKPerQuality); }
+
+            function getTribeNeighbors(t) { const n = new Set(); for (const k of t.territoryCells) { const tx = k % GRID_SIZE,
+                        ty = Math.floor(k / GRID_SIZE); for (const a of getAdjacentCells(tx, ty)) { const o = owner[a.y][a
+                            .x]; if (o !== null && o !== t.id && tribes[o] && tribes[o].alive) n.add(o); } } return n; }
+
+            function getBorderCells(a, b) { const r = []; for (const k of a.territoryCells) { const tx = k % GRID_SIZE,
+                        ty = Math.floor(k / GRID_SIZE); for (const ac of getAdjacentCells(tx, ty))
+                        if (owner[ac.y][ac.x] === b.id) r.push({ x: tx, y: ty, bx: ac.x, by: ac.y }); } return r; }
+
+            function getColonialLimit(stage) {
+                if (!stage.canColonize) return 0;
+                if (stage.techLevel <= 3) return 1;
+                if (stage.techLevel === 4) return 2;
+                if (stage.techLevel === 5) return 3;
+                if (stage.techLevel === 6) return 4;
+                return 5;
+            }
+
+            function expandTribeTerritory(tribe, count) {
+                const stage = STAGES[tribe.stageIndex];
+                const colonialLimit = getColonialLimit(stage);
+                for (let i = 0; i < count; i++) {
+                    const border = [];
+                    for (const key of tribe.territoryCells) {
+                        const tx = key % GRID_SIZE,
+                            ty = Math.floor(key / GRID_SIZE);
+                        for (const ac of getAdjacentUnclaimed(tx, ty)) {
+                            const akey = ac.y * GRID_SIZE + ac.x;
+                            if (!tribe.territoryCells.has(akey)) {
+                                let w = terrain[ac.y][ac.x] === MOUNTAIN ? 0.35 : 1.0;
+                                const adj = getAdjacentCells(ac.x, ac.y);
+                                let host = false;
+                                for (const a of adj) { const oo = owner[a.y][a.x]; if (oo !== null && oo !== tribe.id && !
+                                        tribe.allies.has(oo)) { host = true; break; } }
+                                if (host) w *= 0.2;
+                                border.push({ ...ac, weight: w });
+                            }
+                        }
+                    }
+                    if (border.length === 0) break;
+                    const totalW = border.reduce((s, c) => s + c.weight, 0);
+                    let r = Math.random() * totalW,
+                        ch = border[0];
+                    for (const b of border) { r -= b.weight; if (r <= 0) { ch = b; break; } }
+                    const ckey = ch.y * GRID_SIZE + ch.x;
+                    tribe.territoryCells.add(ckey);
+                    owner[ch.y][ch.x] = tribe.id;
+                    terrainDirty = true;
+                }
+                if (colonialLimit > 0) {
+                    if (!tribe.colonies) tribe.colonies = [];
+                    tribe.colonies = tribe.colonies.filter(c => c.cells.size > 0);
+                    const activeColonies = tribe.colonies.length;
+                    const colonialCells = Math.ceil(count * 0.45);
+                    let remaining = colonialCells;
+                    for (const colony of tribe.colonies) {
+                        if (remaining <= 0) break;
+                        const allocated = Math.ceil(remaining / (tribe.colonies.length - tribe.colonies.indexOf(colony)));
+                        let placed = 0;
+                        for (let i = 0; i < allocated; i++) {
+                            const border = [];
+                            for (const key of colony.cells) {
+                                const tx = key % GRID_SIZE,
+                                    ty = Math.floor(key / GRID_SIZE);
+                                for (const ac of getAdjacentCells(tx, ty)) {
+                                    const akey = ac.y * GRID_SIZE + ac.x;
+                                    if (isUnclaimedLand(ac.x, ac.y) && !tribe.territoryCells.has(akey) && !colony.cells
+                                        .has(akey)) {
+                                        border.push({ ...ac });
+                                    }
+                                }
+                            }
+                            if (border.length === 0) break;
+                            const chosen = border[Math.floor(Math.random() * border.length)];
+                            const ckey = chosen.y * GRID_SIZE + chosen.x;
+                            colony.cells.add(ckey);
+                            tribe.territoryCells.add(ckey);
+                            owner[chosen.y][chosen.x] = tribe.id;
+                            terrainDirty = true;
+                            placed++;
+                        }
+                        remaining -= placed;
+                    }
+                    while (remaining > 0 && tribe.colonies.length < colonialLimit) {
+                        const allUnclaimed = [];
+                        for (let cy = 0; cy < GRID_SIZE; cy++)
+                            for (let cx = 0; cx < GRID_SIZE; cx++)
+                                if (isUnclaimedLand(cx, cy)) {
+                                    const ckey = cy * GRID_SIZE + cx;
+                                    if (!tribe.territoryCells.has(ckey)) {
+                                        let minDist = Infinity;
+                                        for (const tk of tribe.territoryCells) { const tx = tk % GRID_SIZE,
+                                                ty = Math.floor(tk / GRID_SIZE); const d = Math.abs(cx - tx) + Math.abs(
+                                                cy - ty); if (d < minDist) minDist = d; }
+                                        if (minDist > 8) allUnclaimed.push({ x: cx, y: cy, dist: minDist });
+                                    }
+                                }
+                        if (allUnclaimed.length === 0) break;
+                        allUnclaimed.sort((a, b) => a.dist - b.dist);
+                        const seed = allUnclaimed[Math.floor(Math.random() * Math.min(20, allUnclaimed.length))];
+                        const newColony = { cells: new Set(), foundedGameHour: gameHour };
+                        const queue = [{ x: seed.x, y: seed.y }],
+                            visited = new Set([seed.y * GRID_SIZE + seed.x]);
+                        let placed = 0,
+                            limit = Math.min(remaining, 10);
+                        while (queue.length && placed < limit) {
+                            const cur = queue.shift();
+                            const ckey = cur.y * GRID_SIZE + cur.x;
+                            if (isUnclaimedLand(cur.x, cur.y) && !tribe.territoryCells.has(ckey)) {
+                                newColony.cells.add(ckey);
+                                tribe.territoryCells.add(ckey);
+                                owner[cur.y][cur.x] = tribe.id;
+                                terrainDirty = true;
+                                placed++;
+                            }
+                            for (const adj of getAdjacentCells(cur.x, cur.y)) {
+                                const akey = adj.y * GRID_SIZE + adj.x;
+                                if (!visited.has(akey) && isUnclaimedLand(adj.x, adj.y)) { visited.add(akey);
+                                    queue.push(adj); }
+                            }
+                        }
+                        if (placed > 0) {
+                            tribe.colonies.push(newColony);
+                            remaining -= placed;
+                            if (Math.random() < 0.02 && availableNames.length > 0) spawnRebellionNear(seed.x, seed.y,
+                            tribe);
+                        } else break;
+                    }
+                }
+            }
+
+            function spawnRebellionNear(x, y, parent) {
+                const name = availableNames.shift();
+                if (!name) return;
+                if (availableNames.length === 0) availableNames.push('后来者', '边陲民', '觉醒者', '自立者');
+                const newId = tribes.length,
+                    ci = newId % TRIBE_COLORS.length;
+                const nt = { id: newId, name, color: TRIBE_COLORS[ci], population: Math.max(50, 15 + Math.floor(Math.random() *
+                        40)), territoryCells: new Set(), allies: new Set(), atWarWith: new Set(), stageIndex: 0,
+                    alive: true, foundingGameHour: gameHour, unrest: 10, diseaseLevel: 0, colonies: [] };
+                const cand = [];
+                for (let dy = -3; dy <= 3; dy++)
+                    for (let dx = -3; dx <= 3; dx++) { const nx = x + dx,
+                            ny = y + dy; if (nx >= 0 && nx < GRID_SIZE && ny >= 0 && ny < GRID_SIZE && isUnclaimedLand(
+                            nx, ny)) cand.push({ x: nx, y: ny }); }
+                const to = cand.slice(0, 5 + Math.floor(Math.random() * 8));
+                for (const c of to) { const k = c.y * GRID_SIZE + c.x;
+                    nt.territoryCells.add(k);
+                    owner[c.y][c.x] = newId; }
+                if (nt.territoryCells.size === 0 && cand.length > 0) { const c = cand[0];
+                    nt.territoryCells.add(c.y * GRID_SIZE + c.x);
+                    owner[c.y][c.x] = newId; }
+                tribes.push(nt);
+                updateTribeStage(nt);
+                totalSplits++;
+                terrainDirty = true;
+                addEvent('split',
+                    `💔 殖民地觉醒：<b>${name}</b>在(${x},${y})附近崛起，脱离<b>${parent.name}</b>。初始人口${nt.population}人。`);
+            }
+
+            function updateTribeStage(t) { const old = t.stageIndex;
+                t.stageIndex = getTribeStage(t); if (t.stageIndex > old && t.alive) addEvent('birth',
+                    `📈 <b>${t.name}</b>进入<b>${STAGES[t.stageIndex].name}</b>，人口${t.population}人，领土${t.territoryCells.size}格。`
+                    ); }
+
+            function tribeGrowthSigmoid(t) {
+                const s = STAGES[t.stageIndex],
+                    K = calcCarryingCapacity(t),
+                    P = t.population;
+                let g = s.r * P * (1 - P / Math.max(1, K));
+                if (P > K * 0.85) { const fs = (P - K * 0.85) / (K * 0.15);
+                    g -= P * fs * 0.003 * Math.max(1, fs); }
+                const density = P / Math.max(1, t.territoryCells.size);
+                if (Math.random() < Math.min(0.4, density / 150) * s.diseaseMod * 0.1) { const dd = P * (0.003 + Math.random() *
+                        0.02) * s.diseaseMod;
+                    g -= dd;
+                    t.diseaseLevel = Math.min(100, t.diseaseLevel + 5); } else t.diseaseLevel = Math.max(0, t.diseaseLevel -
+                    1);
+                let rp = 0;
+                for (const k of t.territoryCells)
+                    if (terrain[Math.floor(k / GRID_SIZE)][k % GRID_SIZE] === RADIOACTIVE) rp++;
+                if (rp > 0) g -= P * (rp / Math.max(1, t.territoryCells.size)) * 0.015;
+                if (t.atWarWith.size > 0) g *= 0.55;
+                if (s.techLevel <= 1) g += (Math.random() - 0.5) * 0.8;
+                t.population = Math.max(1, Math.round(P + g));
+                if (t.population > K * 1.5) { const col = Math.floor(t.population * 0.08);
+                    t.population -= col;
+                    t.unrest += 8; if (col > 50) addEvent('disaster',
+                        `📉 <b>${t.name}</b>人口过剩崩溃，${col}人饿死。(P/K=${(t.population/K).toFixed(1)})`); }
+                if (t.population <= 0) t.population = 1;
+                t._K = K;
+            }
+
+            function updateUnrest(t) {
+                const s = STAGES[t.stageIndex],
+                    K = t._K || calcCarryingCapacity(t),
+                    P = t.population;
+                t.unrest = Math.max(0, t.unrest - 0.08);
+                if (P > K * 0.9) t.unrest += 0.4;
+                if (P > K * 1.1) t.unrest += 1.2;
+                t.unrest += s.unrestBase * 0.05;
+                if (t.atWarWith.size > 0) t.unrest += 0.5;
+                if (t.diseaseLevel > 30) t.unrest += 0.3;
+                let rc = 0;
+                for (const k of t.territoryCells)
+                    if (terrain[Math.floor(k / GRID_SIZE)][k % GRID_SIZE] === RADIOACTIVE) rc++;
+                if (rc > 0) t.unrest += (rc / Math.max(1, t.territoryCells.size)) * 1.5;
+                t.unrest = Math.min(100, Math.max(0, t.unrest));
+                if (t.unrest > 75 && t.population > 200 && t.territoryCells.size > 8 && Math.random() < 0.006) triggerSplit(
+                t);
+                if (t.unrest > 60 && Math.random() < 0.03) { const rl = Math.floor(t.population * (0.004 + Math.random() *
+                        0.015));
+                    t.population -= rl; if (rl > 20) addEvent('split',
+                        `🔥 <b>${t.name}</b>内乱，${rl}人丧生。不满度${t.unrest.toFixed(0)}%。`); }
+            }
+
+            function triggerSplit(tribe) {
+                if (availableNames.length === 0) availableNames.push('分裂者', '独立派', '叛军', '分离者');
+                const cellsArr = Array.from(tribe.territoryCells).map(k => ({ x: k % GRID_SIZE, y: Math.floor(k / GRID_SIZE),
+                    key: k }));
+                if (cellsArr.length < 6) return;
+                const comps = getConnectedComponents(cellsArr);
+                let groupA, groupB;
+                if (comps.length >= 2) {
+                    comps.sort((a, b) => b.length - a.length);
+                    groupA = comps[0];
+                    groupB = comps[1];
+                } else {
+                    const result = splitConnectedTerritory(cellsArr);
+                    if (!result) return;
+                    groupA = result.groupA;
+                    groupB = result.groupB;
+                }
+                performSplit(tribe, groupA, groupB);
+            }
+
+            function getConnectedComponents(cells) {
+                const cellSet = new Set(cells.map(c => c.key));
+                const visited = new Set();
+                const comps = [];
+                for (const c of cells) {
+                    if (visited.has(c.key)) continue;
+                    const comp = [];
+                    const stack = [c];
+                    while (stack.length) {
+                        const cur = stack.pop();
+                        if (visited.has(cur.key)) continue;
+                        visited.add(cur.key);
+                        comp.push(cur);
+                        for (const adj of getAdjacentCells(cur.x, cur.y)) {
+                            const akey = adj.y * GRID_SIZE + adj.x;
+                            if (cellSet.has(akey) && !visited.has(akey)) stack.push({ x: adj.x, y: adj.y, key: akey });
+                        }
+                    }
+                    if (comp.length) comps.push(comp);
+                }
+                return comps;
+            }
+
+            function splitConnectedTerritory(cells) {
+                if (cells.length < 6) return null;
+                const cellSet = new Set(cells.map(c => c.key));
+                const axis = Math.random() < 0.5 ? 'x' : 'y';
+                const sorted = [...cells].sort((a, b) => a[axis] - b[axis]);
+                const median = sorted[Math.floor(sorted.length / 2)][axis];
+                let groupA = [],
+                    groupB = [];
+                for (const c of cells) {
+                    if (c[axis] <= median) groupA.push(c);
+                    else groupB.push(c);
+                }
+                if (groupA.length < 3 || groupB.length < 3) return null;
+                const compsA = getConnectedComponents(groupA);
+                const compsB = getConnectedComponents(groupB);
+                if (compsA.length === 1 && compsB.length === 1) return { groupA: compsA[0], groupB: compsB[0] };
+                let bestA = null,
+                    bestB = null;
+                for (const ca of compsA) {
+                    for (const cb of compsB) {
+                        if (ca.length >= 3 && cb.length >= 3) {
+                            if (!bestA || (ca.length + cb.length > bestA.length + bestB.length)) {
+                                bestA = ca;
+                                bestB = cb;
+                            }
+                        }
+                    }
+                }
+                if (bestA && bestB) return { groupA: bestA, groupB: bestB };
+                return null;
+            }
+
+            function performSplit(tribe, groupA, groupB) {
+                if (tribe.population < 100) return;
+                const totalCells = tribe.territoryCells.size;
+                const sizeA = groupA.length;
+                const sizeB = groupB.length;
+                if (sizeA < 3 || sizeB < 3) return;
+                const popA = Math.max(50, Math.floor(tribe.population * (sizeA / totalCells)));
+                const popB = tribe.population - popA;
+                if (popA < 50 || popB < 50) return;
+                let keepName = false;
+                const ratioA = sizeA / totalCells;
+                if (ratioA >= 0.6) keepName = true;
+                else if ((sizeB / totalCells) >= 0.6) keepName = true;
+                let nameA, nameB;
+                if (keepName) {
+                    if (ratioA >= 0.6) {
+                        nameA = tribe.name;
+                        nameB = availableNames.shift() || '新邦';
+                    } else {
+                        nameB = tribe.name;
+                        nameA = availableNames.shift() || '新邦';
+                    }
+                } else {
+                    nameA = availableNames.shift() || '裂土A';
+                    nameB = availableNames.shift() || '裂土B';
+                }
+                if (availableNames.length === 0) availableNames.push('遗民', '分支', '独立领', '新域');
+                const newIdA = tribe.id;
+                const newIdB = tribes.length;
+                const colorA = tribe.color;
+                const colorB = TRIBE_COLORS[newIdB % TRIBE_COLORS.length];
+                tribe.name = nameA;
+                tribe.population = popA;
+                tribe.territoryCells = new Set(groupA.map(c => c.key));
+                tribe.unrest = 20;
+                tribe.atWarWith.clear();
+                tribe.allies.clear();
+                for (const key of groupA) owner[key.y][key.x] = newIdA;
+                const newTribe = {
+                    id: newIdB,
+                    name: nameB,
+                    color: colorB,
+                    population: popB,
+                    territoryCells: new Set(groupB.map(c => c.key)),
+                    allies: new Set(),
+                    atWarWith: new Set(),
+                    stageIndex: 0,
+                    alive: true,
+                    foundingGameHour: gameHour,
+                    unrest: 20,
+                    diseaseLevel: 0,
+                    colonies: []
+                };
+                tribes.push(newTribe);
+                for (const key of groupB) owner[key.y][key.x] = newIdB;
+                updateTribeStage(tribe);
+                updateTribeStage(newTribe);
+                totalSplits++;
+                terrainDirty = true;
+                addEvent('split',
+                    `💔 <b>${tribe.name}</b>分裂！<b>${nameB}</b>带走${popB}人和${sizeB}格领土，双方均为新生文明。`);
+            }
+
+            // ==================== 战争系统 ====================
+            function checkWar() {
+                const alive = tribes.filter(t => t.alive);
+                for (let i = 0; i < alive.length; i++)
+                    for (let j = i + 1; j < alive.length; j++) {
+                        const a = alive[i],
+                            b = alive[j];
+                        if (a.allies.has(b.id) || a.atWarWith.has(b.id)) continue;
+                        if (!getTribeNeighbors(a).has(b.id)) continue;
+                        if (Math.random() < 0.0035 * speedMultiplier) { startWar(a, b); return; }
+                    }
+            }
+
+            function startWar(a, b) {
+                a.atWarWith.add(b.id);
+                b.atWarWith.add(a.id);
+                totalWars++;
+                const dur = 3 + Math.floor(Math.random() * 18);
+                activeWars.push({ tribeA: a.id, tribeB: b.id, startGameHour: gameHour, duration: dur, resolved: false });
+                const bc = getBorderCells(a, b),
+                    wc = new Set();
+                for (const c of bc) { wc.add(c.y * GRID_SIZE + c.x);
+                    wc.add(c.by * GRID_SIZE + c.bx); }
+                if (wc.size > 0) warEffects.push({ cells: wc, endTime: gameHour + dur, tribeA: a.id, tribeB: b.id });
+                addEvent('war',
+                    `⚔️ <b>${a.name}</b>(${STAGES[a.stageIndex].name}，${a.population}人)向<b>${b.name}</b>(${STAGES[b.stageIndex].name}，${b.population}人)宣战！`
+                    );
+            }
+
+            function resolveWar(w) {
+                const a = tribes[w.tribeA],
+                    b = tribes[w.tribeB];
+                if (!a || !b || !a.alive || !b.alive) return;
+                if (!a.atWarWith.has(b.id)) return;
+                a.atWarWith.delete(b.id);
+                b.atWarWith.delete(a.id);
+                const sa = STAGES[a.stageIndex],
+                    sb = STAGES[b.stageIndex];
+                const pa = a.population * sa.combatMod * (0.7 + Math.random() * 0.6),
+                    pb = b.population * sb.combatMod * (0.7 + Math.random() * 0.6);
+                let win, los;
+                if (pa > pb) { win = a;
+                    los = b; } else if (pb > pa) { win = b;
+                    los = a; } else {
+                    const la = Math.floor(a.population * (0.12 + Math.random() * 0.18)),
+                        lb = Math.floor(b.population * (0.12 + Math.random() * 0.18));
+                    a.population -= la;
+                    b.population -= lb;
+                    addEvent('war', `🤝 <b>${a.name}</b>与<b>${b.name}</b>平局，各损失${la}和${lb}人。`);
+                    checkTribeAlive(a);
+                    checkTribeAlive(b);
+                    return;
+                }
+                const ll = Math.floor(los.population * (0.25 + Math.random() * 0.35) * sa.warDestruction),
+                    wl = Math.floor(win.population * (0.04 + Math.random() * 0.08));
+                los.population -= ll;
+                win.population -= wl;
+                win.unrest = Math.max(0, win.unrest - 15);
+                los.unrest = Math.min(100, los.unrest + 20);
+                const borderCells = getBorderCells(win, los);
+                if (borderCells.length > 0) {
+                    const losCellsArr = Array.from(los.territoryCells).map(k => ({ x: k % GRID_SIZE, y: Math.floor(k /
+                            GRID_SIZE), key: k }));
+                    const losCellSet = new Set(losCellsArr.map(c => c.key));
+                    const borderSet = new Set(borderCells.map(c => c.y * GRID_SIZE + c.x));
+                    const seedCells = losCellsArr.filter(c => borderSet.has(c.key));
+                    if (seedCells.length > 0) {
+                        const visited = new Set();
+                        const queue = [...seedCells];
+                        const captured = [];
+                        const maxCapture = Math.max(1, Math.floor(losCellsArr.length * (0.12 + Math.random() * 0.22)));
+                        while (queue.length > 0 && captured.length < maxCapture) {
+                            const cur = queue.shift();
+                            const ckey = cur.y * GRID_SIZE + cur.x;
+                            if (visited.has(ckey) || !losCellSet.has(ckey)) continue;
+                            visited.add(ckey);
+                            captured.push(cur);
+                            for (const adj of getAdjacentCells(cur.x, cur.y)) {
+                                const akey = adj.y * GRID_SIZE + adj.x;
+                                if (!visited.has(akey) && losCellSet.has(akey)) {
+                                    queue.push({ x: adj.x, y: adj.y, key: akey });
+                                }
+                            }
+                        }
+                        for (const c of captured) {
+                            los.territoryCells.delete(c.key);
+                            win.territoryCells.add(c.key);
+                            owner[c.y][c.x] = win.id;
+                        }
+                        terrainDirty = true;
+                        addEvent('war',
+                            `🏆 <b>${win.name}</b>战胜<b>${los.name}</b>！${los.name}损失${ll}人并割让${captured.length}格连续领土，${win.name}损失${wl}人。`
+                            );
+                    } else {
+                        addEvent('war', `🏆 <b>${win.name}</b>战胜<b>${los.name}</b>！${los.name}损失${ll}人，${win.name}损失${wl}人。`);
+                    }
+                } else {
+                    addEvent('war', `🏆 <b>${win.name}</b>战胜<b>${los.name}</b>！${los.name}损失${ll}人，${win.name}损失${wl}人。`);
+                }
+                checkTribeAlive(los);
+                checkTribeAlive(win);
+            }
+
+            function checkTribeAlive(t) {
+                if (t.population < 50 && t.alive) {
+                    if (t.colonies && t.colonies.length > 0) {
+                        const validColonies = [];
+                        let totalColonyCells = 0;
+                        for (const colony of t.colonies) {
+                            const validCells = new Set();
+                            for (const key of colony.cells) {
+                                const kx = key % GRID_SIZE,
+                                    ky = Math.floor(key / GRID_SIZE);
+                                if (t.territoryCells.has(key) && owner[ky][kx] === t.id) {
+                                    validCells.add(key);
+                                }
+                            }
+                            colony.cells = validCells;
+                            if (colony.cells.size > 0) {
+                                validColonies.push(colony);
+                                totalColonyCells += colony.cells.size;
+                            }
+                        }
+                        if (validColonies.length > 0) {
+                            const totalTerr = Math.max(1, t.territoryCells.size);
+                            const remainingPop = Math.max(1, t.population);
+                            for (const colony of validColonies) {
+                                const colonyShare = colony.cells.size / Math.max(1, totalColonyCells);
+                                let newPop = Math.floor(remainingPop * colonyShare);
+                                if (newPop < 50) newPop = 50;
+                                const newName = availableNames.shift();
+                                if (!newName) {
+                                    availableNames.push('遗民', '余烬', '幸存者');
+                                }
+                                const actualName = newName || availableNames.shift() || '遗民';
+                                if (availableNames.length === 0 && !newName) availableNames.push('遗民', '余烬', '幸存者');
+                                const newId = tribes.length;
+                                const colorIdx = newId % TRIBE_COLORS.length;
+                                const newTribe = {
+                                    id: newId,
+                                    name: actualName,
+                                    color: TRIBE_COLORS[colorIdx],
+                                    population: newPop,
+                                    territoryCells: new Set(colony.cells),
+                                    allies: new Set(),
+                                    atWarWith: new Set(),
+                                    stageIndex: 0,
+                                    alive: true,
+                                    foundingGameHour: gameHour,
+                                    unrest: 15,
+                                    diseaseLevel: 0,
+                                    colonies: []
+                                };
+                                for (const key of colony.cells) {
+                                    t.territoryCells.delete(key);
+                                    const kx = key % GRID_SIZE,
+                                        ky = Math.floor(key / GRID_SIZE);
+                                    owner[ky][kx] = newId;
+                                }
+                                tribes.push(newTribe);
+                                updateTribeStage(newTribe);
+                                totalSplits++;
+                                terrainDirty = true;
+                                addEvent('split',
+                                    `🏛️ <b>${t.name}</b>本土覆灭，殖民地<b>${actualName}</b>作为独立文明崛起，人口${newPop}人，领土${newTribe.territoryCells.size}格。`
+                                    );
+                            }
+                            t.colonies = [];
+                        }
+                    }
+                    t.alive = false;
+                    for (const k of t.territoryCells) { owner[Math.floor(k / GRID_SIZE)][k % GRID_SIZE] = null; }
+                    t.territoryCells.clear();
+                    t.atWarWith.clear();
+                    t.allies.clear();
+                    if (t.colonies) t.colonies = [];
+                    for (const o of tribes) { if (o.alive) { o.allies.delete(t.id);
+                            o.atWarWith.delete(t.id); } }
+                    terrainDirty = true;
+                    addEvent('war', `💀 <b>${t.name}</b>文明消亡（人口低于50），领土沦为无主之地。`);
+                    if (!availableNames.includes(t.name) && TRIBE_NAMES_POOL.includes(t.name)) availableNames.push(t.name);
+                }
+            }
+
+            function checkNuclearStrikes() {
+                const alive = tribes.filter(t => t.alive && STAGES[t.stageIndex].nuclearCapable);
+                for (const attacker of alive) {
+                    if (attacker.atWarWith.size === 0) continue;
+                    if (Math.random() < 0.0005 * speedMultiplier) {
+                        const targets = Array.from(attacker.atWarWith).map(id => tribes[id]).filter(t => t && t.alive);
+                        if (targets.length === 0) continue;
+                        const target = targets[Math.floor(Math.random() * targets.length)];
+                        triggerSingleNuke(attacker, target);
+                    }
+                }
+                if (alive.length >= 2 && Math.random() < 0.0001 * speedMultiplier) {
+                    const a = alive[Math.floor(Math.random() * alive.length)];
+                    let b = alive[Math.floor(Math.random() * alive.length)];
+                    if (a.id !== b.id && a.atWarWith.has(b.id)) {
+                        triggerNuclearExchange(a, b);
+                    }
+                }
+            }
+
+            function triggerSingleNuke(attacker, defender) {
+                totalNukes++;
+                const ld = Math.floor(defender.population * (0.3 + Math.random() * 0.25));
+                defender.population -= ld;
+                const aff = new Set();
+                const targetCells = Array.from(defender.territoryCells);
+                if (targetCells.length > 0) {
+                    const centerKey = targetCells[Math.floor(Math.random() * targetCells.length)];
+                    const cx = centerKey % GRID_SIZE,
+                        cy = Math.floor(centerKey / GRID_SIZE);
+                    for (let dy = -6; dy <= 6; dy++)
+                        for (let dx = -6; dx <= 6; dx++)
+                            if (Math.sqrt(dx * dx + dy * dy) <= 6) {
+                                const nx = cx + dx,
+                                    ny = cy + dy;
+                                if (nx >= 0 && nx < GRID_SIZE && ny >= 0 && ny < GRID_SIZE && terrain[ny][nx] !== OCEAN) {
+                                    aff.add(ny * GRID_SIZE + nx);
+                                    if (terrain[ny][nx] !== RADIOACTIVE && Math.random() < 0.7) terrain[ny][nx] =
+                                        RADIOACTIVE;
+                                }
+                            }
+                }
+                nukeEffects.push({ cells: aff, endTime: gameHour + 30, type: '单颗核打击' });
+                terrainDirty = true;
+                updateRadCount();
+                addEvent('nuke',
+                    `💥☢️ <b>${attacker.name}</b>向<b>${defender.name}</b>发射一枚核弹！${defender.name}损失${ld}人，局部辐射污染。`);
+                checkTribeAlive(defender);
+            }
+
+            function triggerNuclearExchange(a, b) {
+                totalNukes++;
+                const la = Math.floor(a.population * (0.4 + Math.random() * 0.4)),
+                    lb = Math.floor(b.population * (0.4 + Math.random() * 0.4));
+                a.population -= la;
+                b.population -= lb;
+                const aff = new Set();
+                [a, b].forEach(t => {
+                    const ca = Array.from(t.territoryCells).sort(() => Math.random() - 0.5);
+                    for (const k of ca.slice(0, Math.floor(ca.length * 0.35))) { const cx = k % GRID_SIZE,
+                            cy = Math.floor(k / GRID_SIZE);
+                        for (let dy = -6; dy <= 6; dy++)
+                            for (let dx = -6; dx <= 6; dx++)
+                                if (Math.sqrt(dx * dx + dy * dy) <= 6) { const nx = cx + dx,
+                                        ny = cy + dy; if (nx >= 0 && nx < GRID_SIZE && ny >= 0 && ny < GRID_SIZE &&
+                                        terrain[ny][nx] !== OCEAN) { aff.add(ny * GRID_SIZE + nx); if (terrain[ny][
+                                            nx
+                                        ] !== RADIOACTIVE && Math.random() < 0.7) terrain[ny][nx] =
+                                        RADIOACTIVE; } } }
+                });
+                nukeEffects.push({ cells: aff, endTime: gameHour + 30, type: '全面核交换' });
+                terrainDirty = true;
+                updateRadCount();
+                addEvent('nuke',
+                    `💥☢️ <b>全面核战争！</b>${a.name}与${b.name}互射核弹，各损失${la}和${lb}人，大面积辐射污染。`);
+                checkTribeAlive(a);
+                checkTribeAlive(b);
+            }
+
+            // ==================== 联盟 ====================
+            function checkAlliance() {
+                const al = tribes.filter(t => t.alive);
+                for (let i = 0; i < al.length; i++)
+                    for (let j = i + 1; j < al.length; j++) {
+                        const a = al[i],
+                            b = al[j];
+                        if (a.allies.has(b.id) || a.atWarWith.has(b.id)) continue;
+                        if (!getTribeNeighbors(a).has(b.id)) continue;
+                        if (Math.random() < 0.0018 * speedMultiplier) { a.allies.add(b.id);
+                            b.allies.add(a.id);
+                            addEvent('ally', `🕊️ <b>${a.name}</b>与<b>${b.name}</b>缔结联盟。`); return; }
+                    }
+                for (const t of al)
+                    for (const aid of t.allies) { if (aid <= t.id) continue; const ally = tribes[aid]; if (!ally || !ally.alive)
+                            continue; if (Math.random() < 0.0005 * speedMultiplier) { t.allies.delete(aid);
+                            ally.allies.delete(t.id);
+                            addEvent('ally', `💔 <b>${t.name}</b>与<b>${ally.name}</b>联盟破裂。`); return; } }
+            }
+
+            function applyMissionaryEffects() {
+                const alive = tribes.filter(t => t.alive);
+                for (const m of alive) {
+                    const ms = STAGES[m.stageIndex];
+                    if (ms.techLevel < 2) continue;
+                    const range = Math.floor(ms.techLevel * 3.5);
+                    const affectedTribes = new Set();
+                    for (const key of m.territoryCells) {
+                        const cx = key % GRID_SIZE,
+                            cy = Math.floor(key / GRID_SIZE);
+                        for (let dy = -range; dy <= range; dy++)
+                            for (let dx = -range; dx <= range; dx++) {
+                                if (Math.abs(dx) + Math.abs(dy) <= range) {
+                                    const nx = cx + dx,
+                                        ny = cy + dy;
+                                    if (nx >= 0 && nx < GRID_SIZE && ny >= 0 && ny < GRID_SIZE) {
+                                        const o = owner[ny][nx];
+                                        if (o !== null && o !== m.id && tribes[o] && tribes[o].alive) affectedTribes.add(
+                                            o);
+                                    }
+                                }
+                            }
+                    }
+                    for (const nid of affectedTribes) {
+                        const neighbor = tribes[nid];
+                        if (!neighbor || !neighbor.alive || neighbor.stageIndex >= ms.techLevel) continue;
+                        const diff = ms.techLevel - STAGES[neighbor.stageIndex].techLevel;
+                        const bonus = 0.05 * (diff + 1);
+                        neighbor.population += Math.max(1, Math.round(neighbor.population * bonus));
+                    }
+                }
+            }
+
+            function checkColonyIndependence() {
+                for (const tribe of tribes) {
+                    if (!tribe.alive || !tribe.colonies || tribe.colonies.length === 0) continue;
+                    const toRemove = [];
+                    for (const colony of tribe.colonies) {
+                        const validCells = new Set();
+                        for (const key of colony.cells) {
+                            const kx = key % GRID_SIZE,
+                                ky = Math.floor(key / GRID_SIZE);
+                            if (tribe.territoryCells.has(key) && owner[ky][kx] === tribe.id) {
+                                validCells.add(key);
+                            }
+                        }
+                        colony.cells = validCells;
+                        if (!colony.cells || colony.cells.size === 0) { toRemove.push(colony); continue; }
+                        const monthsPassed = gameHour - colony.foundedGameHour;
+                        if (monthsPassed >= 120 + Math.floor(Math.random() * 120)) {
+                            const name = availableNames.shift();
+                            if (!name) continue;
+                            if (availableNames.length === 0) availableNames.push('独立邦', '自治领', '新域');
+                            const newId = tribes.length;
+                            const colorIdx = newId % TRIBE_COLORS.length;
+                            const pop = Math.max(50, Math.floor(tribe.population * 0.15));
+                            if (tribe.population - pop < 50) continue;
+                            const newTribe = {
+                                id: newId,
+                                name,
+                                color: TRIBE_COLORS[colorIdx],
+                                population: pop,
+                                territoryCells: new Set(colony.cells),
+                                allies: new Set(),
+                                atWarWith: new Set(),
+                                stageIndex: 0,
+                                alive: true,
+                                foundingGameHour: gameHour,
+                                unrest: 10,
+                                diseaseLevel: 0,
+                                colonies: []
+                            };
+                            for (const key of colony.cells) {
+                                tribe.territoryCells.delete(key);
+                                owner[Math.floor(key / GRID_SIZE)][key % GRID_SIZE] = newId;
+                            }
+                            tribe.population -= pop;
+                            tribes.push(newTribe);
+                            updateTribeStage(newTribe);
+                            totalSplits++;
+                            terrainDirty = true;
+                            toRemove.push(colony);
+                            addEvent('split',
+                                `🌍 殖民地独立：<b>${name}</b>脱离<b>${tribe.name}</b>，带走${pop}人和${colony.cells.size}格领土。`
+                                );
+                        }
+                    }
+                    tribe.colonies = tribe.colonies.filter(c => !toRemove.includes(c));
+                }
+            }
+
+            function cleanSmallExclaves() {
+                for (const tribe of tribes) {
+                    if (!tribe.alive || tribe.territoryCells.size === 0) continue;
+                    const cellsArr = Array.from(tribe.territoryCells).map(k => ({ x: k % GRID_SIZE, y: Math.floor(k /
+                            GRID_SIZE), key: k }));
+                    const comps = getConnectedComponents(cellsArr);
+                    if (comps.length <= 1) continue;
+                    comps.sort((a, b) => b.length - a.length);
+                    const mainComp = comps[0];
+                    for (let i = 1; i < comps.length; i++) {
+                        const comp = comps[i];
+                        if (comp.length <= 3) {
+                            for (const c of comp) {
+                                tribe.territoryCells.delete(c.key);
+                                owner[c.y][c.x] = null;
+                            }
+                            terrainDirty = true;
+                        }
+                    }
+                }
+            }
+
+            function checkEnclaveAssimilation() {
+                for (const tribe of tribes) {
+                    if (!tribe.alive || tribe.territoryCells.size === 0) continue;
+                    const cellsToRemove = [];
+                    for (const key of tribe.territoryCells) {
+                        const cx = key % GRID_SIZE,
+                            cy = Math.floor(key / GRID_SIZE);
+                        const neighbors = getAdjacentCells(cx, cy);
+                        if (neighbors.length < 4) continue;
+                        let surrounder = null;
+                        let allSame = true;
+                        for (const adj of neighbors) {
+                            const o = owner[adj.y][adj.x];
+                            if (o === null || o === tribe.id) { allSame = false; break; }
+                            if (surrounder === null) surrounder = o;
+                            else if (o !== surrounder) { allSame = false; break; }
+                        }
+                        if (allSame && surrounder !== null && tribes[surrounder] && tribes[surrounder].alive) {
+                            if (Math.random() < 1 / 12) {
+                                cellsToRemove.push({ key, newOwner: surrounder });
+                            }
+                        }
+                    }
+                    for (const item of cellsToRemove) {
+                        tribe.territoryCells.delete(item.key);
+                        owner[Math.floor(item.key / GRID_SIZE)][item.key % GRID_SIZE] = item.newOwner;
+                        tribes[item.newOwner].territoryCells.add(item.key);
+                        terrainDirty = true;
+                    }
+                }
+            }
+
+            function checkExclaveIndependence() {
+                for (const tribe of tribes) {
+                    if (!tribe.alive || tribe.territoryCells.size === 0) continue;
+                    const cellsArr = Array.from(tribe.territoryCells).map(k => ({ x: k % GRID_SIZE, y: Math.floor(k /
+                            GRID_SIZE), key: k }));
+                    const comps = getConnectedComponents(cellsArr);
+                    if (comps.length <= 1) continue;
+                    comps.sort((a, b) => b.length - a.length);
+                    const mainComp = comps[0];
+                    for (let i = 1; i < comps.length; i++) {
+                        const comp = comps[i];
+                        if (comp.length <= 3) continue;
+                        if (!tribe._exclaveTimers) tribe._exclaveTimers = new Map();
+                        const compKey = comp.map(c => c.key).sort().join(',');
+                        if (!tribe._exclaveTimers.has(compKey)) {
+                            tribe._exclaveTimers.set(compKey, gameHour);
+                        } else {
+                            const startTime = tribe._exclaveTimers.get(compKey);
+                            if (gameHour - startTime >= 12) {
+                                const name = availableNames.shift();
+                                if (!name) continue;
+                                if (availableNames.length === 0) availableNames.push('飞地邦', '远域', '离土');
+                                const newId = tribes.length;
+                                const colorIdx = newId % TRIBE_COLORS.length;
+                                const popShare = Math.max(50, Math.floor(tribe.population * (comp.length / tribe
+                                    .territoryCells.size)));
+                                if (tribe.population - popShare < 50) continue;
+                                const newTribe = {
+                                    id: newId,
+                                    name,
+                                    color: TRIBE_COLORS[colorIdx],
+                                    population: popShare,
+                                    territoryCells: new Set(comp.map(c => c.key)),
+                                    allies: new Set(),
+                                    atWarWith: new Set(),
+                                    stageIndex: 0,
+                                    alive: true,
+                                    foundingGameHour: gameHour,
+                                    unrest: 15,
+                                    diseaseLevel: 0,
+                                    colonies: []
+                                };
+                                for (const c of comp) {
+                                    tribe.territoryCells.delete(c.key);
+                                    owner[c.y][c.x] = newId;
+                                }
+                                tribe.population -= popShare;
+                                tribes.push(newTribe);
+                                updateTribeStage(newTribe);
+                                totalSplits++;
+                                terrainDirty = true;
+                                tribe._exclaveTimers.delete(compKey);
+                                addEvent('split',
+                                    `🌍 飞地独立：<b>${name}</b>脱离<b>${tribe.name}</b>，带走${popShare}人和${comp.length}格领土。`
+                                    );
+                            }
+                        }
+                    }
+                    if (tribe._exclaveTimers) {
+                        for (const [compKey, time] of tribe._exclaveTimers) {
+                            const keys = compKey.split(',').map(Number);
+                            const stillExists = keys.every(k => tribe.territoryCells.has(k));
+                            if (!stillExists) tribe._exclaveTimers.delete(compKey);
+                        }
+                    }
+                }
+            }
+
+            function checkDisaster() {
+                if (Math.random() < 0.0022 * speedMultiplier) {
+                    const types = [{ name: '地震', damage: 0.06 + Math.random() * 0.18, radius: 4 + Math.floor(Math.random() *
+                            9) },
+                        { name: '瘟疫', damage: 0.10 + Math.random() * 0.28, radius: 7 + Math.floor(Math.random() * 12) },
+                        { name: '洪水', damage: 0.05 + Math.random() * 0.14, radius: 3 + Math.floor(Math.random() * 8) },
+                        { name: '干旱', damage: 0.04 + Math.random() * 0.10, radius: 9 + Math.floor(Math.random() * 16) },
+                        { name: '火山喷发', damage: 0.14 + Math.random() * 0.32, radius: 2 + Math.floor(Math.random() *
+                            6) }
+                    ];
+                    const d = types[Math.floor(Math.random() * types.length)];
+                    let cx, cy, att = 0;
+                    do { cx = Math.floor(Math.random() * GRID_SIZE);
+                        cy = Math.floor(Math.random() * GRID_SIZE);
+                        att++; } while (terrain[cy][cx] === OCEAN && att < 60);
+                    triggerDisasterAt(cx, cy, d);
+                }
+            }
+
+            function triggerDisasterAt(cx, cy, d) {
+                const affCells = new Set(),
+                    affTribes = new Set();
+                for (let dy = -d.radius; dy <= d.radius; dy++)
+                    for (let dx = -d.radius; dx <= d.radius; dx++) {
+                        if (Math.sqrt(dx * dx + dy * dy) <= d.radius) {
+                            const nx = cx + dx,
+                                ny = cy + dy;
+                            if (nx >= 0 && nx < GRID_SIZE && ny >= 0 && ny < GRID_SIZE && terrain[ny][nx] !== OCEAN) {
+                                affCells.add(ny * GRID_SIZE + nx);
+                                const o = owner[ny][nx];
+                                if (o !== null && tribes[o] && tribes[o].alive) affTribes.add(o);
+                            }
+                        }
+                    }
+                if (affTribes.size > 0 || affCells.size > 15) {
+                    totalDisasters++;
+                    if (d.name === '瘟疫') {
+                        startPlague(cx, cy, d.radius);
+                    } else {
+                        disasterEffects.push({ cells: affCells, endTime: gameHour + 3 + Math.floor(Math.random() * 5),
+                            type: d.name });
+                        let rep = '';
+                        for (const tid of affTribes) { const t = tribes[tid]; const loss = Math.floor(t.population * d.damage);
+                            t.population -= loss; if (t.population < 1) t.population = 1;
+                            t.unrest = Math.min(100, t.unrest + 10);
+                            rep += `${t.name}损失${loss}人，`;
+                            checkTribeAlive(t); }
+                        addEvent('disaster',
+                            `🌪️ <b>${d.name}</b>袭击(${cx},${cy})，${affTribes.size}个文明受创。${rep.slice(0,-1)}`);
+                    }
+                }
+            }
+
+            function startPlague(x, y, radius) {
+                const init = new Set();
+                for (let dy = -radius; dy <= radius; dy++)
+                    for (let dx = -radius; dx <= radius; dx++)
+                        if (Math.sqrt(dx * dx + dy * dy) <= radius) { const nx = x + dx,
+                                ny = y + dy; if (nx >= 0 && nx < GRID_SIZE && ny >= 0 && ny < GRID_SIZE && owner[ny][
+                                    nx
+                                ] !== null) init.add(ny * GRID_SIZE + nx); }
+                if (init.size > 0) {
+                    const monthlyRate = 0.000008 + Math.random() * 0.000075;
+                    plagueEffects.push({ cells: init, remainingMonths: 60, monthlyRate: monthlyRate });
+                    addEvent('plague', `🦠 <b>瘟疫爆发</b>在(${x},${y})，将持续约5年，缓慢削减人口。`);
+                }
+            }
+
+            function updatePlagues() {
+                for (const p of plagueEffects) {
+                    const newCells = new Set(p.cells);
+                    for (const key of p.cells) {
+                        const cx = key % GRID_SIZE,
+                            cy = Math.floor(key / GRID_SIZE);
+                        for (const adj of getAdjacentCells(cx, cy)) {
+                            const akey = adj.y * GRID_SIZE + adj.x;
+                            if (owner[adj.y][adj.x] !== null && !p.cells.has(akey) && Math.random() < 0.25) newCells.add(
+                                akey);
+                        }
+                    }
+                    p.cells = newCells;
+                    for (const key of p.cells) {
+                        const o = owner[Math.floor(key / GRID_SIZE)][key % GRID_SIZE];
+                        if (o !== null && tribes[o] && tribes[o].alive) {
+                            const tribe = tribes[o];
+                            const loss = Math.ceil(tribe.population * p.monthlyRate);
+                            tribe.population = Math.max(1, tribe.population - loss);
+                            checkTribeAlive(tribe);
+                        }
+                    }
+                    p.remainingMonths--;
+                    if (p.remainingMonths <= 0) p.toRemove = true;
+                }
+                plagueEffects = plagueEffects.filter(p => !p.toRemove);
+            }
+
+            function checkAsteroidImpact() { if (Math.random() < 0.000002) triggerMassExtinction(0.7 + Math.random() * 0.28); }
+
+            function triggerMassExtinction(ratio) {
+                const al = tribes.filter(t => t.alive);
+                if (al.length === 0) return;
+                let tk = 0;
+                for (const t of al) { const loss = Math.floor(t.population * ratio);
+                    t.population = Math.max(1, t.population - loss);
+                    t.unrest = Math.min(100, t.unrest + 60);
+                    tk += loss;
+                    checkTribeAlive(t); }
+                let pol = 0;
+                for (let y = 0; y < GRID_SIZE; y++)
+                    for (let x = 0; x < GRID_SIZE; x++)
+                        if (terrain[y][x] !== OCEAN && Math.random() < 0.4) { if (terrain[y][x] !== RADIOACTIVE) { terrain[y][
+                                x
+                            ] = RADIOACTIVE;
+                            pol++; } }
+                terrainDirty = true;
+                updateRadCount();
+                totalDisasters += 10;
+                addEvent('asteroid',
+                    `☄️💥 <b>小行星撞击！</b>全球性灾难降临，约${Math.round(ratio*100)}%人口消失（约${tk}人），大面积辐射污染。`);
+            }
+
+            function checkNewTribe() {
+                if (Math.random() < 0.0012 * speedMultiplier) {
+                    const unl = [];
+                    for (let y = 0; y < GRID_SIZE; y++)
+                        for (let x = 0; x < GRID_SIZE; x++)
+                            if (isUnclaimedLand(x, y)) unl.push({ x, y });
+                    if (unl.length < 20) return;
+                    const al = tribes.filter(t => t.alive);
+                    let best = null,
+                        bd = 0;
+                    for (let a = 0; a < 120; a++) { const cand = unl[Math.floor(Math.random() * unl.length)]; let min =
+                            Infinity; for (const t of al)
+                            for (const k of t.territoryCells) { const d = Math.abs(cand.x - (k % GRID_SIZE)) + Math.abs(
+                                    cand.y - Math.floor(k / GRID_SIZE)); if (d < min) min = d; } if (al.length === 0 ||
+                            min > bd) { bd = min;
+                            best = cand; } if (bd > 30) break; }
+                    if (!best || (al.length > 0 && bd < 10)) return;
+                    spawnTribeAt(best.x, best.y);
+                }
+            }
+
+            function spawnTribeAt(x, y, initialPop = null) {
+                if (!isUnclaimedLand(x, y)) return null;
+                if (availableNames.length === 0) availableNames.push('后来者', '边陲民', '潜行者', '守望者', '复兴者');
+                const name = availableNames.shift();
+                if (!name) return null;
+                const newId = tribes.length,
+                    ci = newId % TRIBE_COLORS.length;
+                const pop = Math.max(50, initialPop || (18 + Math.floor(Math.random() * 55)));
+                const nt = { id: newId, name, color: TRIBE_COLORS[ci], population: pop, territoryCells: new Set([y *
+                        GRID_SIZE + x
+                    ]), allies: new Set(), atWarWith: new Set(), stageIndex: 0, alive: true, foundingGameHour: gameHour,
+                    unrest: 5, diseaseLevel: 0, colonies: [] };
+                owner[y][x] = newId;
+                tribes.push(nt);
+                expandTribeTerritory(nt, 3 + Math.floor(Math.random() * 8));
+                updateTribeStage(nt);
+                terrainDirty = true;
+                addEvent('birth', `🌟 新文明<b>${name}</b>在(${x},${y})崛起，人口${nt.population}人，领土${nt.territoryCells.size}格。`);
+                return nt;
+            }
+
+            function recoverRadiation() {
+                for (let y = 0; y < GRID_SIZE; y++)
+                    for (let x = 0; x < GRID_SIZE; x++)
+                        if (terrain[y][x] === RADIOACTIVE && Math.random() < 0.0008) { terrain[y][x] = PLAINS;
+                            terrainDirty = true; }
+                if (terrainDirty) updateRadCount();
+            }
+
+            function addEvent(type, msg) { const ts = `[${formatGameTime()}]`;
+                eventQueue.push({ type, message: msg, timeStr: ts }); if (eventQueue.length > 200) eventQueue.shift();
+                updateLogDisplay(); }
+
+            function updateLogDisplay() {
+                const recent = eventQueue.slice(-30);
+                let html = '';
+                for (const e of recent) html +=
+                    `<div class="log-entry log-${e.type}"><span class="log-time">${e.timeStr}</span>${e.message}</div>`;
+                if (html === '') html = '<div class="log-entry log-report">世界在静默中等待...</div>';
+                logPanel.innerHTML = html;
+                logPanel.scrollTop = logPanel.scrollHeight;
+            }
+
+            function formatGameTime() { const y = Math.floor(gameHour / 12); const m = (gameHour % 12) + 1; return `公元${y}年${m}月`; }
+
+            function formatGameTimeShort() { return formatGameTime(); }
+
+            function generateDecadalReport() {
+                const al = tribes.filter(t => t.alive);
+                if (al.length === 0) { addEvent('report',
+                        `📊 <b>年代报告 [${formatGameTimeShort()}]：</b>当前无存活文明。`); return; }
+                al.sort((a, b) => b.population - a.population);
+                let rep =
+                    `📊 <b>══ 年代报告 [${formatGameTimeShort()}] ══</b> ${al.length}个文明 | `;
+                const top = Math.min(7, al.length);
+                for (let i = 0; i < top; i++) { const t = al[i]; const s = STAGES[t.stageIndex]; const K = t._K ||
+                        calcCarryingCapacity(t); let fl = ''; if (t.atWarWith.size > 0) fl += '⚔️'; if (t.allies.size >
+                        0) fl += '🕊️'; if (t.unrest > 50) fl += '🔥'; if (s.nuclearCapable) fl += '☢️';
+                    rep +=
+                        `<span style="color:${t.color}"><b>${t.name}</b></span>:${t.population}人/K${Math.round(K)} [${s.name}]${fl} | `; }
+                if (al.length > top) rep += `…等${al.length}个 |`;
+                addEvent('report', rep);
+            }
+
+            function downloadLog() {
+                if (eventQueue.length === 0) { addEvent('divine', '⚠️ 日志为空。'); return; }
+                let t = "文明演替模型日志\n";
+                t += `生成时间：${new Date().toLocaleString()}\n`;
+                t += `游戏内时间：${formatGameTime()}\n`;
+                t += "═".repeat(50) + "\n\n";
+                for (const e of eventQueue) t += `${e.timeStr} ${e.message.replace(/<[^>]*>/g,'')}\n`;
+                const b = new Blob([t], { type: 'text/plain;charset=utf-8' });
+                const u = URL.createObjectURL(b);
+                const a = document.createElement('a');
+                a.href = u;
+                a.download = 'world-log.txt';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(u);
+                addEvent('divine', '📄 日志已下载。');
+            }
+
+            function ensureOffscreen() { if (!offscreenCanvas || offscreenCanvas.width !== canvas.width) { offscreenCanvas =
+                    document.createElement('canvas');
+                offscreenCanvas.width = canvas.width;
+                offscreenCanvas.height = canvas.height;
+                offscreenCtx = offscreenCanvas.getContext('2d');
+                terrainDirty = true; } }
+
+            function renderTerrainToOffscreen() {
+                ensureOffscreen();
+                const octx = offscreenCtx;
+                const img = octx.createImageData(canvas.width, canvas.height);
+                const d = img.data;
+                const W = canvas.width;
+                for (let y = 0; y < GRID_SIZE; y++)
+                    for (let x = 0; x < GRID_SIZE; x++) {
+                        const t = terrain[y][x],
+                            o = owner[y][x];
+                        let r, g, b;
+                        if (t === OCEAN) { const sh = (Math.sin(x * 0.4 + y * 0.6) * 0.5 + 0.5) * 12;
+                            r = 185 + sh;
+                            g = 200 + sh;
+                            b = 215 + sh; } else if (t === RADIOACTIVE) { r = 145;
+                            g = 120;
+                            b = 100; const ns = (Math.sin(x * 0.8 + y * 0.7) * 0.5 + 0.5) * 15;
+                            r += ns;
+                            g += ns * 0.5;
+                            b += ns * 0.3; } else if (o === null) { if (t === MOUNTAIN) { r = 175;
+                                g = 165;
+                                b = 148; } else { r = 210;
+                                g = 200;
+                                b = 170; } const sh = (Math.cos(x * 0.25 + y * 0.35) * 0.5 + 0.5) * 8;
+                            r += sh;
+                            g += sh;
+                            b += sh; } else { const tribe = tribes[o]; if (tribe && tribe.alive) { const hex = tribe
+                                    .color;
+                                r = parseInt(hex.slice(1, 3), 16);
+                                g = parseInt(hex.slice(3, 5), 16);
+                                b = parseInt(hex.slice(5, 7), 16); if (t === MOUNTAIN) { r = Math.floor(r * 0.75);
+                                    g = Math.floor(g * 0.7);
+                                    b = Math.floor(b * 0.65); } if (t === RADIOACTIVE) { r = Math.floor((r + 140) /
+                                        2);
+                                    g = Math.floor((g + 110) / 2);
+                                    b = Math.floor((b + 90) / 2); } const gy = (r + g + b) / 3;
+                                r = Math.floor(r * 0.82 + gy * 0.18);
+                                g = Math.floor(g * 0.82 + gy * 0.18);
+                                b = Math.floor(b * 0.82 + gy * 0.18); } else { r = 210;
+                                g = 200;
+                                b = 170; if (t === MOUNTAIN) { r = 175;
+                                    g = 165;
+                                    b = 148; } } }
+                        const px = x * CELL_SIZE,
+                            py = y * CELL_SIZE;
+                        for (let dy = 0; dy < CELL_SIZE; dy++) { const ro = (py + dy) * W + px; for (let dx = 0; dx <
+                                CELL_SIZE; dx++) { const i = (ro + dx) * 4;
+                                d[i] = r;
+                                d[i + 1] = g;
+                                d[i + 2] = b;
+                                d[i + 3] = 255; } }
+                    }
+                octx.putImageData(img, 0, 0);
+                terrainDirty = false;
+            }
+
+            function renderMap() {
+                ensureOffscreen();
+                if (terrainDirty) renderTerrainToOffscreen();
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                ctx.drawImage(offscreenCanvas, 0, 0);
+                const now = gameHour;
+                for (const we of warEffects)
+                    if (we.endTime > now) { const a = 0.2 + Math.sin(now * 7) * 0.12;
+                        ctx.fillStyle = `rgba(180,60,40,${Math.max(0.05,a)})`; for (const k of we.cells) { const cx = k %
+                                GRID_SIZE, cy = Math.floor(k / GRID_SIZE);
+                            ctx.fillRect(cx * CELL_SIZE, cy * CELL_SIZE, CELL_SIZE, CELL_SIZE); } }
+                for (const de of disasterEffects)
+                    if (de.endTime > now) { const a = 0.2 * Math.min(1, (de.endTime - now) / 3);
+                        ctx.fillStyle = `rgba(180,120,30,${Math.max(0.03,a)})`; for (const k of de.cells) { const cx = k %
+                                GRID_SIZE, cy = Math.floor(k / GRID_SIZE);
+                            ctx.fillRect(cx * CELL_SIZE, cy * CELL_SIZE, CELL_SIZE, CELL_SIZE); } }
+                for (const ne of nukeEffects)
+                    if (ne.endTime > now) { const a = 0.28 * Math.min(1, (ne.endTime - now) / 10);
+                        ctx.fillStyle = `rgba(200,140,40,${Math.max(0.04,a)})`; for (const k of ne.cells) { const cx = k %
+                                GRID_SIZE, cy = Math.floor(k / GRID_SIZE);
+                            ctx.fillRect(cx * CELL_SIZE, cy * CELL_SIZE, CELL_SIZE, CELL_SIZE); } }
+                for (const p of plagueEffects) { const a = Math.min(1, p.remainingMonths / 30) * 0.5;
+                    ctx.fillStyle = `rgba(50,50,50,${Math.max(0.1,a)})`; for (const k of p.cells) { const cx = k % GRID_SIZE,
+                            cy = Math.floor(k / GRID_SIZE);
+                        ctx.fillRect(cx * CELL_SIZE, cy * CELL_SIZE, CELL_SIZE, CELL_SIZE); } }
+                warEffects = warEffects.filter(w => w.endTime > now);
+                disasterEffects = disasterEffects.filter(d => d.endTime > now);
+                nukeEffects = nukeEffects.filter(n => n.endTime > now);
+                ctx.strokeStyle = 'rgba(0,0,0,0.025)';
+                ctx.lineWidth = 0.3;
+                const step = 10;
+                for (let x = 0; x <= GRID_SIZE; x += step) { ctx.beginPath();
+                    ctx.moveTo(x * CELL_SIZE, 0);
+                    ctx.lineTo(x * CELL_SIZE, canvas.height);
+                    ctx.stroke(); }
+                for (let y = 0; y <= GRID_SIZE; y += step) { ctx.beginPath();
+                    ctx.moveTo(0, y * CELL_SIZE);
+                    ctx.lineTo(canvas.width, y * CELL_SIZE);
+                    ctx.stroke(); }
+                if (mouseGridX >= 0 && mouseGridY >= 0 && mouseGridX < GRID_SIZE && mouseGridY < GRID_SIZE) { ctx.strokeStyle =
+                        'rgba(44,36,22,0.55)';
+                    ctx.lineWidth = 1.2;
+                    ctx.setLineDash([2, 2]);
+                    ctx.strokeRect(mouseGridX * CELL_SIZE + 0.6, mouseGridY * CELL_SIZE + 0.6, CELL_SIZE - 1.2, CELL_SIZE -
+                        1.2);
+                    ctx.setLineDash([]);
+                    ctx.lineWidth = 0.3; }
+            }
+
+            function updateInfoBar() {
+                const al = tribes.filter(t => t.alive);
+                document.getElementById('tribeCount').textContent = al.length;
+                document.getElementById('totalPop').textContent = al.reduce((s, t) => s + t.population, 0).toLocaleString();
+                document.getElementById('gameTime').textContent = formatGameTimeShort();
+                document.getElementById('warCount').textContent = totalWars;
+                document.getElementById('disasterCount').textContent = totalDisasters;
+                document.getElementById('nukeCount').textContent = totalNukes;
+                document.getElementById('radCount').textContent = totalRadCells;
+            }
+
+            function getGridFromEvent(e) { const r = canvas.getBoundingClientRect(); const sx = canvas.width / r.width,
+                    sy = canvas.height / r.height; return { x: Math.floor((e.clientX - r.left) * sx / CELL_SIZE), y: Math
+                        .floor((e.clientY - r.top) * sy / CELL_SIZE) }; }
+
+            function setTool(tool, btnEl) {
+                currentTool = tool;
+                document.querySelectorAll('.btn-tool').forEach(b => b.classList.remove('active'));
+                if (btnEl) btnEl.classList.add('active');
+                canvasWrapper.classList.toggle('info-mode', tool === 'info');
+                const names = { info: '观察', spawn: '投放', upgrade: '升级', nuke: '核击', disaster: '天灾', bless: '赐福',
+                    curse: '诅咒', split: '分裂', cleanse: '净化', asteroid: '星陨', raiseMountain: '造山',
+                    removeMountain: '移山', landReclaim: '填海', sinkLand: '沉没', plague: '瘟疫', prosperity: '繁荣' };
+                addEvent('divine', `👁️ 上帝之手：<b>${names[tool]||tool}</b>`);
+                updateLogDisplay();
+            }
+
+            function handleCanvasClick(e) {
+                const { x, y } = getGridFromEvent(e);
+                if (x < 0 || x >= GRID_SIZE || y < 0 || y >= GRID_SIZE) return;
+                const cellT = terrain[y][x],
+                    cellO = owner[y][x];
+                const tribe = (cellO !== null && tribes[cellO] && tribes[cellO].alive) ? tribes[cellO] : null;
+                switch (currentTool) {
+                    case 'info':
+                        showCellInfo(x, y, cellT, tribe);
+                        break;
+                    case 'spawn':
+                        if (cellT === OCEAN) addEvent('divine', '⚠️ 无法在海洋上投放。');
+                        else if (tribe) addEvent('divine', `⚠️ 已被<b>${tribe.name}</b>占据。`);
+                        else { const nt = spawnTribeAt(x, y, Math.max(50, 35 + Math.floor(Math.random() * 55))); if (nt)
+                                addEvent('divine', `投放<b>${nt.name}</b>在(${x},${y})，人口${nt.population}。`); }
+                        break;
+                    case 'upgrade':
+                        if (!tribe) addEvent('divine', '⚠️ 请点击文明。');
+                        else if (tribe.stageIndex >= STAGES.length - 1) addEvent('divine', `<b>${tribe.name}</b>已最高。`);
+                        else { const old = STAGES[tribe.stageIndex].name;
+                            tribe.stageIndex = Math.min(STAGES.length - 1, tribe.stageIndex + 1); const ns = STAGES[tribe
+                                .stageIndex]; if (tribe.population < ns.minPop) tribe.population = ns.minPop;
+                            tribe._K = calcCarryingCapacity(tribe);
+                            tribe.unrest = Math.max(0, tribe.unrest - 20);
+                            terrainDirty = true;
+                            addEvent('divine', `升级<b>${tribe.name}</b>从[${old}]至<b>[${ns.name}]</b>。`); }
+                        break;
+                    case 'nuke':
+                        triggerDivineNuke(x, y);
+                        break;
+                    case 'disaster':
+                        if (cellT === OCEAN) addEvent('divine', '⚠️ 请选择陆地。');
+                        else { const dlist = [{ name: '地震', damage: 0.08 + Math.random() * 0.20, radius: 4 + Math.floor(Math
+                                    .random() * 10) }, { name: '洪水', damage: 0.06 + Math.random() * 0.16, radius: 3 + Math
+                                    .floor(Math.random() * 9)
+                                }, { name: '火山喷发', damage: 0.16 + Math.random() * 0.34, radius: 2 + Math.floor(Math.random() *
+                                    7) } ]; const ch = dlist[Math.floor(Math.random() * dlist.length)];
+                            triggerDisasterAt(x, y, ch);
+                            addEvent('divine', `在(${x},${y})制造<b>${ch.name}</b>。`); }
+                        break;
+                    case 'bless':
+                        if (!tribe) addEvent('divine', '⚠️ 请点击文明。');
+                        else { const add = Math.floor(tribe.population * (0.3 + Math.random() * 0.5));
+                            tribe.population += add;
+                            tribe.unrest = Math.max(0, tribe.unrest - 30);
+                            tribe.diseaseLevel = Math.max(0, tribe.diseaseLevel - 40);
+                            tribe._K = calcCarryingCapacity(tribe);
+                            updateTribeStage(tribe);
+                            addEvent('divine', `✨ 赐福<b>${tribe.name}</b>，+${add}人口。`); }
+                        break;
+                    case 'curse':
+                        if (!tribe) addEvent('divine', '⚠️ 请点击文明。');
+                        else { const loss = Math.floor(tribe.population * (0.3 + Math.random() * 0.35));
+                            tribe.population = Math.max(1, tribe.population - loss);
+                            tribe.unrest = Math.min(100, tribe.unrest + 25);
+                            tribe.diseaseLevel = Math.min(100, tribe.diseaseLevel + 30);
+                            tribe._K = calcCarryingCapacity(tribe);
+                            checkTribeAlive(tribe);
+                            addEvent('divine', `💀 诅咒<b>${tribe.name}</b>，-${loss}人口。`); }
+                        break;
+                    case 'split':
+                        if (!tribe) addEvent('divine', '⚠️ 请点击文明。');
+                        else if (tribe.territoryCells.size < 6) addEvent('divine', '领土太小无法分裂。');
+                        else { tribe.unrest = 85;
+                            triggerSplit(tribe);
+                            addEvent('divine', `强制分裂<b>${tribe.name}</b>。`); }
+                        break;
+                    case 'cleanse':
+                        let cl = 0;
+                        for (let dy = -5; dy <= 5; dy++)
+                            for (let dx = -5; dx <= 5; dx++) { const nx = x + dx,
+                                    ny = y + dy; if (nx >= 0 && nx < GRID_SIZE && ny >= 0 && ny < GRID_SIZE && terrain[ny][
+                                        nx
+                                    ] === RADIOACTIVE) { terrain[ny][nx] = PLAINS;
+                                    cl++; } } if (cl > 0) { terrainDirty = true;
+                                updateRadCount();
+                                addEvent('divine', `净化${cl}格辐射。`); } else addEvent('divine', '周围无辐射。');
+                        break;
+                    case 'asteroid':
+                        triggerMassExtinction(0.75 + Math.random() * 0.2);
+                        addEvent('divine', '☄️ 上帝降下灭世星陨！');
+                        break;
+                    case 'raiseMountain':
+                        let ra = 0;
+                        for (let dy = -2; dy <= 2; dy++)
+                            for (let dx = -2; dx <= 2; dx++) { const nx = x + dx,
+                                    ny = y + dy; if (nx >= 0 && nx < GRID_SIZE && ny >= 0 && ny < GRID_SIZE && terrain[ny][
+                                        nx
+                                    ] !== OCEAN && terrain[ny][nx] !== MOUNTAIN) { terrain[ny][nx] = MOUNTAIN;
+                                    ra++; } } if (ra > 0) { terrainDirty = true;
+                                addEvent('divine', `造山${ra}格。`); } else addEvent('divine', '无法造山。');
+                        break;
+                    case 'removeMountain':
+                        let rm = 0;
+                        for (let dy = -2; dy <= 2; dy++)
+                            for (let dx = -2; dx <= 2; dx++) { const nx = x + dx,
+                                    ny = y + dy; if (nx >= 0 && nx < GRID_SIZE && ny >= 0 && ny < GRID_SIZE && terrain[ny][
+                                        nx
+                                    ] === MOUNTAIN) { terrain[ny][nx] = PLAINS;
+                                    rm++; } } if (rm > 0) { terrainDirty = true;
+                                addEvent('divine', `移山${rm}格。`); } else addEvent('divine', '周围无山。');
+                        break;
+                    case 'landReclaim':
+                        let rec = 0;
+                        for (let dy = -2; dy <= 2; dy++)
+                            for (let dx = -2; dx <= 2; dx++) { const nx = x + dx,
+                                    ny = y + dy; if (nx >= 0 && nx < GRID_SIZE && ny >= 0 && ny < GRID_SIZE && terrain[ny][
+                                        nx
+                                    ] === OCEAN) { terrain[ny][nx] = PLAINS;
+                                    rec++; } } if (rec > 0) { terrainDirty = true;
+                                addEvent('divine', `填海${rec}格。`); } else addEvent('divine', '周围无海。');
+                        break;
+                    case 'sinkLand':
+                        let sunk = 0;
+                        for (let dy = -2; dy <= 2; dy++)
+                            for (let dx = -2; dx <= 2; dx++) { const nx = x + dx,
+                                    ny = y + dy; if (nx >= 0 && nx < GRID_SIZE && ny >= 0 && ny < GRID_SIZE && terrain[ny][
+                                        nx
+                                    ] !== OCEAN) { if (owner[ny][nx] !== null) { const oid = owner[ny][nx]; if (tribes[oid])
+                                            tribes[oid].territoryCells.delete(ny * GRID_SIZE + nx);
+                                        owner[ny][nx] = null; }
+                                    terrain[ny][nx] = OCEAN;
+                                    sunk++; } } if (sunk > 0) { terrainDirty = true;
+                                updateRadCount();
+                                addEvent('divine', `沉没${sunk}格。`); } else addEvent('divine', '已是海洋。');
+                        break;
+                    case 'plague':
+                        if (!tribe) addEvent('divine', '⚠️ 请点击文明所在地。');
+                        else { startPlague(x, y, 4);
+                            addEvent('divine', `在(${x},${y})引发<b>瘟疫</b>。`); }
+                        break;
+                    case 'prosperity':
+                        if (!tribe) addEvent('divine', '⚠️ 请点击文明。');
+                        else { const add = Math.floor(tribe.population * 0.5);
+                            tribe.population += add;
+                            tribe.unrest = Math.max(0, tribe.unrest - 60);
+                            tribe.diseaseLevel = Math.max(0, tribe.diseaseLevel - 80);
+                            tribe._K = calcCarryingCapacity(tribe) * 1.8;
+                            updateTribeStage(tribe);
+                            addEvent('divine', `🌟 赐予<b>${tribe.name}</b>繁荣！人口+${add}。`); }
+                        break;
+                }
+                renderMap();
+            }
+
+            function triggerDivineNuke(x, y) {
+                totalNukes++;
+                const aff = new Set(),
+                    affT = new Set();
+                for (let dy = -8; dy <= 8; dy++)
+                    for (let dx = -8; dx <= 8; dx++)
+                        if (Math.sqrt(dx * dx + dy * dy) <= 8) { const nx = x + dx,
+                                ny = y + dy; if (nx >= 0 && nx < GRID_SIZE && ny >= 0 && ny < GRID_SIZE && terrain[ny][
+                                    nx
+                                ] !== OCEAN) { aff.add(ny * GRID_SIZE + nx); if (terrain[ny][nx] !== RADIOACTIVE && Math
+                                    .random() < 0.75) terrain[ny][nx] = RADIOACTIVE; const o = owner[ny][nx]; if (o !==
+                                    null && tribes[o] && tribes[o].alive) affT.add(o); } }
+                nukeEffects.push({ cells: aff, endTime: gameHour + 40, type: '上帝核击' });
+                terrainDirty = true;
+                updateRadCount();
+                let rep = '';
+                for (const tid of affT) { const t = tribes[tid]; const loss = Math.floor(t.population * (0.35 + Math.random() *
+                        0.45));
+                    t.population = Math.max(1, t.population - loss);
+                    t.unrest = Math.min(100, t.unrest + 20);
+                    rep += `${t.name}损失${loss}人，`;
+                    checkTribeAlive(t); }
+                addEvent('nuke',
+                    `💥☢️ <b>上帝核打击！</b>在(${x},${y})引爆核弹，${affT.size}文明受创。${rep.slice(0,-1)}，${aff.size}格污染。`);
+            }
+
+            function globalPeace() {
+                let ended = 0;
+                for (const t of tribes) { if (!t.alive) continue; for (const w of t.atWarWith) { const o = tribes[w]; if (o && o
+                        .alive) { o.atWarWith.delete(t.id);
+                            ended++; } }
+                    t.atWarWith.clear(); }
+                activeWars = [];
+                warEffects = [];
+                addEvent('divine', ended > 0 ? `🕊️ 强制和平：终止${ended}场冲突。` : '🕊️ 无活跃冲突。');
+            }
+
+            function showCellInfo(x, y, ter, tribe) {
+                let tn = '海洋';
+                if (ter === PLAINS) tn = '平原';
+                else if (ter === MOUNTAIN) tn = '山地';
+                else if (ter === RADIOACTIVE) tn = '辐射污染';
+                if (tribe) { const s = STAGES[tribe.stageIndex],
+                        K = tribe._K || calcCarryingCapacity(tribe);
+                    addEvent('report',
+                        `📍 (${x},${y}) ${tn} | <span style="color:${tribe.color}"><b>${tribe.name}</b></span> | 人口${tribe.population}/K${Math.round(K)} | ${s.name} | 不满${tribe.unrest.toFixed(0)}% | 领土${tribe.territoryCells.size}格`
+                        );
+                } else addEvent('report', `📍 (${x},${y}) ${tn} | 无主之地`);
+                updateLogDisplay();
+            }
+
+            function gameTick() {
+                if (!running) return;
+                gameHour++;
+                checkAsteroidImpact();
+                const alive = tribes.filter(t => t.alive);
+                for (const tribe of alive) {
+                    tribeGrowthSigmoid(tribe);
+                    updateTribeStage(tribe);
+                    updateUnrest(tribe);
+                    const stage = STAGES[tribe.stageIndex];
+                    if (Math.random() < stage.expandRate * 0.7) {
+                        const expandCount = Math.max(1, Math.floor(tribe.population / 160) * (1 + stage.techLevel * 0.25));
+                        expandTribeTerritory(tribe, Math.min(Math.round(expandCount), 40));
+                    }
+                    if (tribe.population < 50) checkTribeAlive(tribe);
+                }
+                for (const war of activeWars) { if (!war.resolved && gameHour >= war.startGameHour + war.duration) { war
+                        .resolved = true;
+                        resolveWar(war); } }
+                activeWars = activeWars.filter(w => !w.resolved);
+                checkWar();
+                checkAlliance();
+                checkDisaster();
+                checkNewTribe();
+                recoverRadiation();
+                updatePlagues();
+                applyMissionaryEffects();
+                checkColonyIndependence();
+                checkNuclearStrikes();
+                cleanSmallExclaves();
+                checkEnclaveAssimilation();
+                checkExclaveIndependence();
+                for (let y = 0; y < GRID_SIZE; y++)
+                    for (let x = 0; x < GRID_SIZE; x++) { const o = owner[y][x]; if (o !== null && (!tribes[o] || !tribes[o]
+                            .alive)) { owner[y][x] = null;
+                            terrainDirty = true; } }
+                if (gameHour - lastReportGameHour >= 120) { lastReportGameHour = gameHour;
+                    generateDecadalReport(); }
+                renderMap();
+                updateInfoBar();
+                updateLogDisplay();
+            }
+
+            function mainLoop(timestamp) {
+                if (running) {
+                    if (lastUpdateTime === 0) lastUpdateTime = timestamp;
+                    const delta = timestamp - lastUpdateTime;
+                    lastUpdateTime = timestamp;
+                    accumulatedTime += delta;
+                    const tickInterval = 1000 / speedMultiplier;
+                    let ticked = false;
+                    while (accumulatedTime >= tickInterval) { accumulatedTime -= tickInterval;
+                        gameTick();
+                        ticked = true; }
+                    if (!ticked && (warEffects.length > 0 || disasterEffects.length > 0 || nukeEffects.length > 0 ||
+                            plagueEffects.length > 0)) renderMap();
+                }
+                updateInfoBar();
+                animationFrameId = requestAnimationFrame(mainLoop);
+            }
+
+            function toggleSimulation() {
+                running = !running;
+                btnStart.textContent = running ? '⏸ 暂停' : '▶ 开始演化';
+                btnStart.classList.toggle('running', running);
+                lastUpdateTime = 0;
+                accumulatedTime = 0;
+                addEvent('report', running ? '▶️ 演化开始——文明的火种已被点燃。' : '⏸️ 演化已暂停。');
+                updateLogDisplay();
+            }
+
+            function setSpeed(speed, btnEl) {
+                speedMultiplier = speed;
+                accumulatedTime = 0;
+                lastUpdateTime = 0;
+                document.querySelectorAll('.btn-speed').forEach(b => b.classList.remove('active'));
+                if (btnEl) btnEl.classList.add('active');
+                addEvent('report', `⏱ 速度调整为 <b>${speed}×</b>`);
+                updateLogDisplay();
+            }
+
+            function resetGame() {
+                running = false;
+                btnStart.textContent = '▶ 开始演化';
+                btnStart.classList.remove('running');
+                gameHour = 0;
+                totalWars = 0;
+                totalDisasters = 0;
+                totalNukes = 0;
+                totalSplits = 0;
+                warEffects = [];
+                disasterEffects = [];
+                nukeEffects = [];
+                plagueEffects = [];
+                activeWars = [];
+                eventQueue = [];
+                tribes = [];
+                accumulatedTime = 0;
+                lastUpdateTime = 0;
+                lastReportGameHour = 0;
+                availableNames = [...TRIBE_NAMES_POOL];
+                terrainDirty = true;
+                initTerrain();
+                initTribes();
+                for (const t of tribes) { updateTribeStage(t);
+                    t._K = calcCarryingCapacity(t); }
+                renderTerrainToOffscreen();
+                renderMap();
+                updateInfoBar();
+                eventQueue = [];
+                addEvent('report', '🔄 世界已重置。点击"开始演化"或使用上帝工具进行干预。');
+                updateLogDisplay();
+            }
+
+            function initTribes() {
+                tribes = [];
+                const land = [];
+                for (let y = 0; y < GRID_SIZE; y++)
+                    for (let x = 0; x < GRID_SIZE; x++)
+                        if (terrain[y][x] !== OCEAN) land.push({ x, y });
+                if (land.length === 0) return;
+                const num = 2 + Math.floor(Math.random() * 4);
+                const used = new Set();
+                for (let i = 0; i < num; i++) {
+                    let best = null,
+                        bd = -1;
+                    for (let a = 0; a < 250; a++) { const cand = land[Math.floor(Math.random() * land.length)]; const key = cand
+                            .y * GRID_SIZE + cand.x; if (used.has(key)) continue; let min = Infinity; for (const uk of used) { const
+                                d = Math.abs(cand.x - (uk % GRID_SIZE)) + Math.abs(cand.y - Math.floor(uk / GRID_SIZE)); if (d <
+                                    min) min = d; } if (used.size === 0 || min > bd) { bd = min;
+                            best = cand; } if (bd > 35) break; }
+                    if (!best) break;
+                    used.add(best.y * GRID_SIZE + best.x);
+                    const name = availableNames.shift();
+                    if (!name) break;
+                    if (availableNames.length === 0) availableNames.push('遗民', '拓荒者', '余烬', '新芽');
+                    const tribe = { id: i, name, color: TRIBE_COLORS[i % TRIBE_COLORS.length], population: Math.max(50, 40 + Math
+                            .floor(Math.random() * 80)), territoryCells: new Set([best.y * GRID_SIZE + best.x]),
+                        allies: new Set(), atWarWith: new Set(), stageIndex: 0, alive: true, foundingGameHour: gameHour,
+                        unrest: 5 + Math.random() * 10, diseaseLevel: 0, colonies: [] };
+                    owner[best.y][best.x] = i;
+                    tribes.push(tribe);
+                    expandTribeTerritory(tribe, 5 + Math.floor(Math.random() * 10));
+                }
+                terrainDirty = true;
+            }
+
+            canvas.addEventListener('click', handleCanvasClick);
+            canvas.addEventListener('mousemove', (e) => {
+                const { x, y } = getGridFromEvent(e);
+                if (x !== mouseGridX || y !== mouseGridY) { mouseGridX = x;
+                    mouseGridY = y;
+                    renderMap(); if (x >= 0 && x < GRID_SIZE && y >= 0 && y < GRID_SIZE) { const t = terrain[y][x],
+                            o = owner[y][x]; let info = `(${x},${y}) `; if (t === OCEAN) info += '海洋'; else if (t ===
+                            RADIOACTIVE) info += '辐射污染'; else if (t === MOUNTAIN) info += '山地'; else info += '平原'; if (
+                            o !== null && tribes[o] && tribes[o].alive) info +=
+                            ` | ${tribes[o].name} [${STAGES[tribes[o].stageIndex].name}] ${tribes[o].population}人`; else if (
+                            t !== OCEAN) info += ' | 无主';
+                        canvasTooltip.textContent = info;
+                        canvasTooltip.style.display = 'block'; const rect = canvas.getBoundingClientRect();
+                        canvasTooltip.style.left = (e.clientX - rect.left + 16) + 'px';
+                        canvasTooltip.style.top = (e.clientY - rect.top - 30) + 'px'; } else canvasTooltip.style.display =
+                        'none'; }
+            });
+            canvas.addEventListener('mouseleave', () => { mouseGridX = -1;
+                mouseGridY = -1;
+                canvasTooltip.style.display = 'none';
+                renderMap(); });
+
+            document.addEventListener('keydown', (e) => {
+                if (e.code === 'Space') { e.preventDefault();
+                    toggleSimulation(); } else if (e.code === 'Digit1') setSpeed(1, document.querySelector(
+                    '[data-speed="1"]'));
+                else if (e.code === 'Digit2') setSpeed(2, document.querySelector('[data-speed="2"]'));
+                else if (e.code === 'Digit4') setSpeed(4, document.querySelector('[data-speed="4"]'));
+                else if (e.code === 'Digit8') setSpeed(8, document.querySelector('[data-speed="8"]'));
+                else if (e.code === 'KeyR' && !e.ctrlKey && !e.metaKey) resetGame();
+                else if (e.code === 'KeyI') setTool('info', document.querySelector('[data-tool="info"]'));
+                else if (e.code === 'KeyS') setTool('spawn', document.querySelector('[data-tool="spawn"]'));
+                else if (e.code === 'KeyU') setTool('upgrade', document.querySelector('[data-tool="upgrade"]'));
+                else if (e.code === 'KeyN') setTool('nuke', document.querySelector('[data-tool="nuke"]'));
+                else if (e.code === 'KeyD') setTool('disaster', document.querySelector('[data-tool="disaster"]'));
+                else if (e.code === 'KeyB') setTool('bless', document.querySelector('[data-tool="bless"]'));
+                else if (e.code === 'KeyC') setTool('curse', document.querySelector('[data-tool="curse"]'));
+                else if (e.code === 'KeyP') setTool('split', document.querySelector('[data-tool="split"]'));
+                else if (e.code === 'KeyL') setTool('cleanse', document.querySelector('[data-tool="cleanse"]'));
+                else if (e.code === 'KeyG') globalPeace();
+                else if (e.code === 'KeyA') setTool('asteroid', document.querySelector('[data-tool="asteroid"]'));
+                else if (e.code === 'KeyM') setTool('raiseMountain', document.querySelector('[data-tool="raiseMountain"]'));
+                else if (e.code === 'KeyV') setTool('removeMountain', document.querySelector('[data-tool="removeMountain"]'));
+                else if (e.code === 'KeyF') setTool('landReclaim', document.querySelector('[data-tool="landReclaim"]'));
+                else if (e.code === 'KeyK') setTool('sinkLand', document.querySelector('[data-tool="sinkLand"]'));
+                else if (e.code === 'KeyE') setTool('plague', document.querySelector('[data-tool="plague"]'));
+                else if (e.code === 'KeyT') setTool('prosperity', document.querySelector('[data-tool="prosperity"]'));
+            });
+
+            function init() {
+                initTerrain();
+                initTribes();
+                for (const t of tribes) { updateTribeStage(t);
+                    t._K = calcCarryingCapacity(t); }
+                renderTerrainToOffscreen();
+                renderMap();
+                updateInfoBar();
+                eventQueue = [];
+                addEvent('report', `🌍 世界已生成：${tribes.length}个原始文明。点击"开始演化"或使用上帝工具干预。`);
+                updateLogDisplay();
+                lastReportGameHour = gameHour;
+                animationFrameId = requestAnimationFrame(mainLoop);
+            }
+
+            window.toggleSimulation = toggleSimulation;
+            window.setSpeed = setSpeed;
+            window.resetGame = resetGame;
+            window.setTool = setTool;
+            window.globalPeace = globalPeace;
+            window.downloadLog = downloadLog;
+            init();
+        })();
+    </script>
+</body>
+</html>
