@@ -760,6 +760,7 @@ ${ctx.info.tips || '暂无'}
           headers: { 'Content-Type': 'application/json' },
           body: body,
           keepalive: true,
+          credentials: 'omit',
         }).then(r => {
           if (!r.ok) console.warn('[BAT Beacon] 代理返回错误', r.status);
         }).catch(e => {
