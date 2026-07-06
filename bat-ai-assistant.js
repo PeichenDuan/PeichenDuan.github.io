@@ -11,7 +11,7 @@
     // ===== API 配置 =====
     // 方案1（推荐）：通过 Cloudflare Worker 代理 — API Key 安全存储在后端
     // 部署 bat-ai-proxy-worker.js 后，将下面的 URL 替换为你的 Worker URL
-    proxyUrl: 'https://bat-ai-proxy.peichenduan.deno.net',
+    proxyUrl: 'https://bat-ai-proxy.bat-ai-proxy.workers.dev',
     // 如果 Worker 未部署，用户可以在 ⚙ 设置中输入自己的 API Key
     // 直接连接 DeepSeek（仅当用户自行提供 Key 时使用）
     deepseekApiUrl: 'https://api.deepseek.com/chat/completions',
