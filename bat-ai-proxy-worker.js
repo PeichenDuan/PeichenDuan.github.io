@@ -1,76 +1,457 @@
 /**
- * BAT AI Proxy — Cloudflare Worker
- * 代理 DeepSeek API 请求，API Key 存在 Worker 环境变量中，不暴露到前端
+ * BAT AI Proxy — Cloudflare Worker（增强版 v2.0）
  *
- * 部署步骤：
- * 1. npm install -g wrangler
- * 2. wrangler login
- * 3. wrangler secret put DEEPSEEK_API_KEY
+ * 功能：
+ * 1. 代理 DeepSeek API 请求，API Key 安全存储在后端
+ * 2. 用量监控 — 记录每次 API 调用（KV 持久化）
+ * 3. 速率限制 — 每个 IP 每小时最多 100 次请求
+ * 4. 管理统计接口 — GET /stats?key=ADMIN_KEY 查看用量
+ *
+ * ==================== 部署步骤 ====================
+ *
+ * 1. 安装 Wrangler CLI：
+ *    npm install -g wrangler
+ *
+ * 2. 登录 Cloudflare：
+ *    wrangler login
+ *
+ * 3. 创建 KV 命名空间（用于存储用量数据）：
+ *    wrangler kv:namespace create BAT_USAGE
+ *    wrangler kv:namespace create BAT_USAGE --preview  # 预览环境
+ *
+ * 4. 将 KV namespace ID 填入下面的 wrangler.toml 配置
+ *
+ * 5. 设置机密环境变量：
+ *    wrangler secret put DEEPSEEK_API_KEY
  *    （输入你的 DeepSeek API Key: sk-xxxxxxxx）
- * 4. wrangler deploy
- * 5. 将生成的 Worker URL（如 https://bat-ai-proxy.xxx.workers.dev）
+ *    wrangler secret put ADMIN_KEY
+ *    （设置一个管理员密码，用于查看统计）
+ *
+ * 6. 部署：
+ *    wrangler deploy
+ *
+ * 7. 将生成的 Worker URL（如 https://bat-ai-proxy.xxx.workers.dev）
  *    填入 bat-ai-assistant.js 的 CONFIG.proxyUrl
  *
- * 或者直接在 Cloudflare Dashboard 中：
- * 1. Workers & Pages → Create → Create Worker
- * 2. 粘贴此代码
- * 3. Settings → Variables → 添加 Secret: DEEPSEEK_API_KEY
- * 4. 部署
+ * ==================== wrangler.toml 示例 ====================
+ * name = "bat-ai-proxy"
+ * main = "bat-ai-proxy-worker.js"
+ * compatibility_date = "2024-01-01"
+ *
+ * [[kv_namespaces]]
+ * binding = "BAT_USAGE"
+ * id = "你的KV命名空间ID"
+ * preview_id = "你的预览KV命名空间ID"
  */
+
+// ==================== 配置 ====================
+const DEEPSEEK_API_URL = 'https://api.deepseek.com/chat/completions';
+
+// DeepSeek 定价（人民币/百万token）
+const PRICING = {
+  input: 1.0,   // ¥1/1M tokens
+  output: 2.0,  // ¥2/1M tokens
+};
+
+// 速率限制
+const RATE_LIMIT = 100;        // 每小时每IP最大请求数
+const RATE_WINDOW = 3600;      // 窗口：1小时（秒）
+
+// CORS 允许的源
+const ALLOWED_ORIGINS = [
+  'https://peichenduan.github.io',
+  'https://peichenduan.github.io',
+  'http://localhost:8080',
+  'http://127.0.0.1:8080',
+];
+
+// ==================== 工具函数 ====================
+
+/** 获取客户端 IP */
+function getClientIP(request) {
+  return request.headers.get('CF-Connecting-IP')
+    || request.headers.get('X-Forwarded-For')?.split(',')[0]?.trim()
+    || request.headers.get('X-Real-IP')
+    || 'unknown';
+}
+
+/** 获取今天的日期键 (YYYY-MM-DD) */
+function getDateKey() {
+  const d = new Date();
+  return d.getFullYear() + '-' +
+    String(d.getMonth() + 1).padStart(2, '0') + '-' +
+    String(d.getDate()).padStart(2, '0');
+}
+
+/** 获取当前小时键 (YYYY-MM-DD:HH) */
+function getHourKey() {
+  const d = new Date();
+  return getDateKey() + ':' + String(d.getHours()).padStart(2, '0');
+}
+
+/** 哈希 IP 用于隐私保护 */
+async function hashIP(ip) {
+  const data = new TextEncoder().encode(ip);
+  const hash = await crypto.subtle.digest('SHA-256', data);
+  return Array.from(new Uint8Array(hash))
+    .map(b => b.toString(16).padStart(2, '0'))
+    .join('')
+    .substring(0, 16);
+}
+
+/** CORS 头 */
+function corsHeaders(request) {
+  const origin = request.headers.get('Origin') || '';
+  const allowOrigin = ALLOWED_ORIGINS.includes(origin) || origin.startsWith('http://localhost')
+    ? origin
+    : ALLOWED_ORIGINS[0];
+
+  return {
+    'Access-Control-Allow-Origin': allowOrigin,
+    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Admin-Key',
+    'Access-Control-Max-Age': '86400',
+  };
+}
+
+// ==================== KV 用量记录 ====================
+
+/**
+ * 记录一次 API 调用到 KV
+ * KV 键结构：
+ *   daily:{date}        → { requests: N, inputTokens: N, outputTokens: N, cost: N }
+ *   hourly:{date}:{hour} → { requests: N, ... }
+ *   page:{page}         → { requests: N }
+ *   ip:{hashedIP}       → { requests: N, lastSeen: timestamp }
+ */
+async function recordUsage(env, data) {
+  if (!env.BAT_USAGE) return; // KV 未配置则跳过
+
+  const { inputTokens, outputTokens, page } = data;
+  const cost = (inputTokens / 1_000_000) * PRICING.input
+             + (outputTokens / 1_000_000) * PRICING.output;
+
+  const dateKey = getDateKey();
+  const hourKey = getHourKey();
+
+  // 并行更新所有计数器
+  const updates = [];
+
+  // 每日统计
+  updates.push(updateCounter(env.BAT_USAGE, `daily:${dateKey}`, {
+    requests: 1, inputTokens, outputTokens, cost,
+  }));
+
+  // 每小时统计
+  updates.push(updateCounter(env.BAT_USAGE, `hourly:${hourKey}`, {
+    requests: 1, inputTokens, outputTokens, cost,
+  }));
+
+  // 页面来源统计
+  if (page) {
+    const pageKey = `page:${page.replace(/[^a-zA-Z0-9一-鿿_-]/g, '_').substring(0, 80)}`;
+    updates.push(updateCounter(env.BAT_USAGE, pageKey, { requests: 1 }));
+  }
+
+  await Promise.all(updates);
+}
+
+/** 原子递增 KV 中的计数器 */
+async function updateCounter(kv, key, increments) {
+  try {
+    const existing = await kv.get(key, 'json') || {};
+    for (const [field, delta] of Object.entries(increments)) {
+      existing[field] = (existing[field] || 0) + delta;
+    }
+    // 只保留2位小数
+    if (existing.cost) existing.cost = Math.round(existing.cost * 10000) / 10000;
+    await kv.put(key, JSON.stringify(existing), { expirationTtl: 86400 * 90 }); // 90天过期
+  } catch (e) {
+    // KV 写入失败不影响主流程
+    console.error('KV update error:', e);
+  }
+}
+
+// ==================== 速率限制 ====================
+
+async function checkRateLimit(env, ip) {
+  if (!env.BAT_USAGE) return true; // KV 未配置则放行
+
+  const ipHash = await hashIP(ip);
+  const key = `ratelimit:${ipHash}`;
+
+  try {
+    const current = await env.BAT_USAGE.get(key, 'json') || { count: 0, resetAt: 0 };
+    const now = Math.floor(Date.now() / 1000);
+
+    if (now >= (current.resetAt || 0)) {
+      // 窗口已过期，重置
+      await env.BAT_USAGE.put(key, JSON.stringify({
+        count: 1,
+        resetAt: now + RATE_WINDOW,
+      }), { expirationTtl: RATE_WINDOW });
+      return true;
+    }
+
+    if (current.count >= RATE_LIMIT) {
+      return false; // 超限
+    }
+
+    current.count++;
+    await env.BAT_USAGE.put(key, JSON.stringify(current), { expirationTtl: RATE_WINDOW });
+    return true;
+  } catch (e) {
+    return true; // KV 错误时放行
+  }
+}
+
+// ==================== 统计接口 ====================
+
+async function handleStats(env, request) {
+  // 管理员验证
+  const url = new URL(request.url);
+  const adminKey = url.searchParams.get('key') || request.headers.get('X-Admin-Key') || '';
+  const validKey = env.ADMIN_KEY || 'bat-admin-2024';
+
+  if (adminKey !== validKey) {
+    return new Response(JSON.stringify({ error: '未授权访问。请提供有效的管理员密钥 (?key=...)' }), {
+      status: 401,
+      headers: { 'Content-Type': 'application/json', ...corsHeaders(request) },
+    });
+  }
+
+  if (!env.BAT_USAGE) {
+    return new Response(JSON.stringify({
+      error: 'KV 命名空间未配置。请在 Cloudflare Dashboard 中绑定 BAT_USAGE KV。',
+      setup_required: true,
+    }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json', ...corsHeaders(request) },
+    });
+  }
+
+  try {
+    // 获取最近30天的日统计
+    const dailyStats = [];
+    const today = new Date();
+    for (let i = 29; i >= 0; i--) {
+      const d = new Date(today);
+      d.setDate(d.getDate() - i);
+      const dateKey = d.getFullYear() + '-' +
+        String(d.getMonth() + 1).padStart(2, '0') + '-' +
+        String(d.getDate()).padStart(2, '0');
+      const data = await env.BAT_USAGE.get(`daily:${dateKey}`, 'json');
+      dailyStats.push({
+        date: dateKey,
+        requests: data?.requests || 0,
+        inputTokens: data?.inputTokens || 0,
+        outputTokens: data?.outputTokens || 0,
+        cost: data?.cost || 0,
+      });
+    }
+
+    // 获取今天的分时统计
+    const todayKey = getDateKey();
+    const hourlyStats = [];
+    for (let h = 0; h < 24; h++) {
+      const hourKey = `${todayKey}:${String(h).padStart(2, '0')}`;
+      const data = await env.BAT_USAGE.get(`hourly:${hourKey}`, 'json');
+      hourlyStats.push({
+        hour: h,
+        requests: data?.requests || 0,
+        cost: data?.cost || 0,
+      });
+    }
+
+    // 获取累计统计
+    const totalDaily = dailyStats.reduce((acc, d) => ({
+      requests: acc.requests + d.requests,
+      inputTokens: acc.inputTokens + d.inputTokens,
+      outputTokens: acc.outputTokens + d.outputTokens,
+      cost: acc.cost + d.cost,
+    }), { requests: 0, inputTokens: 0, outputTokens: 0, cost: 0 });
+
+    // 获取热门页面
+    const pageList = await env.BAT_USAGE.list({ prefix: 'page:' });
+    const topPages = [];
+    for (const key of pageList.keys.slice(0, 20)) {
+      const data = await env.BAT_USAGE.get(key.name, 'json');
+      if (data) {
+        topPages.push({
+          page: key.name.replace('page:', ''),
+          requests: data.requests || 0,
+        });
+      }
+    }
+    topPages.sort((a, b) => b.requests - a.requests);
+
+    return new Response(JSON.stringify({
+      generatedAt: new Date().toISOString(),
+      pricing: PRICING,
+      summary: {
+        total30Days: totalDaily,
+        today: dailyStats[dailyStats.length - 1],
+        avgDailyCost: totalDaily.cost / 30,
+        estimatedMonthlyCost: (totalDaily.cost / 30) * 30,
+      },
+      daily: dailyStats,
+      hourly: hourlyStats,
+      topPages: topPages.slice(0, 10),
+    }, null, 2), {
+      headers: { 'Content-Type': 'application/json', ...corsHeaders(request) },
+    });
+
+  } catch (e) {
+    return new Response(JSON.stringify({ error: '获取统计数据失败: ' + e.message }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json', ...corsHeaders(request) },
+    });
+  }
+}
+
+// ==================== 主处理 ====================
 
 export default {
   async fetch(request, env, ctx) {
+    const headers = corsHeaders(request);
+
     // CORS 预检
     if (request.method === 'OPTIONS') {
-      return new Response(null, {
+      return new Response(null, { headers });
+    }
+
+    const url = new URL(request.url);
+
+    // ===== GET /stats — 管理统计接口 =====
+    if (request.method === 'GET' && url.pathname === '/stats') {
+      return handleStats(env, request);
+    }
+
+    // ===== POST / — API 代理 =====
+    if (request.method !== 'POST') {
+      return new Response(JSON.stringify({
+        error: 'Method Not Allowed',
+        usage: 'POST / — 代理 DeepSeek API 请求\nGET /stats?key=ADMIN_KEY — 查看用量统计',
+      }), {
+        status: 405,
+        headers: { 'Content-Type': 'application/json', ...headers },
+      });
+    }
+
+    // 速率限制检查
+    const clientIP = getClientIP(request);
+    const allowed = await checkRateLimit(env, clientIP);
+    if (!allowed) {
+      return new Response(JSON.stringify({
+        error: '请求过于频繁，请稍后再试（每小时最多 ' + RATE_LIMIT + ' 次）',
+        retryAfter: RATE_WINDOW,
+      }), {
+        status: 429,
+        headers: { 'Content-Type': 'application/json', 'Retry-After': String(RATE_WINDOW), ...headers },
+      });
+    }
+
+    // 解析请求体
+    let body;
+    try {
+      body = await request.json();
+    } catch (e) {
+      return new Response(JSON.stringify({ error: '请求体必须是有效的 JSON' }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json', ...headers },
+      });
+    }
+
+    // 提取监控信息
+    const pageInfo = body._page || 'unknown';
+    delete body._page; // 不传给 DeepSeek
+
+    // 转发到 DeepSeek API
+    let deepseekResponse;
+    try {
+      deepseekResponse = await fetch(DEEPSEEK_API_URL, {
+        method: 'POST',
         headers: {
-          'Access-Control-Allow-Origin': '*',
-          'Access-Control-Allow-Methods': 'POST, OPTIONS',
-          'Access-Control-Allow-Headers': 'Content-Type',
-          'Access-Control-Max-Age': '86400',
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${env.DEEPSEEK_API_KEY}`,
+          'Accept': 'text/event-stream',
+        },
+        body: JSON.stringify(body),
+      });
+    } catch (e) {
+      return new Response(JSON.stringify({ error: '连接 DeepSeek API 失败: ' + e.message }), {
+        status: 502,
+        headers: { 'Content-Type': 'application/json', ...headers },
+      });
+    }
+
+    // 如果 DeepSeek 返回错误，直接返回错误信息
+    if (!deepseekResponse.ok) {
+      const errorText = await deepseekResponse.text().catch(() => '');
+      return new Response(errorText, {
+        status: deepseekResponse.status,
+        headers: {
+          'Content-Type': 'application/json',
+          ...headers,
         },
       });
     }
 
-    // 仅允许 POST
-    if (request.method !== 'POST') {
-      return new Response('Method Not Allowed', {
-        status: 405,
-        headers: { 'Access-Control-Allow-Origin': '*' },
+    // 流式响应 — 需要边转发边统计 token 用量
+    const deepseekStream = deepseekResponse.body;
+    if (!deepseekStream) {
+      return new Response(JSON.stringify({ error: 'DeepSeek 返回了空响应' }), {
+        status: 502,
+        headers: { 'Content-Type': 'application/json', ...headers },
       });
     }
 
-    // 读取请求体
-    const body = await request.json();
+    // 创建 TransformStream 来拦截并统计 token
+    let totalInputTokens = 0;
+    let totalOutputTokens = 0;
 
-    // 注入 API Key
-    const deepseekRequest = {
-      ...body,
-      // 如果前端没传 api_key，使用环境变量
-      // DeepSeek 通过 Authorization header 认证
-    };
+    // 请求中的 messages 大约 token 数（粗略估计：4字符≈1token 用于中文，1字符≈0.3token 用于英文）
+    const messagesStr = JSON.stringify(body.messages || '');
+    totalInputTokens = Math.ceil(messagesStr.length / 3);
 
-    // 转发到 DeepSeek API（流式）
-    const deepseekResponse = await fetch('https://api.deepseek.com/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${env.DEEPSEEK_API_KEY}`,
-        'Accept': 'text/event-stream',
+    const transformer = new TransformStream({
+      transform(chunk, controller) {
+        // 尝试从 SSE chunk 中提取 usage 信息
+        const text = new TextDecoder().decode(chunk);
+        const lines = text.split('\n');
+        for (const line of lines) {
+          if (line.startsWith('data: ') && line !== 'data: [DONE]') {
+            try {
+              const json = JSON.parse(line.slice(6));
+              if (json.usage) {
+                totalInputTokens = json.usage.prompt_tokens || totalInputTokens;
+                totalOutputTokens = json.usage.completion_tokens || totalOutputTokens;
+              }
+            } catch (e) { /* not JSON */ }
+          }
+        }
+        controller.enqueue(chunk);
       },
-      body: JSON.stringify(deepseekRequest),
+      flush(controller) {
+        // 流结束后记录用量（异步，不阻塞响应）
+        ctx.waitUntil(recordUsage(env, {
+          inputTokens: totalInputTokens,
+          outputTokens: totalOutputTokens,
+          page: pageInfo,
+        }));
+        controller.terminate();
+      },
     });
 
-    // 流式转发响应
-    return new Response(deepseekResponse.body, {
+    const stream = deepseekStream.pipeThrough(transformer);
+
+    return new Response(stream, {
       status: deepseekResponse.status,
       headers: {
         'Content-Type': 'text/event-stream',
         'Cache-Control': 'no-cache',
         'Connection': 'keep-alive',
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Methods': 'POST, OPTIONS',
-        'Access-Control-Allow-Headers': 'Content-Type',
+        ...headers,
       },
     });
   },

@@ -8,15 +8,26 @@
 
   // ==================== 配置 ====================
   const CONFIG = {
-    // DeepSeek API
+    // ===== API 配置 =====
+    // 方案1（推荐）：通过 Cloudflare Worker 代理 — API Key 安全存储在后端
+    // 部署 bat-ai-proxy-worker.js 后，将下面的 URL 替换为你的 Worker URL
+    proxyUrl: 'https://bat-ai-proxy.bat-ai-proxy.workers.dev',
+    // 如果 Worker 未部署，用户可以在 ⚙ 设置中输入自己的 API Key
+    // 直接连接 DeepSeek（仅当用户自行提供 Key 时使用）
     deepseekApiUrl: 'https://api.deepseek.com/chat/completions',
-    // 默认 API Key — 用户无需配置即可使用
-    defaultApiKey: 'sk-8c164c390e3e435c9cc02bda300e97a1',
+    // ⚠️ 不再硬编码 API Key！用户 Key 仅存储在浏览器 localStorage 中
 
     // 模型配置
     model: 'deepseek-chat',
     maxTokens: 2048,
     temperature: 0.7,
+
+    // ===== 监控配置 =====
+    // Google Analytics 4 测量 ID（可选，用于全站访问监控）
+    // 前往 https://analytics.google.com 创建账号后获取 G-XXXXXXXXXX 格式的 ID
+    gaMeasurementId: '',  // 留空则不启用 GA
+    // Cloudflare Web Analytics token（可选，隐私友好的替代方案）
+    cfAnalyticsToken: '', // 留空则不启用
 
     // UI
     maxHistoryRounds: 15,
@@ -27,6 +38,7 @@
     // localStorage keys
     storageKeyHistory: 'bat_ai_history',
     storageKeySettings: 'bat_ai_settings',
+    storageKeyUsageLog: 'bat_ai_usage_log',   // 客户端用量记录
   };
 
   // ==================== 知识库 ====================
@@ -666,9 +678,9 @@ ${ctx.info.tips || '暂无'}
         </div>
         <div class="bat-settings-overlay" id="bat-settings-overlay">
           <h3>⚙ API 设置</h3>
-          <label>DeepSeek API Key（可选，留空使用默认）</label>
+          <label>DeepSeek API Key（可选，留空使用后端代理）</label>
           <input type="password" id="bat-settings-apikey" placeholder="sk-xxxxxxxx">
-          <label style="margin-top:4px;font-size:11px;color:#999;">Key 仅保存在你的浏览器本地</label>
+          <label style="margin-top:4px;font-size:11px;color:#999;">Key 仅保存在你的浏览器本地。如管理员已部署代理，无需填写</label>
           <label style="margin-top:8px;">模型</label>
           <input type="text" id="bat-settings-model" placeholder="deepseek-chat">
           <div class="bat-settings-btns">
@@ -728,13 +740,70 @@ ${ctx.info.tips || '暂无'}
       this.updateContext();
       this.initTooltipTimer();
       this.updateFooterStatus();
+      this.injectAnalytics();
       console.log('🦇 BAT AI 指引助手已就绪  |  Ctrl+Shift+B 切换面板');
+    }
+
+    // ===== Google Analytics 注入 =====
+    injectAnalytics() {
+      const gaId = CONFIG.gaMeasurementId;
+      if (!gaId || gaId.startsWith('G-XXXXXXXX')) return;
+
+      // GA4 脚本
+      const gaScript = document.createElement('script');
+      gaScript.async = true;
+      gaScript.src = `https://www.googletagmanager.com/gtag/js?id=${gaId}`;
+      document.head.appendChild(gaScript);
+
+      const gaInit = document.createElement('script');
+      gaInit.textContent = `
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+        gtag('config', '${gaId}', {
+          page_path: window.location.pathname,
+          page_title: document.title,
+        });
+      `;
+      document.head.appendChild(gaInit);
+      window.gtag = window.gtag || function () { (window.dataLayer = window.dataLayer || []).push(arguments); };
+
+      // Cloudflare Web Analytics（备选，隐私友好）
+      const cfToken = CONFIG.cfAnalyticsToken;
+      if (cfToken) {
+        const cfScript = document.createElement('script');
+        cfScript.defer = true;
+        cfScript.src = 'https://static.cloudflareinsights.com/beacon.min.js';
+        cfScript.setAttribute('data-cf-beacon', `{"token": "${cfToken}"}`);
+        document.head.appendChild(cfScript);
+      }
+
+      // 发送 AI 助手加载事件
+      const ctx = this.ctx;
+      this.sendGAEvent('ai_assistant_loaded', {
+        page: ctx.name || (ctx.isIndex ? 'index' : 'unknown'),
+        category: ctx.info?.category || 'unknown',
+      });
+    }
+
+    // 发送 GA 事件
+    sendGAEvent(eventName, params) {
+      if (typeof window.gtag === 'function') {
+        window.gtag('event', eventName, params);
+      }
     }
 
     updateFooterStatus() {
       const footer = this.dom.panel.querySelector('.bat-ai-footer');
       if (!footer) return;
-      footer.textContent = '由 DeepSeek 驱动 · 江南大学国家工程实验室';
+      const userKey = this.getApiKey();
+      if (userKey) {
+        footer.textContent = '由 DeepSeek 驱动 · 使用个人 Key';
+      } else if (CONFIG.proxyUrl && !CONFIG.proxyUrl.includes('REPLACE-ME')) {
+        footer.textContent = '由 DeepSeek 驱动 · 后端代理模式';
+      } else {
+        footer.textContent = '⚠ 未配置 · 请在 ⚙ 设置中输入 API Key';
+      }
     }
 
     // --- 事件绑定 ---
@@ -869,18 +938,29 @@ ${ctx.info.tips || '暂无'}
     getApiKey() { return this.loadSettings().apiKey || ''; }
     getModel() { return this.loadSettings().model || CONFIG.model; }
 
-    // API 配置：用户个人 Key > 默认 Key
+    // API 配置：优先使用代理，否则使用用户自己的 Key 直连
     getApiConfig() {
-      const apiKey = this.getApiKey() || CONFIG.defaultApiKey;
-      if (apiKey) {
+      const userApiKey = this.getApiKey();
+      // 如果用户设了自己的 Key，直连 DeepSeek
+      if (userApiKey) {
         return {
           url: CONFIG.deepseekApiUrl,
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': 'Bearer ' + apiKey,
+            'Authorization': 'Bearer ' + userApiKey,
           },
         };
       }
+      // 否则使用代理（API Key 安全存储在后端）
+      if (CONFIG.proxyUrl && !CONFIG.proxyUrl.includes('REPLACE-ME')) {
+        return {
+          url: CONFIG.proxyUrl,
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        };
+      }
+      // 都没有配置 — 提示用户
       return null;
     }
 
@@ -996,7 +1076,7 @@ ${ctx.info.tips || '暂无'}
       // 检查 API 配置
       const apiConfig = this.getApiConfig();
       if (!apiConfig) {
-        this.addMessageEl('assistant', '<p>⚠️ API 未配置，请联系管理员</p>');
+        this.addMessageEl('assistant', '<p>⚠️ AI 助手尚未配置。</p><p style="font-size:12px;color:#888;">管理员请部署 Cloudflare Worker 代理（见 bat-ai-proxy-worker.js），<br>或点击 ⚙ 设置输入你的 DeepSeek API Key。</p>');
         return;
       }
 
@@ -1005,6 +1085,13 @@ ${ctx.info.tips || '暂无'}
 
       this.addMessageEl('user', this.escapeHtml(text), text);
       this.messages.push({ role: 'user', content: text });
+
+      // GA 事件：用户提问
+      const ctx = this.ctx;
+      this.sendGAEvent('ai_query', {
+        page: ctx.name || (ctx.isIndex ? 'index' : 'unknown'),
+        query_length: text.length,
+      });
 
       const apiMessages = [
         { role: 'system', content: buildSystemPrompt(this.ctx) },
@@ -1044,6 +1131,10 @@ ${ctx.info.tips || '暂无'}
           highlightToolCards(fullResponse);
           this.setSending(false);
           this.isStreaming = false;
+          this.sendGAEvent('ai_response', {
+            page: this.ctx.name || (this.ctx.isIndex ? 'index' : 'unknown'),
+            response_length: fullResponse.length,
+          });
         },
         onError: (err) => {
           this.removeTyping();
@@ -1051,8 +1142,8 @@ ${ctx.info.tips || '暂无'}
           let errMsg = '抱歉，请求遇到了问题 😥';
           const em = err.message || '';
           if (em.includes('Failed to fetch') || em.includes('NetworkError'))
-            errMsg = '无法连接到AI服务，请检查网络或⚙设置中的代理地址';
-          else if (em.includes('401')) errMsg = 'API Key 无效或已过期，请检查 ⚙ 设置中的 Key（sk-...开头）';
+            errMsg = '无法连接到AI服务，请检查网络或管理员是否已部署代理服务';
+          else if (em.includes('401')) errMsg = 'API Key 无效或已过期，请在 ⚙ 设置中更新 Key';
           else if (em.includes('402')) errMsg = 'API 额度不足，请到 DeepSeek 平台充值 💰';
           else if (em.includes('429')) errMsg = '请求过于频繁，请稍后再试 ⏳';
           else if (em.includes('500') || em.includes('502') || em.includes('503'))
@@ -1060,6 +1151,10 @@ ${ctx.info.tips || '暂无'}
           this.addMessageEl('assistant', '<p>' + errMsg + '</p>');
           this.setSending(false);
           this.isStreaming = false;
+          this.sendGAEvent('ai_error', {
+            page: this.ctx.name || (this.ctx.isIndex ? 'index' : 'unknown'),
+            error: em.substring(0, 100),
+          });
         },
       });
     }
@@ -1071,27 +1166,43 @@ ${ctx.info.tips || '暂无'}
         return;
       }
 
+      // 构建请求体
+      const requestBody = {
+        model: this.getModel(),
+        messages,
+        stream: true,
+        max_tokens: CONFIG.maxTokens,
+        temperature: CONFIG.temperature,
+      };
+
+      // 通过代理时附加页面信息用于监控
+      if (apiConfig.url === CONFIG.proxyUrl) {
+        requestBody._page = this.ctx.name || (this.ctx.isIndex ? 'index' : 'unknown');
+      }
+
       try {
         const resp = await fetch(apiConfig.url, {
           method: 'POST',
           headers: apiConfig.headers,
-          body: JSON.stringify({
-            model: this.getModel(),
-            messages,
-            stream: true,
-            max_tokens: CONFIG.maxTokens,
-            temperature: CONFIG.temperature,
-          }),
+          body: JSON.stringify(requestBody),
         });
 
         if (!resp.ok) {
           const txt = await resp.text().catch(() => '');
-          throw new Error(`API Error (${resp.status}): ${txt}`);
+          let errMsg = `API Error (${resp.status})`;
+          try {
+            const errJson = JSON.parse(txt);
+            if (errJson.error) errMsg = errJson.error;
+          } catch (e) { errMsg += ': ' + txt.substring(0, 200); }
+          throw new Error(errMsg);
         }
 
         const reader = resp.body.getReader();
         const decoder = new TextDecoder();
         let buffer = '';
+        // 记录 token 用量（从 usage 字段提取）
+        let inputTokens = 0;
+        let outputTokens = 0;
 
         while (true) {
           const { done, value } = await reader.read();
@@ -1104,11 +1215,20 @@ ${ctx.info.tips || '暂无'}
             const t = line.trim();
             if (!t || !t.startsWith('data: ')) continue;
             const data = t.slice(6);
-            if (data === '[DONE]') { callbacks.onDone(); return; }
+            if (data === '[DONE]') {
+              this.logClientUsage(inputTokens, outputTokens);
+              callbacks.onDone();
+              return;
+            }
             try {
               const json = JSON.parse(data);
               const content = json.choices?.[0]?.delta?.content;
               if (content) callbacks.onChunk(content);
+              // 提取 usage 信息（流结束时 DeepSeek 会在最后一个 chunk 返回）
+              if (json.usage) {
+                inputTokens = json.usage.prompt_tokens || 0;
+                outputTokens = json.usage.completion_tokens || 0;
+              }
             } catch (e) { /* skip parse errors */ }
           }
         }
@@ -1120,13 +1240,42 @@ ${ctx.info.tips || '暂无'}
               const json = JSON.parse(t.slice(6));
               const content = json.choices?.[0]?.delta?.content;
               if (content) callbacks.onChunk(content);
+              if (json.usage) {
+                inputTokens = json.usage.prompt_tokens || 0;
+                outputTokens = json.usage.completion_tokens || 0;
+              }
             } catch (e) { /* skip */ }
           }
         }
+        this.logClientUsage(inputTokens, outputTokens);
         callbacks.onDone();
       } catch (e) {
+        this.logClientUsage(0, 0, e.message);
         callbacks.onError(e);
       }
+    }
+
+    // 客户端用量记录（localStorage 备份监控）
+    logClientUsage(inputTokens, outputTokens, error) {
+      try {
+        const today = new Date().toISOString().split('T')[0];
+        const raw = localStorage.getItem(CONFIG.storageKeyUsageLog);
+        const log = raw ? JSON.parse(raw) : {};
+
+        if (!log[today]) {
+          log[today] = { requests: 0, errors: 0, inputTokens: 0, outputTokens: 0 };
+        }
+        log[today].requests++;
+        log[today].inputTokens += inputTokens;
+        log[today].outputTokens += outputTokens;
+        if (error) log[today].errors++;
+
+        // 只保留最近 60 天
+        const keys = Object.keys(log).sort();
+        while (keys.length > 60) { delete log[keys.shift()]; }
+
+        localStorage.setItem(CONFIG.storageKeyUsageLog, JSON.stringify(log));
+      } catch (e) { /* ignore */ }
     }
 
     attachToolEvents(msgEl) {

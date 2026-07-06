@@ -416,9 +416,33 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            // API配置（不显示在页面上）
-            const API_BASE_URL = 'http://127.0.0.1/v1';
-            const API_KEY = 'app-H1ojj4eYARu6TbssCNHgr8Mz';
+            // ===== API 配置 =====
+            // ⚠️ API Key 不在此处硬编码！
+            // 请在下方输入你的 API 信息，或通过 localStorage 设置：
+            //   localStorage.setItem('bioai_api_config', JSON.stringify({ baseUrl: '...', apiKey: '...' }))
+            const STORAGE_KEY = 'bioai_api_config';
+
+            function getAPIConfig() {
+              // 优先从 localStorage 读取
+              try {
+                const stored = localStorage.getItem(STORAGE_KEY);
+                if (stored) {
+                  const config = JSON.parse(stored);
+                  if (config.baseUrl && config.apiKey) return config;
+                }
+              } catch (e) { /* ignore */ }
+              return null;
+            }
+
+            function getAPIBaseURL() {
+              const config = getAPIConfig();
+              return config ? config.baseUrl : null;
+            }
+
+            function getAPIKey() {
+              const config = getAPIConfig();
+              return config ? config.apiKey : null;
+            }
             
             // 聊天功能变量
             const chatMessages = document.getElementById('chat-messages');
@@ -509,25 +533,34 @@
             
             // 发送消息到API
             async function sendMessageToAPI(message) {
+                const baseUrl = getAPIBaseURL();
+                const apiKey = getAPIKey();
+
+                if (!baseUrl || !apiKey) {
+                    throw new Error('API 未配置。请在浏览器控制台运行:\n' +
+                        'localStorage.setItem("bioai_api_config", JSON.stringify({baseUrl:"你的API地址", apiKey:"你的Key"}));\n' +
+                        '然后刷新页面。');
+                }
+
                 try {
-                    const response = await fetch(`${API_BASE_URL}/chat-messages`, {
+                    const response = await fetch(`${baseUrl}/chat-messages`, {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
-                            'Authorization': `Bearer ${API_KEY}`
+                            'Authorization': `Bearer ${apiKey}`
                         },
                         body: JSON.stringify({
                             inputs: {},
                             query: message,
                             response_mode: "blocking",
-                            user: "user-123"
+                            user: "user-" + Date.now().toString(36)
                         })
                     });
-                    
+
                     if (!response.ok) {
                         throw new Error(`API请求失败: ${response.status}`);
                     }
-                    
+
                     const data = await response.json();
                     return data.answer;
                 } catch (error) {

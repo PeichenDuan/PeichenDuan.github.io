@@ -1,0 +1,15 @@
+{
+  "$schema": "https://raw.githubusercontent.com/cloudflare/workers-sdk/main/packages/wrangler/config-schema.json",
+  "name": "bat-ai-proxy",
+  "main": "bat-ai-proxy-worker.js",
+  "compatibility_date": "2025-07-06",
+  "compatibility_flags": ["nodejs_compat"],
+  "kv_namespaces": [
+    {
+      "binding": "BAT_USAGE",
+      "id": "a4c9a32cbb6441a4840fdba45f5bbf30",
+      "preview_id": "a4c9a32cbb6441a4840fdba45f5bbf30"
+    }
+  ],
+  "workers_dev": true
+}

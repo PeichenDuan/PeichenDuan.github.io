@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BAT 监控面板 - 管理员</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <style>
+        :root {
+            --primary: #32586d;
+            --accent: #ca3032;
+            --secondary: #b2d1d6;
+            --light: #e1f0f2;
+            --dark: #1e3a47;
+            --success: #2e8b57;
+            --warning: #f0ad4e;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: "Microsoft YaHei", "微软雅黑", sans-serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #d4e3e9 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        /* 密码门 */
+        #gate {
+            display: flex; align-items: center; justify-content: center;
+            min-height: 100vh; background: var(--dark);
+        }
+        .gate-box {
+            background: #fff; border-radius: 12px; padding: 40px;
+            box-shadow: 0 12px 40px rgba(0,0,0,.3);
+            text-align: center; max-width: 400px; width: 90%;
+        }
+        .gate-box h1 { font-size: 28px; color: var(--primary); margin-bottom: 8px; }
+        .gate-box .icon { font-size: 48px; margin-bottom: 16px; }
+        .gate-box input {
+            width: 100%; padding: 12px 16px; border: 2px solid #ddd;
+            border-radius: 8px; font-size: 15px; margin: 12px 0;
+            font-family: inherit; text-align: center;
+        }
+        .gate-box input:focus { border-color: var(--primary); outline: none; }
+        .gate-box button {
+            width: 100%; padding: 12px; background: var(--primary);
+            color: #fff; border: none; border-radius: 8px; font-size: 16px;
+            cursor: pointer; font-family: inherit; transition: background .2s;
+        }
+        .gate-box button:hover { background: var(--dark); }
+        .gate-box .hint { font-size: 12px; color: #999; margin-top: 12px; }
+
+        /* 主面板 */
+        #dashboard { display: none; min-height: 100vh; }
+        .header {
+            background: var(--primary); color: #fff; padding: 16px 24px;
+            display: flex; align-items: center; justify-content: space-between;
+            flex-wrap: wrap; gap: 12px;
+        }
+        .header h1 { font-size: 20px; }
+        .header .status { font-size: 13px; opacity: .8; }
+        .header button {
+            background: rgba(255,255,255,.15); border: 1px solid rgba(255,255,255,.2);
+            color: #fff; padding: 8px 16px; border-radius: 6px;
+            cursor: pointer; font-family: inherit; font-size: 13px;
+        }
+        .header button:hover { background: rgba(255,255,255,.25); }
+        .content { max-width: 1400px; margin: 0 auto; padding: 24px; }
+
+        /* 摘要卡片 */
+        .summary-cards {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 16px; margin-bottom: 24px;
+        }
+        .card {
+            background: #fff; border-radius: 10px; padding: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,.06);
+        }
+        .card .label { font-size: 13px; color: #888; margin-bottom: 8px; }
+        .card .value { font-size: 32px; font-weight: 700; color: var(--primary); }
+        .card .sub { font-size: 12px; color: #999; margin-top: 4px; }
+        .card.warn .value { color: var(--accent); }
+        .card.good .value { color: var(--success); }
+
+        /* 图表区域 */
+        .charts-grid {
+            display: grid; grid-template-columns: 2fr 1fr;
+            gap: 16px; margin-bottom: 24px;
+        }
+        @media (max-width: 900px) { .charts-grid { grid-template-columns: 1fr; } }
+
+        .chart-box {
+            background: #fff; border-radius: 10px; padding: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,.06);
+        }
+        .chart-box h3 { font-size: 15px; color: var(--primary); margin-bottom: 16px; }
+
+        /* 表格 */
+        .table-box {
+            background: #fff; border-radius: 10px; padding: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,.06); margin-bottom: 24px;
+        }
+        .table-box h3 { font-size: 15px; color: var(--primary); margin-bottom: 12px; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid #eee; font-size: 13px; }
+        th { color: #888; font-weight: 600; font-size: 12px; text-transform: uppercase; }
+        td .bar-bg { background: #eee; border-radius: 4px; height: 8px; min-width: 4px; }
+        td .bar-fill { background: var(--primary); border-radius: 4px; height: 100%; }
+
+        /* 标签 */
+        .tag { display: inline-block; padding: 2px 10px; border-radius: 10px; font-size: 11px; font-weight: 600; }
+        .tag-ok { background: #e6f4ea; color: #1e7e34; }
+        .tag-warn { background: #fff3cd; color: #856404; }
+        .tag-bad { background: #fce4e4; color: #b71c1c; }
+
+        /* 响应式 */
+        @media (max-width: 600px) {
+            .summary-cards { grid-template-columns: 1fr 1fr; }
+            .card .value { font-size: 24px; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- 密码门 -->
+<div id="gate">
+    <div class="gate-box">
+        <div class="icon">🦇</div>
+        <h1>BAT 管理员监控</h1>
+        <p style="color:#888;margin-bottom:16px;">请输入管理员密码</p>
+        <input type="password" id="gate-password" placeholder="输入密码..." autofocus>
+        <button onclick="unlock()">进入面板</button>
+        <p class="hint">默认密码：bat-admin-2024（请在 Cloudflare Worker 中修改 ADMIN_KEY）</p>
+    </div>
+</div>
+
+<!-- 主面板 -->
+<div id="dashboard">
+    <div class="header">
+        <div>
+            <h1>🦇 BAT 监控面板</h1>
+            <div class="status" id="header-status">正在加载...</div>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;">
+            <span style="font-size:12px;opacity:.7;" id="clock"></span>
+            <button onclick="refreshData()">🔄 刷新</button>
+            <button onclick="location.reload()">🚪 退出</button>
+        </div>
+    </div>
+    <div class="content">
+        <!-- 摘要卡片 -->
+        <div class="summary-cards" id="summary-cards">
+            <div class="card">
+                <div class="label">📊 今日 API 调用</div>
+                <div class="value" id="val-today-req">--</div>
+                <div class="sub">次请求</div>
+            </div>
+            <div class="card">
+                <div class="label">💰 今日费用</div>
+                <div class="value" id="val-today-cost">--</div>
+                <div class="sub">人民币</div>
+            </div>
+            <div class="card">
+                <div class="label">📅 30天总费用</div>
+                <div class="value warn" id="val-month-cost">--</div>
+                <div class="sub">预估月费 ¥<span id="val-est-month">--</span></div>
+            </div>
+            <div class="card">
+                <div class="label">🔢 30天总调用</div>
+                <div class="value" id="val-month-req">--</div>
+                <div class="sub">Token: <span id="val-total-tokens">--</span></div>
+            </div>
+            <div class="card">
+                <div class="label">📈 日均费用</div>
+                <div class="value" id="val-avg-cost">--</div>
+                <div class="sub">/天</div>
+            </div>
+        </div>
+
+        <!-- 图表 -->
+        <div class="charts-grid">
+            <div class="chart-box">
+                <h3>📊 近30天 API 调用量 & 费用</h3>
+                <canvas id="chart-daily" height="280"></canvas>
+            </div>
+            <div class="chart-box">
+                <h3>⏰ 今日分时调用量</h3>
+                <canvas id="chart-hourly" height="280"></canvas>
+            </div>
+        </div>
+
+        <!-- 热门页面 -->
+        <div class="table-box">
+            <h3>🌐 AI 调用来源页面 Top 10（30天）</h3>
+            <div id="top-pages-table"><p style="color:#999;">正在加载...</p></div>
+        </div>
+
+        <!-- 客户端本地日志 -->
+        <div class="table-box">
+            <h3>💻 本浏览器 AI 使用记录（localStorage）</h3>
+            <div id="local-log-table"><p style="color:#999;">正在加载...</p></div>
+        </div>
+
+        <!-- 设置信息 -->
+        <div class="table-box">
+            <h3>⚙ 配置状态</h3>
+            <table id="config-table">
+                <tr><td>API 代理 URL</td><td id="cfg-proxy">--</td></tr>
+                <tr><td>Google Analytics</td><td id="cfg-ga">--</td></tr>
+                <tr><td>Cloudflare Worker</td><td id="cfg-worker">--</td></tr>
+                <tr><td>DeepSeek 定价</td><td>输入 ¥1/1M tokens · 输出 ¥2/1M tokens</td></tr>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script>
+// ==================== 密码验证 ====================
+const DEFAULT_PASSWORD = 'bat-admin-2024';
+let adminKey = DEFAULT_PASSWORD;
+let proxyUrl = '';
+
+function unlock() {
+    const input = document.getElementById('gate-password').value.trim();
+    // 支持多个密码：默认密码 或 用户本地存储的密码
+    const savedKey = localStorage.getItem('bat_admin_key') || DEFAULT_PASSWORD;
+    if (input === DEFAULT_PASSWORD || input === savedKey) {
+        adminKey = input;
+        document.getElementById('gate').style.display = 'none';
+        document.getElementById('dashboard').style.display = 'block';
+        initDashboard();
+    } else {
+        alert('密码错误！默认密码: ' + DEFAULT_PASSWORD);
+    }
+}
+// Enter 键提交
+document.getElementById('gate-password').addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') unlock();
+});
+
+// ==================== 仪表盘初始化 ====================
+let dailyChart = null;
+let hourlyChart = null;
+
+function initDashboard() {
+    updateClock();
+    setInterval(updateClock, 30000);
+    refreshData();
+}
+
+function updateClock() {
+    const now = new Date();
+    document.getElementById('clock').textContent = now.toLocaleString('zh-CN');
+}
+
+// ==================== 数据获取 ====================
+async function refreshData() {
+    document.getElementById('header-status').textContent = '正在刷新...';
+
+    // 1. 尝试从 Cloudflare Worker 获取数据
+    let workerData = null;
+    proxyUrl = localStorage.getItem('bat_admin_proxy_url') || 'https://bat-ai-proxy.bat-ai-proxy.workers.dev';
+
+    if (proxyUrl) {
+        try {
+            const resp = await fetch(`${proxyUrl}/stats?key=${encodeURIComponent(adminKey)}`);
+            if (resp.ok) {
+                workerData = await resp.json();
+                document.getElementById('cfg-worker').innerHTML = '<span class="tag tag-ok">已连接</span> ' + proxyUrl;
+                document.getElementById('header-status').textContent =
+                    '数据来源: Cloudflare Worker · 更新于 ' + new Date(workerData.generatedAt).toLocaleString('zh-CN');
+            } else {
+                const err = await resp.json().catch(() => ({}));
+                document.getElementById('cfg-worker').innerHTML =
+                    '<span class="tag tag-warn">认证失败</span> ' + (err.error || resp.status);
+                document.getElementById('header-status').textContent = 'Worker 连接失败: ' + (err.error || '状态 ' + resp.status);
+            }
+        } catch (e) {
+            document.getElementById('cfg-worker').innerHTML =
+                '<span class="tag tag-bad">无法连接</span> ' + e.message;
+            document.getElementById('header-status').textContent = 'Worker 不可达 — 显示本地数据';
+        }
+    } else {
+        document.getElementById('cfg-worker').innerHTML =
+            '<span class="tag tag-warn">未配置</span> 请在下方输入 Worker URL';
+    }
+
+    // 更新配置信息
+    document.getElementById('cfg-proxy').textContent = proxyUrl || '未配置（在下方设置）';
+    document.getElementById('cfg-ga').textContent =
+        (localStorage.getItem('bat_ga_id') || '未配置（在 bat-ai-assistant.js 中设置 gaMeasurementId）');
+
+    // 2. 渲染 Worker 数据（如果有）
+    if (workerData && !workerData.setup_required) {
+        renderWorkerData(workerData);
+    } else if (workerData && workerData.setup_required) {
+        document.getElementById('header-status').textContent = '⚠ KV 命名空间未配置，请在 Cloudflare 中绑定 BAT_USAGE KV';
+    }
+
+    // 3. 渲染客户端本地日志
+    renderLocalLog();
+}
+
+// ==================== Worker 数据渲染 ====================
+function renderWorkerData(data) {
+    const s = data.summary;
+    const today = s.today;
+    const total = s.total30Days;
+
+    // 摘要卡片
+    document.getElementById('val-today-req').textContent = today.requests.toLocaleString();
+    document.getElementById('val-today-cost').textContent = '¥' + today.cost.toFixed(4);
+    document.getElementById('val-month-cost').textContent = '¥' + total.cost.toFixed(2);
+    document.getElementById('val-est-month').textContent = (total.cost / 30 * 30).toFixed(2);
+    document.getElementById('val-month-req').textContent = total.requests.toLocaleString();
+    document.getElementById('val-total-tokens').textContent =
+        (total.inputTokens + total.outputTokens).toLocaleString();
+    document.getElementById('val-avg-cost').textContent = '¥' + (total.cost / 30).toFixed(4);
+
+    // 每日图表
+    const labels = data.daily.map(d => d.date.substring(5)); // MM-DD
+    const reqData = data.daily.map(d => d.requests);
+    const costData = data.daily.map(d => Math.round(d.cost * 10000) / 10000);
+
+    const dailyCtx = document.getElementById('chart-daily').getContext('2d');
+    if (dailyChart) dailyChart.destroy();
+    dailyChart = new Chart(dailyCtx, {
+        type: 'bar',
+        data: {
+            labels,
+            datasets: [
+                {
+                    label: '调用次数',
+                    data: reqData,
+                    backgroundColor: 'rgba(50,88,109,.6)',
+                    borderColor: '#32586d',
+                    borderWidth: 1,
+                    borderRadius: 4,
+                    yAxisID: 'y',
+                    order: 2,
+                },
+                {
+                    label: '费用 (¥)',
+                    data: costData,
+                    type: 'line',
+                    borderColor: '#ca3032',
+                    backgroundColor: 'rgba(202,48,50,.1)',
+                    borderWidth: 2,
+                    pointRadius: 3,
+                    tension: .3,
+                    yAxisID: 'y1',
+                    order: 1,
+                },
+            ],
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: { intersect: false, mode: 'index' },
+            plugins: { legend: { position: 'top', labels: { boxWidth: 12 } } },
+            scales: {
+                y: { type: 'linear', position: 'left', title: { display: true, text: '调用次数' }, beginAtZero: true },
+                y1: { type: 'linear', position: 'right', title: { display: true, text: '费用 (¥)' }, grid: { drawOnChartArea: false }, beginAtZero: true },
+            },
+        },
+    });
+
+    // 小时图表
+    const hourLabels = data.hourly.map(h => h.hour + ':00');
+    const hourReq = data.hourly.map(h => h.requests);
+
+    const hourlyCtx = document.getElementById('chart-hourly').getContext('2d');
+    if (hourlyChart) hourlyChart.destroy();
+    hourlyChart = new Chart(hourlyCtx, {
+        type: 'bar',
+        data: {
+            labels: hourLabels,
+            datasets: [{
+                label: '调用次数',
+                data: hourReq,
+                backgroundColor: hourReq.map(v => v > 0 ? 'rgba(50,88,109,.7)' : 'rgba(178,209,214,.3)'),
+                borderRadius: 3,
+            }],
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: { y: { beginAtZero: true, title: { display: true, text: '请求数' } } },
+        },
+    });
+
+    // 热门页面
+    if (data.topPages && data.topPages.length > 0) {
+        const maxReq = data.topPages[0].requests || 1;
+        let html = '<table><tr><th>页面</th><th>调用次数</th><th>占比</th></tr>';
+        data.topPages.forEach(p => {
+            html += `<tr>
+                <td>${escapeHtml(p.page)}</td>
+                <td>${p.requests.toLocaleString()}</td>
+                <td>
+                    <div style="display:flex;align-items:center;gap:8px;">
+                        <div class="bar-bg" style="width:120px;"><div class="bar-fill" style="width:${Math.round(p.requests/maxReq*100)}%"></div></div>
+                        ${Math.round(p.requests / (data.summary.total30Days.requests || 1) * 100)}%
+                    </div>
+                </td>
+            </tr>`;
+        });
+        html += '</table>';
+        document.getElementById('top-pages-table').innerHTML = html;
+    } else {
+        document.getElementById('top-pages-table').innerHTML = '<p style="color:#999;">暂无页面统计数据</p>';
+    }
+}
+
+// ==================== 本地日志渲染 ====================
+function renderLocalLog() {
+    const container = document.getElementById('local-log-table');
+    try {
+        const raw = localStorage.getItem('bat_ai_usage_log');
+        if (!raw) {
+            container.innerHTML = '<p style="color:#999;">本浏览器暂无 AI 使用记录</p>';
+            return;
+        }
+        const log = JSON.parse(raw);
+        const dates = Object.keys(log).sort().reverse();
+        if (dates.length === 0) {
+            container.innerHTML = '<p style="color:#999;">本浏览器暂无 AI 使用记录</p>';
+            return;
+        }
+
+        let html = '<table><tr><th>日期</th><th>请求数</th><th>输入Token</th><th>输出Token</th><th>错误</th></tr>';
+        dates.forEach(date => {
+            const d = log[date];
+            html += `<tr>
+                <td>${date}</td>
+                <td>${d.requests.toLocaleString()}</td>
+                <td>${(d.inputTokens || 0).toLocaleString()}</td>
+                <td>${(d.outputTokens || 0).toLocaleString()}</td>
+                <td>${d.errors ? '<span class="tag tag-bad">' + d.errors + '</span>' : '<span class="tag tag-ok">0</span>'}</td>
+            </tr>`;
+        });
+        html += '</table>';
+
+        // 总计
+        const totalReq = dates.reduce((s, d) => s + log[d].requests, 0);
+        const totalErr = dates.reduce((s, d) => s + (log[d].errors || 0), 0);
+        html += `<p style="margin-top:12px;font-size:13px;color:#888;">
+            总计: ${totalReq} 次请求 · ${totalErr} 次错误 · ${dates.length} 天有记录
+        </p>`;
+        container.innerHTML = html;
+    } catch (e) {
+        container.innerHTML = '<p style="color:#999;">读取本地日志失败: ' + e.message + '</p>';
+    }
+}
+
+// ==================== Worker URL 配置 ====================
+function setupWorkerUrl() {
+    const url = prompt('请输入 Cloudflare Worker URL:\n（如 https://bat-ai-proxy.xxx.workers.dev）', proxyUrl);
+    if (url && url.trim()) {
+        proxyUrl = url.trim().replace(/\/+$/, '');
+        localStorage.setItem('bat_admin_proxy_url', proxyUrl);
+        refreshData();
+    }
+}
+
+// ==================== 工具函数 ====================
+function escapeHtml(s) {
+    const d = document.createElement('div');
+    d.textContent = s;
+    return d.innerHTML;
+}
+
+// 页面加载时，如果 hash 中有 key 参数则自动解锁
+(function() {
+    const hash = window.location.hash;
+    if (hash.includes('key=')) {
+        const key = hash.split('key=')[1]?.split('&')[0];
+        if (key) {
+            document.getElementById('gate-password').value = key;
+            unlock();
+        }
+    }
+})();
+
+// 添加 Worker URL 配置入口到页面
+document.addEventListener('DOMContentLoaded', function() {
+    // 在配置表中添加快捷设置
+    setTimeout(() => {
+        const cfgProxy = document.getElementById('cfg-proxy');
+        if (cfgProxy && cfgProxy.textContent === '未配置（在下方设置）') {
+            cfgProxy.innerHTML = '<a href="#" onclick="setupWorkerUrl();return false;" style="color:#32586d;">点击设置 Worker URL</a>';
+        }
+    }, 500);
+});
+</script>
+
+</body>
+</html>
