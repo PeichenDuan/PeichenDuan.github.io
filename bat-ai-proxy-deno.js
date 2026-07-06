@@ -24,43 +24,106 @@ const LOCAL_ORIGIN_PATTERNS = [
   /^https?:\/\/0\.0\.0\.0(:\d+)?$/,
 ];
 
-// ==================== Deno KV ====================
+// ==================== 持久化存储（KV 优先，内存兜底） ====================
 let kv = null;
+let kvAvailable = false;
+const memFallback = new Map();
+
 async function getKv() {
-  if (!kv) kv = await Deno.openKv();
+  if (kv !== null) return kv;
+  try {
+    kv = await Deno.openKv();
+    kvAvailable = true;
+    console.log('KV storage initialized');
+  } catch (e) {
+    console.warn('KV unavailable, using memory fallback:', e.message);
+    kvAvailable = false;
+  }
   return kv;
 }
 
-// 原子递增（用 Deno KV atomic sum，跨 isolate 安全）
-async function kvIncrement(key, field, delta) {
-  const db = await getKv();
-  const fullKey = [...key, field];
-  await db.atomic().mutate({
-    type: 'sum',
-    key: fullKey,
-    value: BigInt(delta),
-  }).commit();
-}
-
-async function kvSet(key, value) {
-  const db = await getKv();
-  await db.set(key, value);
-}
-
-async function kvGet(key) {
-  const db = await getKv();
-  const result = await db.get(key);
-  return result.value;
-}
-
-async function kvList(prefix) {
-  const db = await getKv();
-  const results = [];
-  const entries = db.list({ prefix });
-  for await (const entry of entries) {
-    results.push({ key: entry.key, value: entry.value });
+// 统一计数器：写入 KV 或内存
+async function counterIncr(prefix, name, field, delta) {
+  if (kvAvailable) {
+    const db = await getKv();
+    const key = [prefix, name, field];
+    try {
+      await db.atomic().sum(key, BigInt(delta)).commit();
+      return;
+    } catch (e) {
+      console.warn('KV sum failed, trying set:', e.message);
+      // fallback: get + set
+      try {
+        const r = await db.get(key);
+        const cur = r.value ? Number(r.value) : 0;
+        await db.set(key, BigInt(cur + delta));
+        return;
+      } catch (e2) { console.error('KV set failed:', e2.message); }
+    }
   }
-  return results;
+  // 内存兜底
+  const mk = `${prefix}:${name}:${field}`;
+  memFallback.set(mk, (memFallback.get(mk) || 0) + delta);
+}
+
+async function counterGet(prefix, name, field) {
+  if (kvAvailable) {
+    try {
+      const db = await getKv();
+      const r = await db.get([prefix, name, field]);
+      return Number(r.value || 0n);
+    } catch (e) { /* fall through */ }
+  }
+  return memFallback.get(`${prefix}:${name}:${field}`) || 0;
+}
+
+async function counterList(prefix) {
+  const result = [];
+  if (kvAvailable) {
+    try {
+      const db = await getKv();
+      const entries = db.list({ prefix: [prefix] });
+      for await (const e of entries) {
+        // key format: [prefix, name, field]
+        result.push({ name: e.key[1], field: e.key[2], value: Number(e.value || 0n) });
+      }
+      return result;
+    } catch (e) { /* fall through */ }
+  }
+  // 内存兜底
+  const pre = prefix + ':';
+  for (const [k, v] of memFallback) {
+    if (k.startsWith(pre)) {
+      const parts = k.slice(pre.length).split(':');
+      result.push({ name: parts[0], field: parts[1], value: v });
+    }
+  }
+  return result;
+}
+
+// 通用 KV 存取（反馈留言等非计数场景）
+async function storeSet(prefix, id, data) {
+  if (kvAvailable) {
+    try { const db = await getKv(); await db.set([prefix, id], data); return; } catch (e) {}
+  }
+  memFallback.set(`${prefix}:${id}`, data);
+}
+
+async function storeList(prefix) {
+  const items = [];
+  if (kvAvailable) {
+    try {
+      const db = await getKv();
+      const entries = db.list({ prefix: [prefix] });
+      for await (const e) { if (e.value) items.push(e.value); }
+      return items;
+    } catch (e) {}
+  }
+  const pre = prefix + ':';
+  for (const [k, v] of memFallback) {
+    if (k.startsWith(pre)) items.push(v);
+  }
+  return items;
 }
 
 // ==================== 工具函数 ====================
@@ -120,19 +183,20 @@ async function recordUsage(inputTokens, outputTokens, page) {
   const cost = (inputTokens / 1_000_000) * PRICING.input + (outputTokens / 1_000_000) * PRICING.output;
   const dateKey = getDateKey();
   const hourKey = getHourKey();
+  const costMicro = Math.round(cost * 10000);
 
   await Promise.all([
-    kvIncrement(['daily', dateKey], 'requests', 1),
-    kvIncrement(['daily', dateKey], 'inputTokens', inputTokens),
-    kvIncrement(['daily', dateKey], 'outputTokens', outputTokens),
-    kvIncrement(['daily', dateKey], 'costMicro', Math.round(cost * 10000)),
-    kvIncrement(['hourly', hourKey], 'requests', 1),
-    kvIncrement(['hourly', hourKey], 'costMicro', Math.round(cost * 10000)),
+    counterIncr('daily', dateKey, 'requests', 1),
+    counterIncr('daily', dateKey, 'inputTokens', inputTokens),
+    counterIncr('daily', dateKey, 'outputTokens', outputTokens),
+    counterIncr('daily', dateKey, 'costMicro', costMicro),
+    counterIncr('hourly', hourKey, 'requests', 1),
+    counterIncr('hourly', hourKey, 'costMicro', costMicro),
   ]);
 
   if (page) {
     const clean = page.replace(/[^a-zA-Z0-9一-鿿_-]/g, '_').substring(0, 80);
-    await kvIncrement(['pages'], clean, 1);
+    await counterIncr('page', clean, 'requests', 1);
   }
 }
 
@@ -140,8 +204,8 @@ async function recordPageView(page, ip) {
   const dateKey = getDateKey();
   const clean = (page || 'unknown').replace(/[^a-zA-Z0-9一-鿿_-]/g, '_').substring(0, 80);
   await Promise.all([
-    kvIncrement(['pv', 'daily', dateKey], 'count', 1),
-    kvIncrement(['pv', 'pages'], clean, 1),
+    counterIncr('pvDaily', dateKey, 'count', 1),
+    counterIncr('pvPage', clean, 'views', 1),
   ]);
 }
 
@@ -149,11 +213,11 @@ async function recordToolClick(toolName, category) {
   const dateKey = getDateKey();
   const clean = (toolName || 'unknown').replace(/[^a-zA-Z0-9一-鿿_-]/g, '_').substring(0, 60);
   const tasks = [
-    kvIncrement(['tc', 'daily', dateKey], 'count', 1),
-    kvIncrement(['tc', 'tools'], clean, 1),
+    counterIncr('tcDaily', dateKey, 'count', 1),
+    counterIncr('tcTool', clean, 'clicks', 1),
   ];
   if (category) {
-    tasks.push(kvIncrement(['tc', 'cats'], category, 1));
+    tasks.push(counterIncr('tcCat', category, 'clicks', 1));
   }
   await Promise.all(tasks);
 }
@@ -197,8 +261,8 @@ async function handleFeedback(request) {
   if (request.method === 'GET') {
     const key = url.searchParams.get('key') || '';
     if (!adminKey || key !== adminKey) return jsonResponse({ error: '未授权' }, 401, corsHeaders(request));
-    const list = await kvList(['feedback']);
-    const feedbacks = list.map(e => e.value).sort((a, b) => new Date(b.time) - new Date(a.time));
+    const feedbacks = await storeList('feedback');
+    feedbacks.sort((a, b) => new Date(b.time) - new Date(a.time));
     return jsonResponse({ feedbacks }, 200, corsHeaders(request));
   }
 
@@ -219,7 +283,7 @@ async function handleFeedback(request) {
       ip: await hashIP(getClientIP(request)),
       time: new Date().toISOString(),
     };
-    await kvSet(['feedback', fb.id], fb);
+    await storeSet('feedback', fb.id, fb);
     return jsonResponse({ ok: true, id: fb.id }, 200, corsHeaders(request));
   }
 }
@@ -237,90 +301,65 @@ async function handleStats(request) {
   try {
     const today = new Date();
     const todayKey = getDateKey();
+    const todayHourKey = getHourKey();
 
-    // 每日统计（从 KV 汇总）
-    const dailyList = await kvList(['daily']);
-    const dailyMap = {};
-    for (const { key, value } of dailyList) {
-      dailyMap[key[key.length - 1]] = value;
-    }
-
+    // 每日 AI 统计
     const dailyStats = [];
     for (let i = 29; i >= 0; i--) {
-      const d = new Date(today);
-      d.setDate(d.getDate() - i);
+      const d = new Date(today); d.setDate(d.getDate() - i);
       const dk = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
-      const data = dailyMap[dk] || {};
-      dailyStats.push({
-        date: dk,
-        requests: Number(data.requests || 0n),
-        inputTokens: Number(data.inputTokens || 0n),
-        outputTokens: Number(data.outputTokens || 0n),
-        cost: Number(data.costMicro || 0n) / 10000,
-      });
+      const [reqs, inToks, outToks, costMicro] = await Promise.all([
+        counterGet('daily', dk, 'requests'), counterGet('daily', dk, 'inputTokens'),
+        counterGet('daily', dk, 'outputTokens'), counterGet('daily', dk, 'costMicro'),
+      ]);
+      dailyStats.push({ date: dk, requests: reqs, inputTokens: inToks, outputTokens: outToks, cost: costMicro / 10000 });
     }
 
-    // 分时统计
-    const hourlyList = await kvList(['hourly', todayKey]);
-    const hourlyMap = {};
-    for (const { key, value } of hourlyList) {
-      hourlyMap[key[key.length - 1]] = value;
-    }
+    // 分时 AI 统计
     const hourlyStats = [];
     for (let h = 0; h < 24; h++) {
       const hk = todayKey + ':' + String(h).padStart(2, '0');
-      const data = hourlyMap[hk] || {};
-      hourlyStats.push({ hour: h, requests: Number(data.requests || 0n), cost: Number(data.costMicro || 0n) / 10000 });
+      const [reqs, costMicro] = await Promise.all([
+        counterGet('hourly', hk, 'requests'), counterGet('hourly', hk, 'costMicro'),
+      ]);
+      hourlyStats.push({ hour: h, requests: reqs, cost: costMicro / 10000 });
     }
 
     const totalDaily = dailyStats.reduce((acc, d) => ({
-      requests: acc.requests + d.requests,
-      inputTokens: acc.inputTokens + d.inputTokens,
-      outputTokens: acc.outputTokens + d.outputTokens,
-      cost: acc.cost + d.cost,
+      requests: acc.requests + d.requests, inputTokens: acc.inputTokens + d.inputTokens,
+      outputTokens: acc.outputTokens + d.outputTokens, cost: acc.cost + d.cost,
     }), { requests: 0, inputTokens: 0, outputTokens: 0, cost: 0 });
 
-    // 热门 AI 页面
-    const pageList = await kvList(['pages']);
-    const topAIPages = pageList.map(e => ({ page: e.key[e.key.length - 1], requests: Number(e.value || 0n) }))
-      .sort((a, b) => b.requests - a.requests);
+    // AI 热门页面
+    const pageList = await counterList('page');
+    const topAIPages = pageList.map(e => ({ page: e.name, requests: e.value })).sort((a, b) => b.requests - a.requests);
 
     // 页面浏览
-    const pvDailyList = await kvList(['pv', 'daily']);
-    const pvDailyMap = {};
-    for (const { key, value } of pvDailyList) { pvDailyMap[key[key.length - 1]] = value; }
     const pvDaily = [];
     for (let i = 29; i >= 0; i--) {
       const d = new Date(today); d.setDate(d.getDate() - i);
       const dk = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
-      const data = pvDailyMap[dk] || {};
-      pvDaily.push({ date: dk, count: Number(data.count || 0n) });
+      pvDaily.push({ date: dk, count: await counterGet('pvDaily', dk, 'count') });
     }
-    const todayPV = pvDaily[pvDaily.length - 1];
 
-    const pvPageList = await kvList(['pv', 'pages']);
-    const topPVPages = pvPageList.map(e => ({ page: e.key[e.key.length - 1], views: Number(e.value || 0n) }))
-      .sort((a, b) => b.views - a.views);
+    const pvPageList = await counterList('pvPage');
+    const topPVPages = pvPageList.map(e => ({ page: e.name, views: e.value })).sort((a, b) => b.views - a.views);
 
     // 工具点击
-    const tcDailyList = await kvList(['tc', 'daily']);
-    const tcDailyMap = {};
-    for (const { key, value } of tcDailyList) { tcDailyMap[key[key.length - 1]] = value; }
     const tcDaily = [];
     for (let i = 29; i >= 0; i--) {
       const d = new Date(today); d.setDate(d.getDate() - i);
       const dk = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
-      const data = tcDailyMap[dk] || {};
-      tcDaily.push({ date: dk, count: Number(data.count || 0n) });
+      tcDaily.push({ date: dk, count: await counterGet('tcDaily', dk, 'count') });
     }
 
-    const tcToolList = await kvList(['tc', 'tools']);
-    const topTools = tcToolList.map(e => ({ tool: e.key[e.key.length - 1], clicks: Number(e.value || 0n) }))
-      .sort((a, b) => b.clicks - a.clicks);
+    const tcToolList = await counterList('tcTool');
+    const topTools = tcToolList.map(e => ({ tool: e.name, clicks: e.value })).sort((a, b) => b.clicks - a.clicks);
 
-    const tcCatList = await kvList(['tc', 'cats']);
-    const catClicks = tcCatList.map(e => ({ category: e.key[e.key.length - 1], clicks: Number(e.value || 0n) }))
-      .sort((a, b) => b.clicks - a.clicks);
+    const tcCatList = await counterList('tcCat');
+    const catClicks = tcCatList.map(e => ({ category: e.name, clicks: e.value })).sort((a, b) => b.clicks - a.clicks);
+
+    const todayPV = pvDaily[pvDaily.length - 1];
 
     return jsonResponse({
       generatedAt: new Date().toISOString(),
@@ -356,6 +395,7 @@ async function handleHealth(request) {
   const validKey = Deno.env.get('DEEPSEEK_API_KEY') || '';
   return jsonResponse({
     status: 'ok',
+    version: 'kv-v2',
     deepseekConfigured: !!validKey,
     uptime: Math.floor(performance.now() / 1000),
   }, 200, corsHeaders(request));
