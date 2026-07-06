@@ -746,35 +746,43 @@ ${ctx.info.tips || '暂无'}
       console.log('🦇 BAT AI 指引助手已就绪  |  Ctrl+Shift+B 切换面板');
     }
 
-    // ===== 通用信标发送（sendBeacon 为主，CORS 透明，fire-and-forget） =====
+    // ===== 通用信标发送（fetch 为主，sendBeacon 兜底） =====
     _sendBeacon(path, data) {
       if (!CONFIG.proxyUrl || CONFIG.proxyUrl.includes('REPLACE-ME')) return;
       const url = CONFIG.proxyUrl + path;
       const body = JSON.stringify(data);
       const blob = new Blob([body], { type: 'application/json' });
 
-      // sendBeacon 专为分析/监控设计：CORS 透明，不阻塞页面，页面关闭时也能发送
-      if (typeof navigator.sendBeacon === 'function') {
-        try {
-          const ok = navigator.sendBeacon(url, blob);
-          if (ok) return; // 成功加入发送队列
-        } catch (_) { /* 静默 */ }
-      }
-
-      // 兜底：fetch + keepalive（sendBeacon 不可用或队列满时）
-      try {
+      // 主：fetch + keepalive（正确处理 CORS 预检，不会静默丢包）
+      const doFetch = () => {
         fetch(url, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: body,
           keepalive: true,
-        }).catch(() => {});
-      } catch (_) { /* 静默 */ }
+        }).then(r => {
+          if (!r.ok) console.warn('[BAT Beacon] 代理返回错误', r.status);
+        }).catch(e => {
+          console.warn('[BAT Beacon] fetch 失败:', e.message);
+          // fetch 失败时尝试 sendBeacon 兜底
+          if (typeof navigator.sendBeacon === 'function') {
+            try { navigator.sendBeacon(url, blob); } catch (_) {}
+          }
+        });
+      };
+
+      // 页面关闭/隐藏时优先用 sendBeacon（更可靠）
+      if (document.visibilityState === 'hidden' && typeof navigator.sendBeacon === 'function') {
+        try { navigator.sendBeacon(url, blob); } catch (_) { doFetch(); }
+      } else {
+        doFetch();
+      }
     }
 
     // ===== 页面浏览信标 =====
     sendPageViewBeacon() {
       const page = this.ctx.name || (this.ctx.isIndex ? 'index' : window.location.pathname);
+      console.log('[BAT Beacon] 📡 发送 pageview:', page);
       this._sendBeacon('/beacon', {
         type: 'pageview',
         page: page,
@@ -810,6 +818,7 @@ ${ctx.info.tips || '暂无'}
     }
 
     sendToolClickBeacon(toolName, category) {
+      console.log('[BAT Beacon] 📡 发送 tool_click:', toolName);
       this._sendBeacon('/beacon', {
         type: 'tool_click',
         tool: toolName,
