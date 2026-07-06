@@ -54,6 +54,7 @@ function corsHdr(req) {
   const allow = isOriginAllowed(origin) ? origin : (ALLOWED_ORIGINS[0] || '*');
   return {
     'access-control-allow-origin': allow,
+    'access-control-allow-credentials': 'true',
     'access-control-allow-methods': 'GET, POST, OPTIONS',
     'access-control-allow-headers': 'Content-Type, Authorization, X-Admin-Key',
     'access-control-max-age': '86400',
