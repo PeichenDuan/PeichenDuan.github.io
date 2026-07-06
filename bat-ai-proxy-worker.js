@@ -268,6 +268,69 @@ async function handleBeacon(env, request) {
   });
 }
 
+// ==================== 用户留言接口 ====================
+
+// POST /feedback — 提交留言
+// GET /feedback?key=... — 管理员查看所有留言
+async function handleFeedback(env, request) {
+  const url = new URL(request.url);
+
+  // GET: 管理员查看留言
+  if (request.method === 'GET') {
+    const adminKey = url.searchParams.get('key') || '';
+    const validKey = env.ADMIN_KEY;
+    if (!validKey || adminKey !== validKey) {
+      return new Response(JSON.stringify({ error: '未授权' }), {
+        status: 401, headers: { 'Content-Type': 'application/json', ...corsHeaders(request) },
+      });
+    }
+    if (!env.BAT_USAGE) {
+      return new Response(JSON.stringify({ feedbacks: [] }), {
+        headers: { 'Content-Type': 'application/json', ...corsHeaders(request) },
+      });
+    }
+    // 列出所有留言
+    const list = await env.BAT_USAGE.list({ prefix: 'fb:' });
+    const feedbacks = [];
+    for (const key of list.keys) {
+      const data = await env.BAT_USAGE.get(key.name, 'json');
+      if (data) feedbacks.push(data);
+    }
+    feedbacks.sort((a, b) => new Date(b.time) - new Date(a.time));
+    return new Response(JSON.stringify({ feedbacks }), {
+      headers: { 'Content-Type': 'application/json', ...corsHeaders(request) },
+    });
+  }
+
+  // POST: 用户提交留言
+  if (request.method === 'POST') {
+    let body;
+    try { body = await request.json(); } catch (e) {
+      return new Response(JSON.stringify({ error: '无效数据' }), {
+        status: 400, headers: { 'Content-Type': 'application/json', ...corsHeaders(request) },
+      });
+    }
+    const { name, message, page } = body;
+    if (!message || message.trim().length < 2) {
+      return new Response(JSON.stringify({ error: '留言内容太短' }), {
+        status: 400, headers: { 'Content-Type': 'application/json', ...corsHeaders(request) },
+      });
+    }
+    const fb = {
+      id: Date.now().toString(36) + Math.random().toString(36).substring(2, 6),
+      name: (name || '匿名用户').trim().substring(0, 30),
+      message: message.trim().substring(0, 500),
+      page: (page || 'index').substring(0, 80),
+      ip: await hashIP(getClientIP(request)),
+      time: new Date().toISOString(),
+    };
+    await env.BAT_USAGE.put(`fb:${fb.id}`, JSON.stringify(fb), { expirationTtl: 86400 * 365 });
+    return new Response(JSON.stringify({ ok: true, id: fb.id }), {
+      headers: { 'Content-Type': 'application/json', ...corsHeaders(request) },
+    });
+  }
+}
+
 // ==================== 统计接口 ====================
 
 async function handleStats(env, request) {
@@ -450,6 +513,11 @@ export default {
     }
 
     const url = new URL(request.url);
+
+    // ===== /feedback — 用户留言 =====
+    if (url.pathname === '/feedback') {
+      return handleFeedback(env, request);
+    }
 
     // ===== POST /beacon — 页面浏览 & 工具点击信标 =====
     if (request.method === 'POST' && url.pathname === '/beacon') {

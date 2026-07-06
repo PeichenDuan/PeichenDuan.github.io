@@ -97,7 +97,8 @@
             position: relative; overflow: hidden;
         }
         .chart-box h3 { font-size: 15px; color: var(--primary); margin-bottom: 16px; }
-        .chart-box canvas { max-height: 300px; }
+        .chart-wrapper { position: relative; width: 100%; height: 300px; }
+        .chart-wrapper canvas { width: 100% !important; height: 100% !important; }
 
         /* 表格 */
         .table-box {
@@ -220,11 +221,11 @@
         <div class="charts-grid">
             <div class="chart-box">
                 <h3>📊 近30天 API 调用量 & 费用</h3>
-                <canvas id="chart-daily" height="280"></canvas>
+                <div class="chart-wrapper"><canvas id="chart-daily"></canvas></div>
             </div>
             <div class="chart-box">
                 <h3>⏰ 今日分时调用量</h3>
-                <canvas id="chart-hourly" height="280"></canvas>
+                <div class="chart-wrapper"><canvas id="chart-hourly"></canvas></div>
             </div>
         </div>
 
@@ -232,11 +233,11 @@
         <div class="charts-grid">
             <div class="chart-box">
                 <h3>👀 近30天页面浏览量</h3>
-                <canvas id="chart-pv-daily" height="280"></canvas>
+                <div class="chart-wrapper"><canvas id="chart-pv-daily"></canvas></div>
             </div>
             <div class="chart-box">
                 <h3>🔧 近30天工具点击量</h3>
-                <canvas id="chart-tc-daily" height="280"></canvas>
+                <div class="chart-wrapper"><canvas id="chart-tc-daily"></canvas></div>
             </div>
         </div>
 
@@ -262,6 +263,13 @@
         <div class="table-box">
             <h3>💻 本浏览器 AI 使用记录（localStorage）</h3>
             <div id="local-log-table"><p style="color:#999;">正在加载...</p></div>
+        </div>
+
+        <!-- 用户留言 -->
+        <div class="table-box">
+            <h3>💬 用户留言 / 功能建议</h3>
+            <button onclick="loadFeedbacks()" style="margin-bottom:12px;padding:6px 14px;background:#32586d;color:#fff;border:none;border-radius:6px;cursor:pointer;font-family:inherit;font-size:13px;">🔄 刷新留言</button>
+            <div id="feedback-list"><p style="color:#999;">点击刷新加载留言...</p></div>
         </div>
 
         <!-- 设置信息 -->
@@ -668,6 +676,33 @@ function renderLocalLog() {
 }
 
 // ==================== Worker URL 配置 ====================
+async function loadFeedbacks() {
+    const container = document.getElementById('feedback-list');
+    container.innerHTML = '<p style="color:#999;">加载中...</p>';
+    try {
+        const resp = await fetch(`${proxyUrl}/feedback?key=${encodeURIComponent(adminKey)}`);
+        if (!resp.ok) { container.innerHTML = '<p style="color:#ca3032;">需要正确密码才能查看留言</p>'; return; }
+        const data = await resp.json();
+        if (!data.feedbacks || data.feedbacks.length === 0) {
+            container.innerHTML = '<p style="color:#999;">暂无用户留言</p>'; return;
+        }
+        let html = '';
+        data.feedbacks.forEach(fb => {
+            const t = new Date(fb.time).toLocaleString('zh-CN');
+            html += `<div style="border-bottom:1px solid #eee;padding:12px 0;">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+                    <strong style="color:#32586d;">${escapeHtml(fb.name)}</strong>
+                    <span style="font-size:11px;color:#999;">${t} · ${escapeHtml(fb.page)}</span>
+                </div>
+                <p style="margin:0;font-size:14px;line-height:1.5;">${escapeHtml(fb.message)}</p>
+            </div>`;
+        });
+        container.innerHTML = html;
+    } catch(e) {
+        container.innerHTML = '<p style="color:#ca3032;">加载失败: ' + e.message + '</p>';
+    }
+}
+
 function setupWorkerUrl() {
     const url = prompt('请输入 Cloudflare Worker URL:\n（如 https://bat-ai-proxy.xxx.workers.dev）', proxyUrl);
     if (url && url.trim()) {

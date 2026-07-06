@@ -1006,6 +1006,60 @@
             }
         }
     </script>
+  <!-- 用户留言按钮 -->
+  <style>
+    #feedback-fab{position:fixed;bottom:90px;right:24px;z-index:99998;width:42px;height:42px;border-radius:50%;background:#ca3032;color:#fff;border:none;cursor:pointer;font-size:18px;box-shadow:0 3px 12px rgba(202,48,50,.35);display:flex;align-items:center;justify-content:center;transition:transform .2s;line-height:1}
+    #feedback-fab:hover{transform:scale(1.1)}
+    #feedback-modal{display:none;position:fixed;inset:0;z-index:100001;background:rgba(0,0,0,.45);align-items:center;justify-content:center}
+    #feedback-modal.show{display:flex}
+    .fb-dialog{background:#fff;border-radius:12px;padding:24px;width:90%;max-width:420px;box-shadow:0 12px 40px rgba(0,0,0,.25)}
+    .fb-dialog h3{margin-bottom:12px;color:#32586d;font-size:17px}
+    .fb-dialog input,.fb-dialog textarea{width:100%;padding:10px 12px;border:1px solid #ddd;border-radius:8px;font-size:14px;margin-bottom:10px;font-family:inherit;outline:none}
+    .fb-dialog textarea{height:100px;resize:vertical}
+    .fb-dialog input:focus,.fb-dialog textarea:focus{border-color:#32586d}
+    .fb-btns{display:flex;gap:8px;justify-content:flex-end}
+    .fb-btns button{padding:8px 18px;border-radius:8px;border:none;cursor:pointer;font-size:14px;font-family:inherit}
+    .fb-submit{background:#32586d;color:#fff}
+    .fb-cancel{background:#eee;color:#555}
+    .fb-toast{position:fixed;top:20px;left:50%;transform:translateX(-50%);background:#2e8b57;color:#fff;padding:10px 24px;border-radius:20px;font-size:14px;z-index:100002;display:none}
+  </style>
+  <button id="feedback-fab" title="留言建议">💬</button>
+  <div id="feedback-modal">
+    <div class="fb-dialog">
+      <h3>💬 功能建议</h3>
+      <p style="font-size:13px;color:#888;margin-bottom:10px;">告诉我们你希望添加什么功能，我们会认真考虑！</p>
+      <input id="fb-name" placeholder="你的昵称（选填）" maxlength="30">
+      <textarea id="fb-msg" placeholder="写下你的建议..." maxlength="500"></textarea>
+      <div class="fb-btns">
+        <button class="fb-cancel" onclick="document.getElementById('feedback-modal').classList.remove('show')">取消</button>
+        <button class="fb-submit" id="fb-send">提交</button>
+      </div>
+    </div>
+  </div>
+  <div class="fb-toast" id="fb-toast"></div>
+  <script>
+    (function(){
+      const proxy='https://bat-ai-proxy.bat-ai-proxy.workers.dev';
+      document.getElementById('feedback-fab').addEventListener('click',function(){
+        document.getElementById('feedback-modal').classList.add('show');
+      });
+      document.getElementById('feedback-modal').addEventListener('click',function(e){
+        if(e.target===this) this.classList.remove('show');
+      });
+      document.getElementById('fb-send').addEventListener('click',async function(){
+        const msg=document.getElementById('fb-msg').value.trim();
+        if(msg.length<2){showToast('请至少输入2个字','warn');return;}
+        const btn=this; btn.disabled=true; btn.textContent='提交中...';
+        try{
+          const r=await fetch(proxy+'/feedback',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:document.getElementById('fb-name').value.trim(),message:msg,page:'index'})});
+          if(r.ok){document.getElementById('fb-msg').value='';document.getElementById('fb-name').value='';document.getElementById('feedback-modal').classList.remove('show');showToast('✅ 感谢你的建议！');}
+          else{throw new Error('fail');}
+        }catch(e){showToast('提交失败，请稍后再试','warn');}
+        btn.disabled=false; btn.textContent='提交';
+      });
+      function showToast(t,type){const el=document.getElementById('fb-toast');el.textContent=t;el.style.background=type==='warn'?'#ca3032':'#2e8b57';el.style.display='block';setTimeout(function(){el.style.display='none'},2500);}
+    })();
+  </script>
   <script src="bat-ai-assistant.js"></script>
 </body>
 </html>
