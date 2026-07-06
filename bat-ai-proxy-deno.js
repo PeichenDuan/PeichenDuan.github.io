@@ -1,11 +1,14 @@
 /**
- * BAT AI Proxy — Deno Deploy v3
- * 简单可靠：内存存储 + 完整日志
+ * BAT AI Proxy — Deno Deploy v5
+ * 混合存储：内存Map（主）+ Deno KV（辅），KV不可用时自动降级到纯内存
+ * 解决：v3跨实例数据不可见 / v4 KV异常导致全挂
  */
 const DEEPSEEK_API_URL = 'https://api.deepseek.com/chat/completions';
 const PRICING = { input: 1.0, output: 2.0 };
 const RATE_LIMIT = 100;
 const RATE_WINDOW = 3600;
+const KV_TTL_DAYS = 90;
+const TTL_MS = KV_TTL_DAYS * 86400 * 1000;
 
 const ALLOWED_ORIGINS = [
   'https://peichenduan.github.io',
@@ -17,15 +20,70 @@ const LOCAL_PATTERNS = [
   /^https?:\/\/172\.(1[6-9]|2\d|3[01])\.\d+\.\d+(:\d+)?$/,
 ];
 
-// ========== 内存存储 ==========
-const store = new Map();
+// ========== 内存存储（始终可用） ==========
+const mem = new Map();
+function mGet(k) { return mem.get(k) || null; }
+function mSet(k, v) { mem.set(k, v); }
+function mIncr(k, f, d) {
+  const o = mem.get(k) || {};
+  o[f] = (o[f] || 0) + d;
+  mem.set(k, o);
+}
 
-function sGet(key) { return store.get(key) || null; }
-function sSet(key, val) { store.set(key, val); }
-function sIncr(key, field, delta) {
-  let obj = store.get(key) || {};
-  obj[field] = (obj[field] || 0) + delta;
-  store.set(key, obj);
+// ========== Deno KV（可选，初始化失败不影响核心功能） ==========
+let kv = null;
+let kvOk = false;
+
+async function initKv() {
+  try {
+    kv = await Deno.openKv();
+    // 简单测试读写
+    await kv.set(['__test__'], { t: Date.now() }, { expireIn: 60000 });
+    const r = await kv.get(['__test__']);
+    if (r.value) kvOk = true;
+    console.log('[KV] Deno KV 初始化成功，跨实例共享已启用');
+  } catch (e) {
+    console.warn('[KV] Deno KV 不可用，降级为纯内存模式:', e.message);
+    kv = null;
+    kvOk = false;
+  }
+}
+
+// 启动时初始化 KV
+initKv();
+
+async function kGet(key) {
+  if (!kvOk || !kv) return null;
+  try {
+    const parts = key.split(':');
+    const res = await kv.get(parts);
+    return res.value || null;
+  } catch (e) { return null; }
+}
+
+async function kSet(key, val) {
+  if (!kvOk || !kv) return;
+  try {
+    const parts = key.split(':');
+    await kv.set(parts, val, { expireIn: TTL_MS });
+  } catch (e) { /* 静默 */ }
+}
+
+async function kIncr(key, field, delta) {
+  if (!kvOk || !kv) return;
+  try {
+    const parts = key.split(':');
+    const res = await kv.get(parts);
+    const obj = res.value || {};
+    obj[field] = (obj[field] || 0) + delta;
+    await kv.set(parts, obj, { expireIn: TTL_MS });
+  } catch (e) { /* 静默 */ }
+}
+
+// ========== 双写：内存 + KV ==========
+function writeBoth(key, field, delta) {
+  mIncr(key, field, delta);           // 内存（同步，始终成功）
+  kIncr(key, field, delta);           // KV（异步，静默失败）
 }
 
 // ========== 工具 ==========
@@ -60,30 +118,33 @@ function json(data, status, extra) {
   });
 }
 
-// ========== 记录 ==========
+// ========== 记录（双写：内存 + KV） ==========
 function recordUsage(inputT, outputT, page) {
   const cost = (inputT/1e6)*PRICING.input + (outputT/1e6)*PRICING.output;
   const dk = getDateKey(), hk = getHourKey();
-  sIncr('daily:'+dk, 'req', 1); sIncr('daily:'+dk, 'in', inputT);
-  sIncr('daily:'+dk, 'out', outputT); sIncr('daily:'+dk, 'cost', Math.round(cost*1e4));
-  sIncr('hourly:'+hk, 'req', 1); sIncr('hourly:'+hk, 'cost', Math.round(cost*1e4));
-  if (page) sIncr('aipages', page, 1);
+  writeBoth('daily:'+dk, 'req', 1);
+  writeBoth('daily:'+dk, 'in', inputT);
+  writeBoth('daily:'+dk, 'out', outputT);
+  writeBoth('daily:'+dk, 'cost', Math.round(cost*1e4));
+  writeBoth('hourly:'+hk, 'req', 1);
+  writeBoth('hourly:'+hk, 'cost', Math.round(cost*1e4));
+  if (page) writeBoth('aipages', page, 1);
 }
 
 function recordPV(page) {
   const dk = getDateKey();
-  sIncr('pvDaily:'+dk, 'cnt', 1);
-  sIncr('pvPages', page||'unknown', 1);
+  writeBoth('pvDaily:'+dk, 'cnt', 1);
+  writeBoth('pvPages', page||'unknown', 1);
 }
 
 function recordTC(tool, cat) {
   const dk = getDateKey();
-  sIncr('tcDaily:'+dk, 'cnt', 1);
-  sIncr('tcTools', tool||'unknown', 1);
-  if (cat) sIncr('tcCats', cat, 1);
+  writeBoth('tcDaily:'+dk, 'cnt', 1);
+  writeBoth('tcTools', tool||'unknown', 1);
+  if (cat) writeBoth('tcCats', cat, 1);
 }
 
-// ========== 速率限制 ==========
+// ========== 速率限制（纯内存） ==========
 const rateMap = new Map();
 function checkRate(ip) {
   const now = Math.floor(Date.now()/1000);
@@ -109,7 +170,19 @@ async function feedback(req) {
   if (req.method === 'GET') {
     const k = u.searchParams.get('key')||'';
     if (!ak||k!==ak) return json({error:'unauth'},401,corsHdr(req));
-    const list = []; for (const [k,v] of store) if (k.startsWith('fb:')) list.push(v);
+    const list = [];
+    // 内存中的反馈
+    for (const [key, v] of mem) if (key.startsWith('fb:')) list.push(v);
+    // KV 中的反馈（去重）
+    if (kvOk && kv) {
+      try {
+        for await (const entry of kv.list({ prefix: ['fb'] })) {
+          if (entry.value && !list.find(x => x.id === entry.value.id)) {
+            list.push(entry.value);
+          }
+        }
+      } catch (_) {}
+    }
     list.sort((a,b)=>new Date(b.time)-new Date(a.time));
     return json({feedbacks:list},200,corsHdr(req));
   }
@@ -118,12 +191,15 @@ async function feedback(req) {
     const fb = { id: Date.now().toString(36)+Math.random().toString(36).slice(2,6),
       name: (b.name||'匿名').slice(0,30), message: (b.message||'').trim().slice(0,500),
       page: (b.page||'index').slice(0,80), time: new Date().toISOString() };
-    sSet('fb:'+fb.id, fb);
+    mSet('fb:'+fb.id, fb);
+    if (kvOk && kv) {
+      try { await kv.set(['fb', fb.id], fb, { expireIn: 86400 * 365 * 1000 }); } catch (_) {}
+    }
     return json({ok:true},200,corsHdr(req));
   }
 }
 
-// ========== 统计 ==========
+// ========== 统计（优先KV，回退内存） ==========
 async function stats(req) {
   const u = new URL(req.url);
   const k = u.searchParams.get('key')||'';
@@ -131,36 +207,53 @@ async function stats(req) {
   if (!ak||k!==ak) return json({error:'unauth'},401,corsHdr(req));
 
   const today = new Date(), todayKey = getDateKey();
-  const buildDaily = (prefix) => {
+
+  const buildDaily = async (prefix) => {
     const arr = [];
     for (let i=29; i>=0; i--) {
       const d=new Date(today); d.setDate(d.getDate()-i);
       const dk=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
-      const data = sGet(prefix+':'+dk)||{};
+      const key = prefix+':'+dk;
+      // 优先读 KV，回退内存
+      let data = kvOk ? (await kGet(key)) : null;
+      if (!data) data = mGet(key) || {};
       arr.push({date:dk, ...data});
     }
     return arr;
   };
 
-  const aiDaily = buildDaily('daily').map(d=>({date:d.date,requests:d.req||0,inputTokens:d.in||0,outputTokens:d.out||0,cost:(d.cost||0)/10000}));
+  const aiDaily = (await buildDaily('daily')).map(d=>({date:d.date,requests:d.req||0,inputTokens:d.in||0,outputTokens:d.out||0,cost:(d.cost||0)/10000}));
   const todayAI = aiDaily[aiDaily.length-1];
   const hStats = [];
   for (let h=0; h<24; h++) {
     const hk = todayKey+':'+String(h).padStart(2,'0');
-    const d = sGet('hourly:'+hk)||{};
+    const key = 'hourly:'+hk;
+    let d = kvOk ? (await kGet(key)) : null;
+    if (!d) d = mGet(key) || {};
     hStats.push({hour:h, requests:d.req||0, cost:(d.cost||0)/10000});
   }
   const total30 = aiDaily.reduce((a,d)=>({requests:a.requests+d.requests,inputTokens:a.inputTokens+d.inputTokens,outputTokens:a.outputTokens+d.outputTokens,cost:a.cost+d.cost}),{requests:0,inputTokens:0,outputTokens:0,cost:0});
 
-  const aiPages = Object.entries(sGet('aipages')||{}).map(([k,v])=>({page:k,requests:v})).sort((a,b)=>b.requests-a.requests);
-  const pvDaily = buildDaily('pvDaily').map(d=>({date:d.date,count:d.cnt||0}));
-  const pvPages = Object.entries(sGet('pvPages')||{}).map(([k,v])=>({page:k,views:v})).sort((a,b)=>b.views-a.views);
-  const tcDaily = buildDaily('tcDaily').map(d=>({date:d.date,count:d.cnt||0}));
-  const topTools = Object.entries(sGet('tcTools')||{}).map(([k,v])=>({tool:k,clicks:v})).sort((a,b)=>b.clicks-a.clicks);
-  const catClicks = Object.entries(sGet('tcCats')||{}).map(([k,v])=>({category:k,clicks:v})).sort((a,b)=>b.clicks-a.clicks);
+  const aiPagesKV = kvOk ? (await kGet('aipages')) : null;
+  const aiPagesData = aiPagesKV || mGet('aipages') || {};
+  const aiPages = Object.entries(aiPagesData).map(([k,v])=>({page:k,requests:v})).sort((a,b)=>b.requests-a.requests);
+
+  const pvDaily = (await buildDaily('pvDaily')).map(d=>({date:d.date,count:d.cnt||0}));
+  const pvPagesKV = kvOk ? (await kGet('pvPages')) : null;
+  const pvPagesData = pvPagesKV || mGet('pvPages') || {};
+  const pvPages = Object.entries(pvPagesData).map(([k,v])=>({page:k,views:v})).sort((a,b)=>b.views-a.views);
+
+  const tcDaily = (await buildDaily('tcDaily')).map(d=>({date:d.date,count:d.cnt||0}));
+  const tcToolsKV = kvOk ? (await kGet('tcTools')) : null;
+  const tcToolsData = tcToolsKV || mGet('tcTools') || {};
+  const topTools = Object.entries(tcToolsData).map(([k,v])=>({tool:k,clicks:v})).sort((a,b)=>b.clicks-a.clicks);
+  const tcCatsKV = kvOk ? (await kGet('tcCats')) : null;
+  const tcCatsData = tcCatsKV || mGet('tcCats') || {};
+  const catClicks = Object.entries(tcCatsData).map(([k,v])=>({category:k,clicks:v})).sort((a,b)=>b.clicks-a.clicks);
 
   return json({
     generatedAt: new Date().toISOString(), pricing: PRICING,
+    storage: kvOk ? 'kv+memory' : 'memory',
     summary: { total30Days:total30, today:todayAI, avgDailyCost:total30.cost/30, estimatedMonthlyCost:total30.cost },
     daily: aiDaily, hourly: hStats, topAIPages: aiPages.slice(0,10),
     pageViews: { today:{views:pvDaily[pvDaily.length-1]?.count||0}, daily:pvDaily, topPages:pvPages.slice(0,15) },
@@ -169,8 +262,13 @@ async function stats(req) {
 }
 
 // ========== 健康检查 ==========
-function health(req) {
-  return json({status:'ok',version:'v3-simple',deepseekConfigured:!!Deno.env.get('DEEPSEEK_API_KEY')},200,corsHdr(req));
+function health(_req) {
+  return json({
+    status:'ok',
+    version:'v5-hybrid',
+    storage: kvOk ? 'kv+memory' : 'memory',
+    deepseekConfigured:!!Deno.env.get('DEEPSEEK_API_KEY'),
+  }, 200, corsHdr(_req));
 }
 
 // ========== 主入口 ==========
