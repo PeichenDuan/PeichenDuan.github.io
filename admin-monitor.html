@@ -375,7 +375,7 @@ async function refreshData() {
 
     // 1. 尝试从 Cloudflare Worker 获取数据
     let workerData = null;
-    proxyUrl = localStorage.getItem('bat_admin_proxy_url') || 'https://bat-ai-proxy.bat-ai-proxy.workers.dev';
+    proxyUrl = localStorage.getItem('bat_admin_proxy_url') || 'https://bat-ai-proxy.peichenduan.deno.net';
 
     if (proxyUrl) {
         try {
