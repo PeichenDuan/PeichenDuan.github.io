@@ -746,45 +746,30 @@ ${ctx.info.tips || '暂无'}
       console.log('🦇 BAT AI 指引助手已就绪  |  Ctrl+Shift+B 切换面板');
     }
 
-    // ===== 通用信标发送（fetch 为主，sendBeacon 兜底） =====
+    // ===== 通用信标发送（sendBeacon 为主，CORS 透明，fire-and-forget） =====
     _sendBeacon(path, data) {
       if (!CONFIG.proxyUrl || CONFIG.proxyUrl.includes('REPLACE-ME')) return;
       const url = CONFIG.proxyUrl + path;
       const body = JSON.stringify(data);
+      const blob = new Blob([body], { type: 'application/json' });
 
-      // 优先使用 fetch + keepalive（支持自定义 Content-Type，CORS 友好）
-      const doFetch = () => {
+      // sendBeacon 专为分析/监控设计：CORS 透明，不阻塞页面，页面关闭时也能发送
+      if (typeof navigator.sendBeacon === 'function') {
         try {
-          fetch(url, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: body,
-            keepalive: true,
-          }).catch(() => {
-            // fetch 失败时尝试 sendBeacon 兜底
-            try {
-              const blob = new Blob([body], { type: 'application/json' });
-              navigator.sendBeacon(url, blob);
-            } catch (_) { /* 静默 */ }
-          });
-        } catch (_) {
-          // fetch 抛出异常时尝试 sendBeacon
-          try {
-            const blob = new Blob([body], { type: 'application/json' });
-            navigator.sendBeacon(url, blob);
-          } catch (_2) { /* 静默 */ }
-        }
-      };
-
-      // 页面卸载时 sendBeacon 更可靠，正常情况用 fetch
-      if (document.visibilityState === 'hidden' || document.visibilityState === 'unloaded') {
-        try {
-          const blob = new Blob([body], { type: 'application/json' });
-          navigator.sendBeacon(url, blob);
-        } catch (_) { doFetch(); }
-      } else {
-        doFetch();
+          const ok = navigator.sendBeacon(url, blob);
+          if (ok) return; // 成功加入发送队列
+        } catch (_) { /* 静默 */ }
       }
+
+      // 兜底：fetch + keepalive（sendBeacon 不可用或队列满时）
+      try {
+        fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: body,
+          keepalive: true,
+        }).catch(() => {});
+      } catch (_) { /* 静默 */ }
     }
 
     // ===== 页面浏览信标 =====
