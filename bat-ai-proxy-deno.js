@@ -90,6 +90,7 @@ async function hashIP(ip) {
 
 function isOriginAllowed(origin) {
   if (!origin) return false;
+  if (origin === 'null') return true; // 本地文件 (file://) Origin 为字符串 "null"
   if (ALLOWED_ORIGINS.includes(origin)) return true;
   if (LOCAL_ORIGIN_PATTERNS.some(p => p.test(origin))) return true;
   return false;
