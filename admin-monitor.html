@@ -132,7 +132,7 @@
         <p style="color:#888;margin-bottom:16px;">请输入管理员密码</p>
         <input type="password" id="gate-password" placeholder="输入密码..." autofocus>
         <button onclick="unlock()">进入面板</button>
-        <p class="hint">默认密码：bat-admin-2024（请在 Cloudflare Worker 中修改 ADMIN_KEY）</p>
+        <p class="hint">输入你在 <code>wrangler secret put ADMIN_KEY</code> 中设置的密码</p>
     </div>
 </div>
 
@@ -287,16 +287,11 @@ let proxyUrl = '';
 
 function unlock() {
     const input = document.getElementById('gate-password').value.trim();
-    // 支持多个密码：默认密码 或 用户本地存储的密码
-    const savedKey = localStorage.getItem('bat_admin_key') || DEFAULT_PASSWORD;
-    if (input === DEFAULT_PASSWORD || input === savedKey) {
-        adminKey = input;
-        document.getElementById('gate').style.display = 'none';
-        document.getElementById('dashboard').style.display = 'block';
-        initDashboard();
-    } else {
-        alert('密码错误！默认密码: ' + DEFAULT_PASSWORD);
-    }
+    if (!input) return;
+    adminKey = input;
+    document.getElementById('gate').style.display = 'none';
+    document.getElementById('dashboard').style.display = 'block';
+    initDashboard();
 }
 // Enter 键提交
 document.getElementById('gate-password').addEventListener('keydown', function(e) {
