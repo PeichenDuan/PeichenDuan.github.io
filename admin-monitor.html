@@ -94,8 +94,10 @@
         .chart-box {
             background: #fff; border-radius: 10px; padding: 20px;
             box-shadow: 0 2px 8px rgba(0,0,0,.06);
+            position: relative; overflow: hidden;
         }
         .chart-box h3 { font-size: 15px; color: var(--primary); margin-bottom: 16px; }
+        .chart-box canvas { max-height: 300px; }
 
         /* 表格 */
         .table-box {
@@ -424,9 +426,10 @@ function renderWorkerData(data) {
             maintainAspectRatio: false,
             interaction: { intersect: false, mode: 'index' },
             plugins: { legend: { position: 'top', labels: { boxWidth: 12 } } },
+            animation: false,
             scales: {
-                y: { type: 'linear', position: 'left', title: { display: true, text: '调用次数' }, beginAtZero: true },
-                y1: { type: 'linear', position: 'right', title: { display: true, text: '费用 (¥)' }, grid: { drawOnChartArea: false }, beginAtZero: true },
+                y: { type: 'linear', position: 'left', title: { display: true, text: '调用次数' }, beginAtZero: true, max: Math.max(10, ...reqData) || 10 },
+                y1: { type: 'linear', position: 'right', title: { display: true, text: '费用 (¥)' }, grid: { drawOnChartArea: false }, beginAtZero: true, max: Math.max(1, ...costData) || 1 },
             },
         },
     });
@@ -451,8 +454,9 @@ function renderWorkerData(data) {
         options: {
             responsive: true,
             maintainAspectRatio: false,
+            animation: false,
             plugins: { legend: { display: false } },
-            scales: { y: { beginAtZero: true, title: { display: true, text: '请求数' } } },
+            scales: { y: { beginAtZero: true, title: { display: true, text: '请求数' }, max: Math.max(10, ...hourReq) || 10 } },
         },
     });
 
@@ -510,8 +514,9 @@ function renderWorkerData(data) {
                 },
                 options: {
                     responsive: true, maintainAspectRatio: false,
+                    animation: false,
                     plugins: { legend: { display: false } },
-                    scales: { y: { beginAtZero: true, title: { display: true, text: '浏览量' } } },
+                    scales: { y: { beginAtZero: true, title: { display: true, text: '浏览量' }, max: Math.max(10, ...pvData) || 10 } },
                 },
             });
         }
@@ -583,8 +588,9 @@ function renderWorkerData(data) {
                 },
                 options: {
                     responsive: true, maintainAspectRatio: false,
+                    animation: false,
                     plugins: { legend: { display: false } },
-                    scales: { y: { beginAtZero: true, title: { display: true, text: '点击量' } } },
+                    scales: { y: { beginAtZero: true, title: { display: true, text: '点击量' }, max: Math.max(10, ...tcData) || 10 } },
                 },
             });
         }
