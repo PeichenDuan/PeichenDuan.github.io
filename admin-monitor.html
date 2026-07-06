@@ -7,7 +7,6 @@
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
     <title>BAT 监控面板 v3 - 管理员</title>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <style>
         :root {
             --primary: #32586d;
@@ -97,8 +96,16 @@
             position: relative; overflow: hidden;
         }
         .chart-box h3 { font-size: 15px; color: var(--primary); margin-bottom: 16px; }
-        .chart-wrapper { position: relative; width: 100%; height: 300px; }
-        .chart-wrapper canvas { width: 100% !important; height: 100% !important; }
+        /* 纯HTML柱状图 */
+        .bars-container { display: flex; align-items: flex-end; gap: 2px; height: 260px; padding: 0 4px; }
+        .bars-container .bar-col { flex: 1; min-width: 4px; display: flex; flex-direction: column; align-items: center; height: 100%; justify-content: flex-end; }
+        .bars-container .bar-fill { width: 100%; border-radius: 3px 3px 0 0; min-height: 2px; transition: height .3s; position: relative; cursor: pointer; }
+        .bars-container .bar-fill:hover { opacity: .75; }
+        .bars-container .bar-label { font-size: 8px; color: #999; margin-top: 3px; text-align: center; overflow: hidden; white-space: nowrap; }
+        .bars-container .bar-tip { display: none; position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%); background: #333; color: #fff; padding: 2px 8px; border-radius: 4px; font-size: 10px; white-space: nowrap; margin-bottom: 4px; }
+        .bars-container .bar-fill:hover .bar-tip { display: block; }
+        .legend-row { display: flex; gap: 16px; margin-bottom: 6px; font-size: 11px; align-items: center; }
+        .legend-dot { width: 10px; height: 10px; border-radius: 2px; display: inline-block; margin-right: 4px; }
 
         /* 表格 */
         .table-box {
@@ -221,11 +228,11 @@
         <div class="charts-grid">
             <div class="chart-box">
                 <h3>📊 近30天 API 调用量 & 费用</h3>
-                <div class="chart-wrapper"><canvas id="chart-daily"></canvas></div>
+                <div class="bars-container" id="chart-daily"></div>
             </div>
             <div class="chart-box">
                 <h3>⏰ 今日分时调用量</h3>
-                <div class="chart-wrapper"><canvas id="chart-hourly"></canvas></div>
+                <div class="bars-container" id="chart-hourly"></div>
             </div>
         </div>
 
@@ -233,11 +240,11 @@
         <div class="charts-grid">
             <div class="chart-box">
                 <h3>👀 近30天页面浏览量</h3>
-                <div class="chart-wrapper"><canvas id="chart-pv-daily"></canvas></div>
+                <div class="bars-container" id="chart-pv-daily"></div>
             </div>
             <div class="chart-box">
                 <h3>🔧 近30天工具点击量</h3>
-                <div class="chart-wrapper"><canvas id="chart-tc-daily"></canvas></div>
+                <div class="bars-container" id="chart-tc-daily"></div>
             </div>
         </div>
 
@@ -308,10 +315,48 @@ document.getElementById('gate-password').addEventListener('keydown', function(e)
 });
 
 // ==================== 仪表盘初始化 ====================
-let dailyChart = null;
-let hourlyChart = null;
-let pvChart = null;
-let tcChart = null;
+// ===== 纯HTML柱状图渲染（零依赖，永不拉伸） =====
+function renderBars(containerId, data, labels, color, showLabels) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+    const max = Math.max(...data, 1);
+    const step = showLabels !== false ? Math.max(1, Math.floor(labels.length / 12)) : 999;
+    let html = '';
+    data.forEach((v, i) => {
+        const h = Math.max((v / max) * 100, 0.5);
+        const showLabel = (i % step === 0) || i === data.length - 1;
+        html += `<div class="bar-col">
+            <div class="bar-fill" style="height:${h}%;background:${color};" title="${labels[i]}: ${v.toLocaleString()}">
+                <span class="bar-tip">${v.toLocaleString()}</span>
+            </div>
+            ${showLabel ? '<span class="bar-label">'+escapeHtml(String(labels[i]))+'</span>' : ''}
+        </div>`;
+    });
+    container.innerHTML = html;
+}
+
+function renderDualBars(containerId, barsData, labels) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+    const maxBar = Math.max(...barsData.map(d => d.max || 1), 1);
+    const step = Math.max(1, Math.floor(labels.length / 12));
+    let html = '';
+    labels.forEach((l, i) => {
+        const h1 = Math.max((barsData[0].values[i] / maxBar) * 100, 0.5);
+        const h2 = Math.max((barsData[1].values[i] / maxBar) * 100, 0.5);
+        const showLabel = (i % step === 0) || i === labels.length - 1;
+        html += `<div class="bar-col">
+            <div class="bar-fill" style="height:${h1}%;background:${barsData[1].color};margin-bottom:1px;" title="${barsData[1].label}: ${barsData[1].values[i].toLocaleString()}">
+                <span class="bar-tip">${barsData[1].label}: ${barsData[1].values[i].toLocaleString()}</span>
+            </div>
+            <div class="bar-fill" style="height:${h2}%;background:${barsData[0].color};" title="${barsData[0].label}: ${barsData[0].values[i].toLocaleString()}">
+                <span class="bar-tip">${barsData[0].label}: ${barsData[0].values[i].toLocaleString()}</span>
+            </div>
+            ${showLabel ? '<span class="bar-label">'+escapeHtml(String(l))+'</span>' : ''}
+        </div>`;
+    });
+    container.innerHTML = html;
+}
 
 function initDashboard() {
     updateClock();
@@ -393,80 +438,19 @@ function renderWorkerData(data) {
         (total.inputTokens + total.outputTokens).toLocaleString();
     document.getElementById('val-avg-cost').textContent = '¥' + (total.cost / 30).toFixed(4);
 
-    // 每日图表
-    const labels = data.daily.map(d => d.date.substring(5)); // MM-DD
+    // 每日图表（双数据集：调用次数 + 费用）
+    const labels = data.daily.map(d => d.date.substring(5));
     const reqData = data.daily.map(d => d.requests);
     const costData = data.daily.map(d => Math.round(d.cost * 10000) / 10000);
-
-    const dailyCtx = document.getElementById('chart-daily').getContext('2d');
-    if (dailyChart) dailyChart.destroy();
-    dailyChart = new Chart(dailyCtx, {
-        type: 'bar',
-        data: {
-            labels,
-            datasets: [
-                {
-                    label: '调用次数',
-                    data: reqData,
-                    backgroundColor: 'rgba(50,88,109,.6)',
-                    borderColor: '#32586d',
-                    borderWidth: 1,
-                    borderRadius: 4,
-                    yAxisID: 'y',
-                    order: 2,
-                },
-                {
-                    label: '费用 (¥)',
-                    data: costData,
-                    type: 'line',
-                    borderColor: '#ca3032',
-                    backgroundColor: 'rgba(202,48,50,.1)',
-                    borderWidth: 2,
-                    pointRadius: 3,
-                    tension: .3,
-                    yAxisID: 'y1',
-                    order: 1,
-                },
-            ],
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            interaction: { intersect: false, mode: 'index' },
-            plugins: { legend: { position: 'top', labels: { boxWidth: 12 } } },
-            animation: false,
-            scales: {
-                y: { type: 'linear', position: 'left', title: { display: true, text: '调用次数' }, beginAtZero: true, max: Math.max(10, ...reqData) || 10 },
-                y1: { type: 'linear', position: 'right', title: { display: true, text: '费用 (¥)' }, grid: { drawOnChartArea: false }, beginAtZero: true, max: Math.max(1, ...costData) || 1 },
-            },
-        },
-    });
+    renderDualBars('chart-daily', [
+        { label: '调用次数', values: reqData, color: 'var(--primary)' },
+        { label: '费用 ¥', values: costData, color: '#ca3032' }
+    ], labels);
 
     // 小时图表
     const hourLabels = data.hourly.map(h => h.hour + ':00');
     const hourReq = data.hourly.map(h => h.requests);
-
-    const hourlyCtx = document.getElementById('chart-hourly').getContext('2d');
-    if (hourlyChart) hourlyChart.destroy();
-    hourlyChart = new Chart(hourlyCtx, {
-        type: 'bar',
-        data: {
-            labels: hourLabels,
-            datasets: [{
-                label: '调用次数',
-                data: hourReq,
-                backgroundColor: hourReq.map(v => v > 0 ? 'rgba(50,88,109,.7)' : 'rgba(178,209,214,.3)'),
-                borderRadius: 3,
-            }],
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            animation: false,
-            plugins: { legend: { display: false } },
-            scales: { y: { beginAtZero: true, title: { display: true, text: '请求数' }, max: Math.max(10, ...hourReq) || 10 } },
-        },
-    });
+    renderBars('chart-hourly', hourReq, hourLabels, '#32586d');
 
     // AI 热门页面（注意字段名改为 topAIPages）
     const aiPages = data.topAIPages || data.topPages || [];
@@ -504,30 +488,7 @@ function renderWorkerData(data) {
         // 页面浏览图表
         const pvLabels = pv.daily.map(d => d.date.substring(5));
         const pvData = pv.daily.map(d => d.count || 0);
-        const pvCtx = document.getElementById('chart-pv-daily')?.getContext('2d');
-        if (pvCtx) {
-            if (pvChart) pvChart.destroy();
-            pvChart = new Chart(pvCtx, {
-                type: 'bar',
-                data: {
-                    labels: pvLabels,
-                    datasets: [{
-                        label: '页面浏览',
-                        data: pvData,
-                        backgroundColor: 'rgba(46,139,87,.5)',
-                        borderColor: '#2e8b57',
-                        borderWidth: 1,
-                        borderRadius: 4,
-                    }],
-                },
-                options: {
-                    responsive: true, maintainAspectRatio: false,
-                    animation: false,
-                    plugins: { legend: { display: false } },
-                    scales: { y: { beginAtZero: true, title: { display: true, text: '浏览量' }, max: Math.max(10, ...pvData) || 10 } },
-                },
-            });
-        }
+        renderBars('chart-pv-daily', pvData, pvLabels, '#2e8b57');
 
         // 页面浏览量排行
         if (pv.topPages && pv.topPages.length > 0) {
@@ -578,30 +539,7 @@ function renderWorkerData(data) {
         // 工具点击图表
         const tcLabels = tc.daily.map(d => d.date.substring(5));
         const tcData = tc.daily.map(d => d.count || 0);
-        const tcCtx = document.getElementById('chart-tc-daily')?.getContext('2d');
-        if (tcCtx) {
-            if (tcChart) tcChart.destroy();
-            tcChart = new Chart(tcCtx, {
-                type: 'bar',
-                data: {
-                    labels: tcLabels,
-                    datasets: [{
-                        label: '工具点击',
-                        data: tcData,
-                        backgroundColor: 'rgba(202,48,50,.4)',
-                        borderColor: '#ca3032',
-                        borderWidth: 1,
-                        borderRadius: 4,
-                    }],
-                },
-                options: {
-                    responsive: true, maintainAspectRatio: false,
-                    animation: false,
-                    plugins: { legend: { display: false } },
-                    scales: { y: { beginAtZero: true, title: { display: true, text: '点击量' }, max: Math.max(10, ...tcData) || 10 } },
-                },
-            });
-        }
+        renderBars('chart-tc-daily', tcData, tcLabels, '#ca3032');
 
         // 工具排行榜
         if (tc.topTools && tc.topTools.length > 0) {
