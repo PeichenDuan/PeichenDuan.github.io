@@ -1,6 +1,6 @@
 /**
- * BAT AI Proxy — Deno Deploy v3
- * 简单可靠：内存存储 + 完整日志
+ * BAT AI Proxy — v7 诊断版
+ * v3核心 + 请求日志 + /debug 端点
  */
 const DEEPSEEK_API_URL = 'https://api.deepseek.com/chat/completions';
 const PRICING = { input: 1.0, output: 2.0 };
@@ -26,6 +26,13 @@ function sIncr(key, field, delta) {
   let obj = store.get(key) || {};
   obj[field] = (obj[field] || 0) + delta;
   store.set(key, obj);
+}
+
+// ========== 请求日志（最近200条，诊断用） ==========
+const reqLog = [];
+function logReq(type, info) {
+  reqLog.unshift({ time: new Date().toISOString(), type, ...info });
+  if (reqLog.length > 200) reqLog.length = 200;
 }
 
 // ========== 工具 ==========
@@ -93,13 +100,35 @@ function checkRate(ip) {
   e.cnt++; return true;
 }
 
-// ========== 信标 ==========
+// ========== 信标（含诊断） ==========
 async function beacon(req) {
   let b; try { b = await req.json(); } catch(_) { return json({error:'bad json'},400,corsHdr(req)); }
   const t = b.type || '';
-  if (t === 'pageview') recordPV(b.page || 'unknown');
-  else if (t === 'tool_click') recordTC(b.tool||'unknown', b.category||'');
-  return json({ok:true}, 200, corsHdr(req));
+  const ip = req.headers.get('x-forwarded-for') || '?';
+  const origin = req.headers.get('Origin') || '?';
+  const dk = getDateKey();
+
+  if (t === 'pageview') {
+    recordPV(b.page || 'unknown');
+    logReq('pageview', { ip, origin, page: b.page });
+  } else if (t === 'tool_click') {
+    recordTC(b.tool||'unknown', b.category||'');
+    logReq('tool_click', { ip, origin, tool: b.tool, cat: b.category });
+  } else {
+    logReq('beacon_unknown', { ip, origin, type: t });
+  }
+
+  // 返回诊断信息
+  const pvNow = sGet('pvDaily:'+dk) || {};
+  return json({
+    ok: true,
+    diag: {
+      dateKey: dk,
+      storedType: t,
+      todayPageViews: pvNow.cnt || 0,
+      storeSize: store.size,
+    },
+  }, 200, corsHdr(req));
 }
 
 // ========== 反馈 ==========
@@ -119,6 +148,7 @@ async function feedback(req) {
       name: (b.name||'匿名').slice(0,30), message: (b.message||'').trim().slice(0,500),
       page: (b.page||'index').slice(0,80), time: new Date().toISOString() };
     sSet('fb:'+fb.id, fb);
+    logReq('feedback', { name: fb.name });
     return json({ok:true},200,corsHdr(req));
   }
 }
@@ -159,6 +189,8 @@ async function stats(req) {
   const topTools = Object.entries(sGet('tcTools')||{}).map(([k,v])=>({tool:k,clicks:v})).sort((a,b)=>b.clicks-a.clicks);
   const catClicks = Object.entries(sGet('tcCats')||{}).map(([k,v])=>({category:k,clicks:v})).sort((a,b)=>b.clicks-a.clicks);
 
+  logReq('stats', { storeSize: store.size });
+
   return json({
     generatedAt: new Date().toISOString(), pricing: PRICING,
     summary: { total30Days:total30, today:todayAI, avgDailyCost:total30.cost/30, estimatedMonthlyCost:total30.cost },
@@ -168,9 +200,32 @@ async function stats(req) {
   }, 200, corsHdr(req));
 }
 
+// ========== 诊断端点 ==========
+function debug(_req) {
+  const dk = getDateKey();
+  const pvToday = sGet('pvDaily:'+dk);
+  const pvAll = sGet('pvPages');
+  const tcAll = sGet('tcTools');
+
+  return json({
+    version: 'v7-diag',
+    dateKey: dk,
+    storeSize: store.size,
+    storeKeys: [...store.keys()].slice(0, 50),
+    todayPageViews: pvToday || {},
+    allPageViews: pvAll || {},
+    allToolClicks: tcAll || {},
+    recentLogs: reqLog.slice(0, 30),
+  }, 200, corsHdr(_req));
+}
+
 // ========== 健康检查 ==========
 function health(req) {
-  return json({status:'ok',version:'v3-simple',deepseekConfigured:!!Deno.env.get('DEEPSEEK_API_KEY')},200,corsHdr(req));
+  return json({
+    status:'ok', version:'v7-diag',
+    storeSize: store.size,
+    deepseekConfigured:!!Deno.env.get('DEEPSEEK_API_KEY'),
+  },200,corsHdr(req));
 }
 
 // ========== 主入口 ==========
@@ -180,6 +235,7 @@ const handler = async function(req) {
 
   const url = new URL(req.url);
   if (url.pathname === '/health') return health(req);
+  if (url.pathname === '/debug') return debug(req);
   if (url.pathname === '/feedback') return feedback(req);
   if (req.method === 'POST' && url.pathname === '/beacon') return beacon(req);
   if (req.method === 'GET' && url.pathname === '/stats') return stats(req);
