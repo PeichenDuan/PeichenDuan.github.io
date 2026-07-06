@@ -57,12 +57,23 @@ const PRICING = {
 const RATE_LIMIT = 100;        // 每小时每IP最大请求数
 const RATE_WINDOW = 3600;      // 窗口：1小时（秒）
 
-// CORS 允许的源
+// CORS 允许的源（精确匹配）
 const ALLOWED_ORIGINS = [
-  'https://peichenduan.github.io',
   'https://peichenduan.github.io',
   'http://localhost:8080',
   'http://127.0.0.1:8080',
+];
+
+// 允许的本地网络 IP 模式（正则）
+// 覆盖常见的局域网地址：192.168.x.x, 10.x.x.x, 172.16-31.x.x, localhost 任意端口
+const LOCAL_ORIGIN_PATTERNS = [
+  /^https?:\/\/localhost(:\d+)?$/,
+  /^https?:\/\/127\.0\.0\.1(:\d+)?$/,
+  /^https?:\/\/192\.168\.\d+\.\d+(:\d+)?$/,
+  /^https?:\/\/10\.\d+\.\d+\.\d+(:\d+)?$/,
+  /^https?:\/\/172\.(1[6-9]|2\d|3[01])\.\d+\.\d+(:\d+)?$/,
+  /^https?:\/\/\[::1\](:\d+)?$/,  // IPv6 localhost
+  /^https?:\/\/0\.0\.0\.0(:\d+)?$/,
 ];
 
 // ==================== 工具函数 ====================
@@ -99,12 +110,21 @@ async function hashIP(ip) {
     .substring(0, 16);
 }
 
+/** 判断 origin 是否被允许 */
+function isOriginAllowed(origin) {
+  if (!origin) return false;
+  // 精确匹配
+  if (ALLOWED_ORIGINS.includes(origin)) return true;
+  // 本地网络模式匹配
+  if (LOCAL_ORIGIN_PATTERNS.some(pattern => pattern.test(origin))) return true;
+  return false;
+}
+
 /** CORS 头 */
 function corsHeaders(request) {
   const origin = request.headers.get('Origin') || '';
-  const allowOrigin = ALLOWED_ORIGINS.includes(origin) || origin.startsWith('http://localhost')
-    ? origin
-    : ALLOWED_ORIGINS[0];
+  // 动态回显：如果 origin 在允许列表中，返回它；否则返回生产域名
+  const allowOrigin = isOriginAllowed(origin) ? origin : (ALLOWED_ORIGINS[0] || '*');
 
   return {
     'Access-Control-Allow-Origin': allowOrigin,

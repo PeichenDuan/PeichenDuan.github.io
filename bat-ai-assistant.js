@@ -746,18 +746,55 @@ ${ctx.info.tips || '暂无'}
       console.log('🦇 BAT AI 指引助手已就绪  |  Ctrl+Shift+B 切换面板');
     }
 
+    // ===== 通用信标发送（fetch 为主，sendBeacon 兜底） =====
+    _sendBeacon(path, data) {
+      if (!CONFIG.proxyUrl || CONFIG.proxyUrl.includes('REPLACE-ME')) return;
+      const url = CONFIG.proxyUrl + path;
+      const body = JSON.stringify(data);
+
+      // 优先使用 fetch + keepalive（支持自定义 Content-Type，CORS 友好）
+      const doFetch = () => {
+        try {
+          fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: body,
+            keepalive: true,
+          }).catch(() => {
+            // fetch 失败时尝试 sendBeacon 兜底
+            try {
+              const blob = new Blob([body], { type: 'application/json' });
+              navigator.sendBeacon(url, blob);
+            } catch (_) { /* 静默 */ }
+          });
+        } catch (_) {
+          // fetch 抛出异常时尝试 sendBeacon
+          try {
+            const blob = new Blob([body], { type: 'application/json' });
+            navigator.sendBeacon(url, blob);
+          } catch (_2) { /* 静默 */ }
+        }
+      };
+
+      // 页面卸载时 sendBeacon 更可靠，正常情况用 fetch
+      if (document.visibilityState === 'hidden' || document.visibilityState === 'unloaded') {
+        try {
+          const blob = new Blob([body], { type: 'application/json' });
+          navigator.sendBeacon(url, blob);
+        } catch (_) { doFetch(); }
+      } else {
+        doFetch();
+      }
+    }
+
     // ===== 页面浏览信标 =====
     sendPageViewBeacon() {
-      if (!CONFIG.proxyUrl || CONFIG.proxyUrl.includes('REPLACE-ME')) return;
       const page = this.ctx.name || (this.ctx.isIndex ? 'index' : window.location.pathname);
-      try {
-        const beaconUrl = CONFIG.proxyUrl + '/beacon';
-        navigator.sendBeacon(beaconUrl, JSON.stringify({
-          type: 'pageview',
-          page: page,
-          timestamp: new Date().toISOString(),
-        }));
-      } catch (e) { /* 静默失败，不影响用户体验 */ }
+      this._sendBeacon('/beacon', {
+        type: 'pageview',
+        page: page,
+        timestamp: new Date().toISOString(),
+      });
     }
 
     // ===== 工具卡片点击追踪（仅首页） =====
@@ -788,16 +825,12 @@ ${ctx.info.tips || '暂无'}
     }
 
     sendToolClickBeacon(toolName, category) {
-      if (!CONFIG.proxyUrl || CONFIG.proxyUrl.includes('REPLACE-ME')) return;
-      try {
-        const beaconUrl = CONFIG.proxyUrl + '/beacon';
-        navigator.sendBeacon(beaconUrl, JSON.stringify({
-          type: 'tool_click',
-          tool: toolName,
-          category: category,
-          timestamp: new Date().toISOString(),
-        }));
-      } catch (e) { /* 静默失败 */ }
+      this._sendBeacon('/beacon', {
+        type: 'tool_click',
+        tool: toolName,
+        category: category,
+        timestamp: new Date().toISOString(),
+      });
     }
 
     // ===== Google Analytics 注入 =====
@@ -1199,6 +1232,14 @@ ${ctx.info.tips || '暂无'}
           const em = err.message || '';
           if (em.includes('Failed to fetch') || em.includes('NetworkError'))
             errMsg = '无法连接到AI服务，请检查网络或管理员是否已部署代理服务';
+          else if (em.includes('FirstChunkTimeout'))
+            errMsg = 'AI 服务响应超时（15秒无响应）⏰，请检查网络或稍后重试。如持续出现，请联系管理员检查代理服务';
+          else if (em.includes('IdleTimeout'))
+            errMsg = 'AI 响应中断（30秒无数据）⚠️，请重试或缩短问题';
+          else if (em.includes('StreamTimeout'))
+            errMsg = 'AI 请求超时（60秒）⏰，请重试或尝试更简短的问题';
+          else if (em.includes('CORS') || em.includes('cross-origin') || em.includes('blocked'))
+            errMsg = '网络请求被浏览器拦截 🔒。当前页面域名不在代理服务允许列表中，请联系管理员更新 CORS 配置';
           else if (em.includes('401')) errMsg = 'API Key 无效或已过期，请在 ⚙ 设置中更新 Key';
           else if (em.includes('402')) errMsg = 'API 额度不足，请到 DeepSeek 平台充值 💰';
           else if (em.includes('429')) errMsg = '请求过于频繁，请稍后再试 ⏳';
@@ -1236,11 +1277,49 @@ ${ctx.info.tips || '暂无'}
         requestBody._page = this.ctx.name || (this.ctx.isIndex ? 'index' : 'unknown');
       }
 
+      // ===== 超时控制 =====
+      const STREAM_TIMEOUT = 60000;    // 整体流超时 60s
+      const FIRST_CHUNK_TIMEOUT = 15000; // 首字节超时 15s
+      const IDLE_TIMEOUT = 30000;       // 无数据超时 30s
+      const abortController = new AbortController();
+      let streamTimer = null;
+      let firstChunkReceived = false;
+      let alreadyHandled = false; // 防止超时 + abort 双重回调
+
+      const handleError = (err) => {
+        if (alreadyHandled) return;
+        alreadyHandled = true;
+        clearTimeout(globalTimer);
+        if (streamTimer) clearTimeout(streamTimer);
+        callbacks.onError(err);
+      };
+
+      const resetIdleTimer = () => {
+        if (streamTimer) clearTimeout(streamTimer);
+        streamTimer = setTimeout(() => {
+          if (!firstChunkReceived) {
+            abortController.abort();
+            handleError(new Error('FirstChunkTimeout: AI 服务响应超时，请检查网络连接或稍后再试'));
+          } else {
+            abortController.abort();
+            handleError(new Error('IdleTimeout: AI 响应中断，请重试'));
+          }
+        }, firstChunkReceived ? IDLE_TIMEOUT : FIRST_CHUNK_TIMEOUT);
+      };
+
+      // 整体超时（兜底）
+      const globalTimer = setTimeout(() => {
+        abortController.abort();
+        handleError(new Error('StreamTimeout: AI 请求超过 ' + (STREAM_TIMEOUT / 1000) + ' 秒，请重试'));
+      }, STREAM_TIMEOUT);
+
       try {
+        resetIdleTimer(); // 启动首字节超时
         const resp = await fetch(apiConfig.url, {
           method: 'POST',
           headers: apiConfig.headers,
           body: JSON.stringify(requestBody),
+          signal: abortController.signal,
         });
 
         if (!resp.ok) {
@@ -1253,16 +1332,49 @@ ${ctx.info.tips || '暂无'}
           throw new Error(errMsg);
         }
 
+        // 检查响应是否为流式 SSE（防止代理返回非流 JSON 导致假死）
+        const contentType = resp.headers.get('Content-Type') || '';
+        if (!contentType.includes('text/event-stream') && !contentType.includes('application/octet-stream')) {
+          // 可能代理返回了 JSON 错误而非 SSE 流
+          const text = await resp.text().catch(() => '');
+          try {
+            const json = JSON.parse(text);
+            if (json.error) {
+              throw new Error('代理错误: ' + json.error);
+            }
+            // 如果 JSON 里有 choices，说明是非流式响应，尝试提取内容
+            if (json.choices && json.choices[0]) {
+              const content = json.choices[0].message?.content || json.choices[0].text || '';
+              if (content) {
+                callbacks.onChunk(content);
+                callbacks.onDone();
+                return;
+              }
+            }
+          } catch (e) {
+            if (e.message.startsWith('代理错误')) throw e;
+          }
+          throw new Error('服务器返回了非流式响应，请检查代理配置');
+        }
+
         const reader = resp.body.getReader();
         const decoder = new TextDecoder();
         let buffer = '';
         // 记录 token 用量（从 usage 字段提取）
         let inputTokens = 0;
         let outputTokens = 0;
+        let streamEndedNormally = false;
 
         while (true) {
           const { done, value } = await reader.read();
-          if (done) break;
+          if (done) {
+            streamEndedNormally = true;
+            break;
+          }
+          // 收到数据 → 重置空闲计时器
+          if (!firstChunkReceived) firstChunkReceived = true;
+          resetIdleTimer();
+
           buffer += decoder.decode(value, { stream: true });
           const lines = buffer.split('\n');
           buffer = lines.pop() || '';
@@ -1272,6 +1384,9 @@ ${ctx.info.tips || '暂无'}
             if (!t || !t.startsWith('data: ')) continue;
             const data = t.slice(6);
             if (data === '[DONE]') {
+              alreadyHandled = true;
+              clearTimeout(globalTimer);
+              if (streamTimer) clearTimeout(streamTimer);
               this.logClientUsage(inputTokens, outputTokens);
               callbacks.onDone();
               return;
@@ -1289,6 +1404,7 @@ ${ctx.info.tips || '暂无'}
           }
         }
 
+        // 流自然结束（done=true 但没有 [DONE] 标记）
         if (buffer.trim()) {
           const t = buffer.trim();
           if (t.startsWith('data: ') && t !== 'data: [DONE]') {
@@ -1303,9 +1419,18 @@ ${ctx.info.tips || '暂无'}
             } catch (e) { /* skip */ }
           }
         }
+
+        alreadyHandled = true;
+        clearTimeout(globalTimer);
+        if (streamTimer) clearTimeout(streamTimer);
         this.logClientUsage(inputTokens, outputTokens);
         callbacks.onDone();
       } catch (e) {
+        clearTimeout(globalTimer);
+        if (streamTimer) clearTimeout(streamTimer);
+        // 避免超时和 abort 双重回调
+        if (alreadyHandled) return;
+        alreadyHandled = true;
         this.logClientUsage(0, 0, e.message);
         callbacks.onError(e);
       }
