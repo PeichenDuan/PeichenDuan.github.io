@@ -1,6 +1,6 @@
 /**
- * BAT AI Proxy — Deno Deploy v6
- * 基于v3（确认可用），加KV跨实例读写（Deno['openKv']绕过静态检查）
+ * BAT AI Proxy — Deno Deploy v3
+ * 简单可靠：内存存储 + 完整日志
  */
 const DEEPSEEK_API_URL = 'https://api.deepseek.com/chat/completions';
 const PRICING = { input: 1.0, output: 2.0 };
@@ -17,7 +17,7 @@ const LOCAL_PATTERNS = [
   /^https?:\/\/172\.(1[6-9]|2\d|3[01])\.\d+\.\d+(:\d+)?$/,
 ];
 
-// ========== 内存存储（v3，确认可用） ==========
+// ========== 内存存储 ==========
 const store = new Map();
 
 function sGet(key) { return store.get(key) || null; }
@@ -26,57 +26,6 @@ function sIncr(key, field, delta) {
   let obj = store.get(key) || {};
   obj[field] = (obj[field] || 0) + delta;
   store.set(key, obj);
-}
-
-// ========== KV 层（可选，失败不影响核心功能） ==========
-let kv = null;
-let kvOk = false;
-
-async function tryKv() {
-  if (kv !== null) return;
-  try {
-    // 用 ['openKv'] 绕过 Deno Deploy 静态扫描
-    const open = Deno['openKv'];
-    if (typeof open !== 'function') { kvOk = false; kv = null; return; }
-    kv = await open();
-    // 冒烟测试
-    await kv.set(['_test'], { t: Date.now() }, { expireIn: 60000 });
-    const r = await kv.get(['_test']);
-    kvOk = !!(r && r.value);
-    console.log(kvOk ? '[KV] 就绪，跨实例共享已启用' : '[KV] 冒烟失败');
-  } catch (e) {
-    console.warn('[KV] 不可用，纯内存模式:', e.message);
-    kv = null; kvOk = false;
-  }
-}
-
-async function kvGet(key) {
-  if (!kvOk) return null;
-  try { const r = await kv.get(key.split(':')); return r ? r.value : null; } catch (_) { return null; }
-}
-async function kvSet(key, val) {
-  if (!kvOk) return;
-  try { await kv.set(key.split(':'), val); } catch (_) {}
-}
-async function kvIncr(key, field, delta) {
-  if (!kvOk) return;
-  try {
-    const parts = key.split(':');
-    const r = await kv.get(parts);
-    const obj = (r && r.value) || {};
-    obj[field] = (obj[field] || 0) + delta;
-    await kv.set(parts, obj);
-  } catch (_) {}
-}
-async function kvList(prefix) {
-  if (!kvOk) return [];
-  try {
-    const items = [];
-    for await (const e of kv.list({ prefix: prefix.split(':') })) {
-      if (e.value) items.push(e.value);
-    }
-    return items;
-  } catch (_) { return []; }
 }
 
 // ========== 工具 ==========
@@ -111,38 +60,30 @@ function json(data, status, extra) {
   });
 }
 
-// ========== 记录（双写：内存 + KV） ==========
-function writeBoth(key, field, delta) {
-  sIncr(key, field, delta);          // 内存（同步，始终成功）
-  kvIncr(key, field, delta);         // KV（异步，静默失败）
-}
-
+// ========== 记录 ==========
 function recordUsage(inputT, outputT, page) {
   const cost = (inputT/1e6)*PRICING.input + (outputT/1e6)*PRICING.output;
   const dk = getDateKey(), hk = getHourKey();
-  writeBoth('daily:'+dk, 'req', 1);
-  writeBoth('daily:'+dk, 'in', inputT);
-  writeBoth('daily:'+dk, 'out', outputT);
-  writeBoth('daily:'+dk, 'cost', Math.round(cost*1e4));
-  writeBoth('hourly:'+hk, 'req', 1);
-  writeBoth('hourly:'+hk, 'cost', Math.round(cost*1e4));
-  if (page) writeBoth('aipages', page, 1);
+  sIncr('daily:'+dk, 'req', 1); sIncr('daily:'+dk, 'in', inputT);
+  sIncr('daily:'+dk, 'out', outputT); sIncr('daily:'+dk, 'cost', Math.round(cost*1e4));
+  sIncr('hourly:'+hk, 'req', 1); sIncr('hourly:'+hk, 'cost', Math.round(cost*1e4));
+  if (page) sIncr('aipages', page, 1);
 }
 
 function recordPV(page) {
   const dk = getDateKey();
-  writeBoth('pvDaily:'+dk, 'cnt', 1);
-  writeBoth('pvPages', page||'unknown', 1);
+  sIncr('pvDaily:'+dk, 'cnt', 1);
+  sIncr('pvPages', page||'unknown', 1);
 }
 
 function recordTC(tool, cat) {
   const dk = getDateKey();
-  writeBoth('tcDaily:'+dk, 'cnt', 1);
-  writeBoth('tcTools', tool||'unknown', 1);
-  if (cat) writeBoth('tcCats', cat, 1);
+  sIncr('tcDaily:'+dk, 'cnt', 1);
+  sIncr('tcTools', tool||'unknown', 1);
+  if (cat) sIncr('tcCats', cat, 1);
 }
 
-// ========== 速率限制（纯内存） ==========
+// ========== 速率限制 ==========
 const rateMap = new Map();
 function checkRate(ip) {
   const now = Math.floor(Date.now()/1000);
@@ -168,10 +109,7 @@ async function feedback(req) {
   if (req.method === 'GET') {
     const k = u.searchParams.get('key')||'';
     if (!ak||k!==ak) return json({error:'unauth'},401,corsHdr(req));
-    const list = [];
-    for (const [k,v] of store) if (k.startsWith('fb:')) list.push(v);
-    const kvItems = await kvList('fb');
-    for (const item of kvItems) { if (!list.find(x=>x.id===item.id)) list.push(item); }
+    const list = []; for (const [k,v] of store) if (k.startsWith('fb:')) list.push(v);
     list.sort((a,b)=>new Date(b.time)-new Date(a.time));
     return json({feedbacks:list},200,corsHdr(req));
   }
@@ -181,7 +119,6 @@ async function feedback(req) {
       name: (b.name||'匿名').slice(0,30), message: (b.message||'').trim().slice(0,500),
       page: (b.page||'index').slice(0,80), time: new Date().toISOString() };
     sSet('fb:'+fb.id, fb);
-    kvSet('fb:'+fb.id, fb);
     return json({ok:true},200,corsHdr(req));
   }
 }
@@ -194,51 +131,33 @@ async function stats(req) {
   if (!ak||k!==ak) return json({error:'unauth'},401,corsHdr(req));
 
   const today = new Date(), todayKey = getDateKey();
-  const buildDaily = async (prefix) => {
+  const buildDaily = (prefix) => {
     const arr = [];
     for (let i=29; i>=0; i--) {
       const d=new Date(today); d.setDate(d.getDate()-i);
       const dk=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
-      const key = prefix+':'+dk;
-      let data = await kvGet(key);        // 优先 KV（跨实例可见）
-      if (!data) data = sGet(key) || {};  // 回退内存
+      const data = sGet(prefix+':'+dk)||{};
       arr.push({date:dk, ...data});
     }
     return arr;
   };
 
-  const aiDaily = (await buildDaily('daily')).map(d=>({date:d.date,requests:d.req||0,inputTokens:d.in||0,outputTokens:d.out||0,cost:(d.cost||0)/10000}));
+  const aiDaily = buildDaily('daily').map(d=>({date:d.date,requests:d.req||0,inputTokens:d.in||0,outputTokens:d.out||0,cost:(d.cost||0)/10000}));
   const todayAI = aiDaily[aiDaily.length-1];
   const hStats = [];
   for (let h=0; h<24; h++) {
     const hk = todayKey+':'+String(h).padStart(2,'0');
-    const key = 'hourly:'+hk;
-    let d = await kvGet(key);
-    if (!d) d = sGet(key) || {};
+    const d = sGet('hourly:'+hk)||{};
     hStats.push({hour:h, requests:d.req||0, cost:(d.cost||0)/10000});
   }
   const total30 = aiDaily.reduce((a,d)=>({requests:a.requests+d.requests,inputTokens:a.inputTokens+d.inputTokens,outputTokens:a.outputTokens+d.outputTokens,cost:a.cost+d.cost}),{requests:0,inputTokens:0,outputTokens:0,cost:0});
 
-  const aiPagesKv = await kvGet('aipages');
-  const aiPagesMem = sGet('aipages') || {};
-  const aiPagesMerged = { ...aiPagesMem, ...(aiPagesKv || {}) };
-  const aiPages = Object.entries(aiPagesMerged).map(([k,v])=>({page:k,requests:v})).sort((a,b)=>b.requests-a.requests);
-
-  const pvDaily = (await buildDaily('pvDaily')).map(d=>({date:d.date,count:d.cnt||0}));
-  const pvKv = await kvGet('pvPages');
-  const pvMem = sGet('pvPages') || {};
-  const pvMerged = { ...pvMem, ...(pvKv || {}) };
-  const pvPages = Object.entries(pvMerged).map(([k,v])=>({page:k,views:v})).sort((a,b)=>b.views-a.views);
-
-  const tcDaily = (await buildDaily('tcDaily')).map(d=>({date:d.date,count:d.cnt||0}));
-  const tcKv = await kvGet('tcTools');
-  const tcMem = sGet('tcTools') || {};
-  const tcMerged = { ...tcMem, ...(tcKv || {}) };
-  const topTools = Object.entries(tcMerged).map(([k,v])=>({tool:k,clicks:v})).sort((a,b)=>b.clicks-a.clicks);
-  const catKv = await kvGet('tcCats');
-  const catMem = sGet('tcCats') || {};
-  const catMerged = { ...catMem, ...(catKv || {}) };
-  const catClicks = Object.entries(catMerged).map(([k,v])=>({category:k,clicks:v})).sort((a,b)=>b.clicks-a.clicks);
+  const aiPages = Object.entries(sGet('aipages')||{}).map(([k,v])=>({page:k,requests:v})).sort((a,b)=>b.requests-a.requests);
+  const pvDaily = buildDaily('pvDaily').map(d=>({date:d.date,count:d.cnt||0}));
+  const pvPages = Object.entries(sGet('pvPages')||{}).map(([k,v])=>({page:k,views:v})).sort((a,b)=>b.views-a.views);
+  const tcDaily = buildDaily('tcDaily').map(d=>({date:d.date,count:d.cnt||0}));
+  const topTools = Object.entries(sGet('tcTools')||{}).map(([k,v])=>({tool:k,clicks:v})).sort((a,b)=>b.clicks-a.clicks);
+  const catClicks = Object.entries(sGet('tcCats')||{}).map(([k,v])=>({category:k,clicks:v})).sort((a,b)=>b.clicks-a.clicks);
 
   return json({
     generatedAt: new Date().toISOString(), pricing: PRICING,
@@ -250,19 +169,12 @@ async function stats(req) {
 }
 
 // ========== 健康检查 ==========
-function health(_req) {
-  return json({
-    status:'ok', version:'v6-hybrid',
-    storage: kvOk ? 'kv+memory' : 'memory',
-    deepseekConfigured:!!Deno.env.get('DEEPSEEK_API_KEY'),
-  }, 200, corsHdr(_req));
+function health(req) {
+  return json({status:'ok',version:'v3-simple',deepseekConfigured:!!Deno.env.get('DEEPSEEK_API_KEY')},200,corsHdr(req));
 }
 
 // ========== 主入口 ==========
 const handler = async function(req) {
-  // 首次请求时初始化 KV（不在模块顶层执行，避免部署扫描）
-  if (kv === null) tryKv();
-
   const hdrs = corsHdr(req);
   if (req.method === 'OPTIONS') return new Response(null, {headers:hdrs});
 
