@@ -741,7 +741,63 @@ ${ctx.info.tips || '暂无'}
       this.initTooltipTimer();
       this.updateFooterStatus();
       this.injectAnalytics();
+      this.sendPageViewBeacon();     // 上报页面浏览
+      this.bindToolCardTracking();   // 追踪工具卡片点击
       console.log('🦇 BAT AI 指引助手已就绪  |  Ctrl+Shift+B 切换面板');
+    }
+
+    // ===== 页面浏览信标 =====
+    sendPageViewBeacon() {
+      if (!CONFIG.proxyUrl || CONFIG.proxyUrl.includes('REPLACE-ME')) return;
+      const page = this.ctx.name || (this.ctx.isIndex ? 'index' : window.location.pathname);
+      try {
+        const beaconUrl = CONFIG.proxyUrl + '/beacon';
+        navigator.sendBeacon(beaconUrl, JSON.stringify({
+          type: 'pageview',
+          page: page,
+          timestamp: new Date().toISOString(),
+        }));
+      } catch (e) { /* 静默失败，不影响用户体验 */ }
+    }
+
+    // ===== 工具卡片点击追踪（仅首页） =====
+    bindToolCardTracking() {
+      if (!this.ctx.isIndex) return; // 只在首页追踪
+      // 延迟绑定，等页面完全渲染
+      setTimeout(() => {
+        document.querySelectorAll('.tool-card').forEach(card => {
+          if (card.dataset.batTracked) return; // 避免重复绑定
+          card.dataset.batTracked = '1';
+          card.addEventListener('click', (e) => {
+            // 获取工具名和分类
+            const header = card.querySelector('.tool-card-header');
+            const toolName = header ? header.textContent.trim() : card.dataset.tool || '';
+            // 从父级区域推断分类
+            const section = card.closest('[class*="section"], .category-section, .tool-group');
+            let category = '';
+            if (section) {
+              const sectionTitle = section.querySelector('h2, h3, .section-title, .category-title');
+              if (sectionTitle) category = sectionTitle.textContent.trim();
+            }
+            if (!category) category = card.dataset.category || '';
+            if (!toolName) return;
+            this.sendToolClickBeacon(toolName, category);
+          });
+        });
+      }, 1500);
+    }
+
+    sendToolClickBeacon(toolName, category) {
+      if (!CONFIG.proxyUrl || CONFIG.proxyUrl.includes('REPLACE-ME')) return;
+      try {
+        const beaconUrl = CONFIG.proxyUrl + '/beacon';
+        navigator.sendBeacon(beaconUrl, JSON.stringify({
+          type: 'tool_click',
+          tool: toolName,
+          category: category,
+          timestamp: new Date().toISOString(),
+        }));
+      } catch (e) { /* 静默失败 */ }
     }
 
     // ===== Google Analytics 注入 =====

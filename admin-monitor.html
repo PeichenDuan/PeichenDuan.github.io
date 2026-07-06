@@ -147,7 +147,8 @@
         </div>
     </div>
     <div class="content">
-        <!-- 摘要卡片 -->
+        <!-- 摘要卡片 - AI -->
+        <h2 style="margin-bottom:12px;font-size:18px;color:var(--primary);">🤖 AI 助手用量</h2>
         <div class="summary-cards" id="summary-cards">
             <div class="card">
                 <div class="label">📊 今日 API 调用</div>
@@ -155,12 +156,12 @@
                 <div class="sub">次请求</div>
             </div>
             <div class="card">
-                <div class="label">💰 今日费用</div>
+                <div class="label">💰 今日 AI 费用</div>
                 <div class="value" id="val-today-cost">--</div>
                 <div class="sub">人民币</div>
             </div>
             <div class="card">
-                <div class="label">📅 30天总费用</div>
+                <div class="label">📅 30天 AI 总费用</div>
                 <div class="value warn" id="val-month-cost">--</div>
                 <div class="sub">预估月费 ¥<span id="val-est-month">--</span></div>
             </div>
@@ -170,9 +171,43 @@
                 <div class="sub">Token: <span id="val-total-tokens">--</span></div>
             </div>
             <div class="card">
-                <div class="label">📈 日均费用</div>
+                <div class="label">📈 日均 AI 费用</div>
                 <div class="value" id="val-avg-cost">--</div>
                 <div class="sub">/天</div>
+            </div>
+        </div>
+
+        <!-- 摘要卡片 - 网站流量 -->
+        <h2 style="margin:24px 0 12px;font-size:18px;color:var(--primary);">🌐 网站访问量</h2>
+        <div class="summary-cards" id="summary-cards-pv">
+            <div class="card good">
+                <div class="label">👀 今日页面浏览</div>
+                <div class="value" id="val-pv-today">--</div>
+                <div class="sub">次</div>
+            </div>
+            <div class="card good">
+                <div class="label">👤 今日访客估算</div>
+                <div class="value" id="val-visitors-today">--</div>
+                <div class="sub">独立 IP</div>
+            </div>
+            <div class="card">
+                <div class="label">📄 30天总浏览</div>
+                <div class="value" id="val-pv-month">--</div>
+                <div class="sub">次页面浏览</div>
+            </div>
+        </div>
+
+        <!-- 摘要卡片 - 工具热度 -->
+        <h2 style="margin:24px 0 12px;font-size:18px;color:var(--primary);">🔧 最受欢迎工具</h2>
+        <div class="summary-cards" id="summary-cards-tool" style="grid-template-columns:1fr 2fr;">
+            <div class="card">
+                <div class="label">🏆 最热门工具</div>
+                <div class="value" id="val-top-tool" style="font-size:22px;">--</div>
+                <div class="sub">点击 <span id="val-top-tool-clicks">--</span> 次</div>
+            </div>
+            <div class="card">
+                <div class="label">📋 各分类点击分布</div>
+                <div id="cat-chips" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px;">--</div>
             </div>
         </div>
 
@@ -188,9 +223,33 @@
             </div>
         </div>
 
+        <!-- 页面浏览 + 工具点击图表 -->
+        <div class="charts-grid">
+            <div class="chart-box">
+                <h3>👀 近30天页面浏览量</h3>
+                <canvas id="chart-pv-daily" height="280"></canvas>
+            </div>
+            <div class="chart-box">
+                <h3>🔧 近30天工具点击量</h3>
+                <canvas id="chart-tc-daily" height="280"></canvas>
+            </div>
+        </div>
+
+        <!-- 工具排行榜 -->
+        <div class="table-box">
+            <h3>🏆 工具点击排行榜 Top 20</h3>
+            <div id="top-tools-table"><p style="color:#999;">正在加载...</p></div>
+        </div>
+
         <!-- 热门页面 -->
         <div class="table-box">
-            <h3>🌐 AI 调用来源页面 Top 10（30天）</h3>
+            <h3>🌐 页面浏览量排行 Top 15</h3>
+            <div id="top-pv-table"><p style="color:#999;">正在加载...</p></div>
+        </div>
+
+        <!-- AI 调用来源 -->
+        <div class="table-box">
+            <h3>🤖 AI 调用来源页面 Top 10</h3>
             <div id="top-pages-table"><p style="color:#999;">正在加载...</p></div>
         </div>
 
@@ -204,10 +263,14 @@
         <div class="table-box">
             <h3>⚙ 配置状态</h3>
             <table id="config-table">
+                <tr><td>Cloudflare Worker</td><td id="cfg-worker">--</td></tr>
                 <tr><td>API 代理 URL</td><td id="cfg-proxy">--</td></tr>
                 <tr><td>Google Analytics</td><td id="cfg-ga">--</td></tr>
-                <tr><td>Cloudflare Worker</td><td id="cfg-worker">--</td></tr>
                 <tr><td>DeepSeek 定价</td><td>输入 ¥1/1M tokens · 输出 ¥2/1M tokens</td></tr>
+                <tr><td colspan="2" style="font-size:11px;color:#999;padding-top:8px;">
+                    💡 忘记密码？在终端运行 <code>wrangler secret put ADMIN_KEY</code> 重新设置<br>
+                    💡 GA 是可选功能，不影响监控面板使用
+                </td></tr>
             </table>
         </div>
     </div>
@@ -240,6 +303,8 @@ document.getElementById('gate-password').addEventListener('keydown', function(e)
 // ==================== 仪表盘初始化 ====================
 let dailyChart = null;
 let hourlyChart = null;
+let pvChart = null;
+let tcChart = null;
 
 function initDashboard() {
     updateClock();
@@ -268,10 +333,15 @@ async function refreshData() {
                 document.getElementById('cfg-worker').innerHTML = '<span class="tag tag-ok">已连接</span> ' + proxyUrl;
                 document.getElementById('header-status').textContent =
                     '数据来源: Cloudflare Worker · 更新于 ' + new Date(workerData.generatedAt).toLocaleString('zh-CN');
+            } else if (resp.status === 401) {
+                document.getElementById('cfg-worker').innerHTML =
+                    '<span class="tag tag-bad">密码错误</span>';
+                document.getElementById('header-status').textContent =
+                    '⚠️ 密码不匹配！你输入的面板密码和 Worker 的 ADMIN_KEY 不一致。请在终端运行 wrangler secret put ADMIN_KEY 重新设置';
             } else {
                 const err = await resp.json().catch(() => ({}));
                 document.getElementById('cfg-worker').innerHTML =
-                    '<span class="tag tag-warn">认证失败</span> ' + (err.error || resp.status);
+                    '<span class="tag tag-warn">连接失败</span> ' + (err.error || resp.status);
                 document.getElementById('header-status').textContent = 'Worker 连接失败: ' + (err.error || '状态 ' + resp.status);
             }
         } catch (e) {
@@ -389,11 +459,12 @@ function renderWorkerData(data) {
         },
     });
 
-    // 热门页面
-    if (data.topPages && data.topPages.length > 0) {
-        const maxReq = data.topPages[0].requests || 1;
-        let html = '<table><tr><th>页面</th><th>调用次数</th><th>占比</th></tr>';
-        data.topPages.forEach(p => {
+    // AI 热门页面（注意字段名改为 topAIPages）
+    const aiPages = data.topAIPages || data.topPages || [];
+    if (aiPages.length > 0) {
+        const maxReq = aiPages[0].requests || 1;
+        let html = '<table><tr><th>页面</th><th>AI调用次数</th><th>占比</th></tr>';
+        aiPages.forEach(p => {
             html += `<tr>
                 <td>${escapeHtml(p.page)}</td>
                 <td>${p.requests.toLocaleString()}</td>
@@ -408,7 +479,147 @@ function renderWorkerData(data) {
         html += '</table>';
         document.getElementById('top-pages-table').innerHTML = html;
     } else {
-        document.getElementById('top-pages-table').innerHTML = '<p style="color:#999;">暂无页面统计数据</p>';
+        document.getElementById('top-pages-table').innerHTML = '<p style="color:#999;">暂无 AI 调用统计数据</p>';
+    }
+
+    // ===== 页面浏览统计 =====
+    if (data.pageViews) {
+        const pv = data.pageViews;
+        // 今日浏览
+        document.getElementById('val-pv-today').textContent = (pv.today?.views || 0).toLocaleString();
+        document.getElementById('val-visitors-today').textContent = (pv.today?.visitors || 0).toLocaleString();
+        // 30天总浏览
+        const totalPV = pv.daily.reduce((s, d) => s + (d.count || 0), 0);
+        document.getElementById('val-pv-month').textContent = totalPV.toLocaleString();
+
+        // 页面浏览图表
+        const pvLabels = pv.daily.map(d => d.date.substring(5));
+        const pvData = pv.daily.map(d => d.count || 0);
+        const pvCtx = document.getElementById('chart-pv-daily')?.getContext('2d');
+        if (pvCtx) {
+            if (pvChart) pvChart.destroy();
+            pvChart = new Chart(pvCtx, {
+                type: 'bar',
+                data: {
+                    labels: pvLabels,
+                    datasets: [{
+                        label: '页面浏览',
+                        data: pvData,
+                        backgroundColor: 'rgba(46,139,87,.5)',
+                        borderColor: '#2e8b57',
+                        borderWidth: 1,
+                        borderRadius: 4,
+                    }],
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: { y: { beginAtZero: true, title: { display: true, text: '浏览量' } } },
+                },
+            });
+        }
+
+        // 页面浏览量排行
+        if (pv.topPages && pv.topPages.length > 0) {
+            const maxPV = pv.topPages[0].views || 1;
+            let html = '<table><tr><th>页面</th><th>浏览量</th><th>占比</th></tr>';
+            pv.topPages.forEach(p => {
+                html += `<tr>
+                    <td>${escapeHtml(p.page)}</td>
+                    <td>${p.views.toLocaleString()}</td>
+                    <td>
+                        <div style="display:flex;align-items:center;gap:8px;">
+                            <div class="bar-bg" style="width:120px;"><div class="bar-fill" style="width:${Math.round(p.views/maxPV*100)}%"></div></div>
+                            ${Math.round(p.views / totalPV * 100)}%
+                        </div>
+                    </td>
+                </tr>`;
+            });
+            html += '</table>';
+            document.getElementById('top-pv-table').innerHTML = html;
+        } else {
+            document.getElementById('top-pv-table').innerHTML = '<p style="color:#999;">暂无页面浏览数据（用户访问后会显示）</p>';
+        }
+    }
+
+    // ===== 工具点击统计 =====
+    if (data.toolClicks) {
+        const tc = data.toolClicks;
+
+        // 最热门工具
+        if (tc.topTools && tc.topTools.length > 0) {
+            document.getElementById('val-top-tool').textContent = tc.topTools[0].tool;
+            document.getElementById('val-top-tool-clicks').textContent = tc.topTools[0].clicks.toLocaleString();
+        }
+
+        // 分类分布
+        if (tc.categories && tc.categories.length > 0) {
+            const maxCat = tc.categories[0].clicks || 1;
+            let chips = '';
+            tc.categories.forEach(c => {
+                const pct = Math.round(c.clicks / maxCat * 100);
+                chips += `<span style="background:hsl(${200+pct/2},50%,90%);color:#32586d;padding:4px 12px;border-radius:12px;font-size:12px;font-weight:600;">${escapeHtml(c.category)}: ${c.clicks}</span>`;
+            });
+            document.getElementById('cat-chips').innerHTML = chips || '--';
+        } else {
+            document.getElementById('cat-chips').innerHTML = '<span style="color:#999;">暂无分类数据</span>';
+        }
+
+        // 工具点击图表
+        const tcLabels = tc.daily.map(d => d.date.substring(5));
+        const tcData = tc.daily.map(d => d.count || 0);
+        const tcCtx = document.getElementById('chart-tc-daily')?.getContext('2d');
+        if (tcCtx) {
+            if (tcChart) tcChart.destroy();
+            tcChart = new Chart(tcCtx, {
+                type: 'bar',
+                data: {
+                    labels: tcLabels,
+                    datasets: [{
+                        label: '工具点击',
+                        data: tcData,
+                        backgroundColor: 'rgba(202,48,50,.4)',
+                        borderColor: '#ca3032',
+                        borderWidth: 1,
+                        borderRadius: 4,
+                    }],
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: { y: { beginAtZero: true, title: { display: true, text: '点击量' } } },
+                },
+            });
+        }
+
+        // 工具排行榜
+        if (tc.topTools && tc.topTools.length > 0) {
+            const maxTC = tc.topTools[0].clicks || 1;
+            let html = '<table><tr><th>#</th><th>工具名</th><th>点击量</th><th>热度</th></tr>';
+            tc.topTools.forEach((t, i) => {
+                let rankClass = '';
+                if (i === 0) rankClass = 'style="color:#ca3032;font-weight:700;"';
+                else if (i === 1) rankClass = 'style="color:#f0ad4e;font-weight:700;"';
+                else if (i === 2) rankClass = 'style="color:#2e8b57;font-weight:700;"';
+                html += `<tr>
+                    <td ${rankClass}>${i + 1}</td>
+                    <td>${escapeHtml(t.tool)}</td>
+                    <td>${t.clicks.toLocaleString()}</td>
+                    <td>
+                        <div style="display:flex;align-items:center;gap:8px;">
+                            <div class="bar-bg" style="width:100px;"><div class="bar-fill" style="width:${Math.round(t.clicks/maxTC*100)}%"></div></div>
+                        </div>
+                    </td>
+                </tr>`;
+            });
+            html += '</table>';
+            document.getElementById('top-tools-table').innerHTML = html;
+        } else {
+            document.getElementById('top-tools-table').innerHTML = '<p style="color:#999;">暂无工具点击数据（用户点击工具卡片后会显示）</p>';
+        }
+    } else {
+        document.getElementById('top-pv-table').innerHTML = '<p style="color:#999;">数据加载中...</p>';
+        document.getElementById('top-tools-table').innerHTML = '<p style="color:#999;">数据加载中...</p>';
     }
 }
 

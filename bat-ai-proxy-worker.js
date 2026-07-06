@@ -163,13 +163,48 @@ async function updateCounter(kv, key, increments) {
     for (const [field, delta] of Object.entries(increments)) {
       existing[field] = (existing[field] || 0) + delta;
     }
-    // 只保留2位小数
     if (existing.cost) existing.cost = Math.round(existing.cost * 10000) / 10000;
-    await kv.put(key, JSON.stringify(existing), { expirationTtl: 86400 * 90 }); // 90天过期
+    await kv.put(key, JSON.stringify(existing), { expirationTtl: 86400 * 90 });
   } catch (e) {
-    // KV 写入失败不影响主流程
     console.error('KV update error:', e);
   }
+}
+
+// ==================== 页面浏览 & 工具点击追踪 ====================
+
+/** 记录页面浏览 */
+async function recordPageView(env, page, ip) {
+  if (!env.BAT_USAGE) return;
+  const dateKey = getDateKey();
+  const updates = [];
+  // 每日页面浏览总量
+  updates.push(updateCounter(env.BAT_USAGE, `pv:daily:${dateKey}`, { count: 1 }));
+  // 每个页面的浏览量（累计）
+  const cleanPage = (page || 'unknown').replace(/[^a-zA-Z0-9一-鿿_-]/g, '_').substring(0, 80);
+  updates.push(updateCounter(env.BAT_USAGE, `pv:page:${cleanPage}`, { count: 1 }));
+  // 每日独立访客（按IP哈希去重，粗略估计）
+  if (ip && ip !== 'unknown') {
+    const ipHash = await hashIP(ip);
+    updates.push(updateCounter(env.BAT_USAGE, `pv:visitor:${dateKey}`, { [ipHash]: 1 }));
+  }
+  await Promise.all(updates);
+}
+
+/** 记录工具卡片点击 */
+async function recordToolClick(env, toolName, category) {
+  if (!env.BAT_USAGE) return;
+  const dateKey = getDateKey();
+  const cleanTool = (toolName || 'unknown').replace(/[^a-zA-Z0-9一-鿿_-]/g, '_').substring(0, 60);
+  const updates = [];
+  // 每日工具点击总量
+  updates.push(updateCounter(env.BAT_USAGE, `tc:daily:${dateKey}`, { count: 1 }));
+  // 每个工具的累计点击量
+  updates.push(updateCounter(env.BAT_USAGE, `tc:tool:${cleanTool}`, { count: 1 }));
+  // 每个分类的点击量
+  if (category) {
+    updates.push(updateCounter(env.BAT_USAGE, `tc:cat:${category}`, { count: 1 }));
+  }
+  await Promise.all(updates);
 }
 
 // ==================== 速率限制 ====================
@@ -203,6 +238,34 @@ async function checkRateLimit(env, ip) {
   } catch (e) {
     return true; // KV 错误时放行
   }
+}
+
+// ==================== 信标接口（页面浏览+工具点击） ====================
+
+async function handleBeacon(env, request) {
+  let body;
+  try {
+    body = await request.json();
+  } catch (e) {
+    return new Response(JSON.stringify({ error: 'Invalid JSON' }), {
+      status: 400,
+      headers: { 'Content-Type': 'application/json', ...corsHeaders(request) },
+    });
+  }
+
+  const ip = getClientIP(request);
+  const type = body.type || '';
+
+  if (type === 'pageview') {
+    await recordPageView(env, body.page || 'unknown', ip);
+  } else if (type === 'tool_click') {
+    await recordToolClick(env, body.tool || 'unknown', body.category || '');
+  }
+
+  // 总是返回成功（不阻塞页面）
+  return new Response(JSON.stringify({ ok: true }), {
+    headers: { 'Content-Type': 'application/json', ...corsHeaders(request) },
+  });
 }
 
 // ==================== 统计接口 ====================
@@ -271,19 +334,67 @@ async function handleStats(env, request) {
       cost: acc.cost + d.cost,
     }), { requests: 0, inputTokens: 0, outputTokens: 0, cost: 0 });
 
-    // 获取热门页面
+    // 获取 AI 热门页面
     const pageList = await env.BAT_USAGE.list({ prefix: 'page:' });
-    const topPages = [];
+    const topAIPages = [];
     for (const key of pageList.keys.slice(0, 20)) {
       const data = await env.BAT_USAGE.get(key.name, 'json');
-      if (data) {
-        topPages.push({
-          page: key.name.replace('page:', ''),
-          requests: data.requests || 0,
-        });
-      }
+      if (data) topAIPages.push({ page: key.name.replace('page:', ''), requests: data.requests || 0 });
     }
-    topPages.sort((a, b) => b.requests - a.requests);
+    topAIPages.sort((a, b) => b.requests - a.requests);
+
+    // ===== 页面浏览统计 =====
+    const pvDaily = [];
+    for (let i = 29; i >= 0; i--) {
+      const d = new Date(today);
+      d.setDate(d.getDate() - i);
+      const dateKey = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+      const data = await env.BAT_USAGE.get(`pv:daily:${dateKey}`, 'json');
+      pvDaily.push({ date: dateKey, count: data?.count || 0 });
+    }
+
+    // 热门页面（浏览量）
+    const pvPageList = await env.BAT_USAGE.list({ prefix: 'pv:page:' });
+    const topPVPages = [];
+    for (const key of pvPageList.keys.slice(0, 20)) {
+      const data = await env.BAT_USAGE.get(key.name, 'json');
+      if (data) topPVPages.push({ page: key.name.replace('pv:page:', ''), views: data.count || 0 });
+    }
+    topPVPages.sort((a, b) => b.views - a.views);
+
+    // 今日浏览量
+    const todayPV = pvDaily[pvDaily.length - 1];
+    // 今日独立访客估算
+    const visitorData = await env.BAT_USAGE.get(`pv:visitor:${todayKey}`, 'json');
+    const todayVisitors = visitorData ? Object.keys(visitorData).filter(k => k !== 'count').length : 0;
+
+    // ===== 工具点击统计 =====
+    const tcToolList = await env.BAT_USAGE.list({ prefix: 'tc:tool:' });
+    const topTools = [];
+    for (const key of tcToolList.keys.slice(0, 30)) {
+      const data = await env.BAT_USAGE.get(key.name, 'json');
+      if (data) topTools.push({ tool: key.name.replace('tc:tool:', ''), clicks: data.count || 0 });
+    }
+    topTools.sort((a, b) => b.clicks - a.clicks);
+
+    // 工具分类点击
+    const tcCatList = await env.BAT_USAGE.list({ prefix: 'tc:cat:' });
+    const catClicks = [];
+    for (const key of tcCatList.keys) {
+      const data = await env.BAT_USAGE.get(key.name, 'json');
+      if (data) catClicks.push({ category: key.name.replace('tc:cat:', ''), clicks: data.count || 0 });
+    }
+    catClicks.sort((a, b) => b.clicks - a.clicks);
+
+    // 每日工具点击总量
+    const tcDaily = [];
+    for (let i = 29; i >= 0; i--) {
+      const d = new Date(today);
+      d.setDate(d.getDate() - i);
+      const dateKey = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+      const data = await env.BAT_USAGE.get(`tc:daily:${dateKey}`, 'json');
+      tcDaily.push({ date: dateKey, count: data?.count || 0 });
+    }
 
     return new Response(JSON.stringify({
       generatedAt: new Date().toISOString(),
@@ -296,7 +407,19 @@ async function handleStats(env, request) {
       },
       daily: dailyStats,
       hourly: hourlyStats,
-      topPages: topPages.slice(0, 10),
+      topAIPages: topAIPages.slice(0, 10),
+      // 页面浏览
+      pageViews: {
+        today: { views: todayPV?.count || 0, visitors: todayVisitors },
+        daily: pvDaily,
+        topPages: topPVPages.slice(0, 15),
+      },
+      // 工具点击
+      toolClicks: {
+        daily: tcDaily,
+        topTools: topTools.slice(0, 20),
+        categories: catClicks,
+      },
     }, null, 2), {
       headers: { 'Content-Type': 'application/json', ...corsHeaders(request) },
     });
@@ -321,6 +444,11 @@ export default {
     }
 
     const url = new URL(request.url);
+
+    // ===== POST /beacon — 页面浏览 & 工具点击信标 =====
+    if (request.method === 'POST' && url.pathname === '/beacon') {
+      return handleBeacon(env, request);
+    }
 
     // ===== GET /stats — 管理统计接口 =====
     if (request.method === 'GET' && url.pathname === '/stats') {
