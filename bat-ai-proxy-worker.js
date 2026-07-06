@@ -274,7 +274,13 @@ async function handleStats(env, request) {
   // 管理员验证
   const url = new URL(request.url);
   const adminKey = url.searchParams.get('key') || request.headers.get('X-Admin-Key') || '';
-  const validKey = env.ADMIN_KEY || 'bat-admin-2024';
+  const validKey = env.ADMIN_KEY;
+  if (!validKey) {
+    return new Response(JSON.stringify({ error: '管理员密码未设置。请在 Worker 中配置 ADMIN_KEY 环境变量。' }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json', ...corsHeaders(request) },
+    });
+  }
 
   if (adminKey !== validKey) {
     return new Response(JSON.stringify({ error: '未授权访问。请提供有效的管理员密钥 (?key=...)' }), {
