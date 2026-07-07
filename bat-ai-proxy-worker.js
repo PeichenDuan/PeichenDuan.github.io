@@ -86,18 +86,26 @@ function getClientIP(request) {
     || 'unknown';
 }
 
-/** 获取今天的日期键 (YYYY-MM-DD) */
-function getDateKey() {
-  const d = new Date();
-  return d.getFullYear() + '-' +
-    String(d.getMonth() + 1).padStart(2, '0') + '-' +
-    String(d.getDate()).padStart(2, '0');
+/** 获取 UTC+8 时区的 Date 对象 */
+function getBeijingDate() {
+  const now = new Date();
+  // UTC+8 偏移（毫秒）
+  const offset = 8 * 60 * 60 * 1000;
+  return new Date(now.getTime() + offset);
 }
 
-/** 获取当前小时键 (YYYY-MM-DD:HH) */
+/** 获取今天的日期键 (YYYY-MM-DD, UTC+8) */
+function getDateKey() {
+  const d = getBeijingDate();
+  return d.getUTCFullYear() + '-' +
+    String(d.getUTCMonth() + 1).padStart(2, '0') + '-' +
+    String(d.getUTCDate()).padStart(2, '0');
+}
+
+/** 获取当前小时键 (YYYY-MM-DD:HH, UTC+8) */
 function getHourKey() {
-  const d = new Date();
-  return getDateKey() + ':' + String(d.getHours()).padStart(2, '0');
+  const d = getBeijingDate();
+  return getDateKey() + ':' + String(d.getUTCHours()).padStart(2, '0');
 }
 
 /** 哈希 IP 用于隐私保护 */
@@ -403,7 +411,7 @@ async function handleStats(env, request) {
   try {
     // 获取最近30天的日统计
     const dailyStats = [];
-    const today = new Date();
+    const today = getBeijingDate();
     for (let i = 29; i >= 0; i--) {
       const d = new Date(today);
       d.setDate(d.getDate() - i);
