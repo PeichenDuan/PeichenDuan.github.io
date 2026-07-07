@@ -215,9 +215,12 @@ async function recordToolClick(env, toolName, category) {
   if (!env.BAT_USAGE) return;
   const dateKey = getDateKey();
   const cleanTool = (toolName || 'unknown').replace(/[^a-zA-Z0-9一-鿿_-]/g, '_').substring(0, 60);
+  const hourKey = getHourKey();
   const updates = [];
   // 每日工具点击总量
   updates.push(updateCounter(env.BAT_USAGE, `tc:daily:${dateKey}`, { count: 1 }));
+  // 今日分时工具点击量
+  updates.push(updateCounter(env.BAT_USAGE, `tc:hourly:${hourKey}`, { count: 1 }));
   // 每个工具的累计点击量
   updates.push(updateCounter(env.BAT_USAGE, `tc:tool:${cleanTool}`, { count: 1 }));
   // 每个分类的点击量
@@ -485,6 +488,14 @@ async function handleStats(env, request) {
       tcDaily.push({ date: dateKey, count: data?.count || 0 });
     }
 
+    // 今日分时工具点击量
+    const tcHourly = [];
+    for (let h = 0; h < 24; h++) {
+      const hourKey = `${todayKey}:${String(h).padStart(2, '0')}`;
+      const data = await env.BAT_USAGE.get(`tc:hourly:${hourKey}`, 'json');
+      tcHourly.push({ hour: h, count: data?.count || 0 });
+    }
+
     return new Response(JSON.stringify({
       generatedAt: new Date().toISOString(),
       pricing: PRICING,
@@ -506,6 +517,7 @@ async function handleStats(env, request) {
       // 工具点击
       toolClicks: {
         daily: tcDaily,
+        hourly: tcHourly,
         topTools: topTools.slice(0, 20),
         categories: catClicks,
       },

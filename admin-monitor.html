@@ -236,15 +236,15 @@
             </div>
         </div>
 
-        <!-- 页面浏览 + 工具点击图表 -->
+        <!-- 工具点击图表 -->
         <div class="charts-grid">
-            <div class="chart-box">
-                <h3>👀 近30天页面浏览量</h3>
-                <div class="bars-container" id="chart-pv-daily"></div>
-            </div>
             <div class="chart-box">
                 <h3>🔧 近30天工具点击量</h3>
                 <div class="bars-container" id="chart-tc-daily"></div>
+            </div>
+            <div class="chart-box">
+                <h3>⏰ 今日分时点击量</h3>
+                <div class="bars-container" id="chart-tc-hourly"></div>
             </div>
         </div>
 
@@ -485,11 +485,6 @@ function renderWorkerData(data) {
         const totalPV = pv.daily.reduce((s, d) => s + (d.count || 0), 0);
         document.getElementById('val-pv-month').textContent = totalPV.toLocaleString();
 
-        // 页面浏览图表
-        const pvLabels = pv.daily.map(d => d.date.substring(5));
-        const pvData = pv.daily.map(d => d.count || 0);
-        renderBars('chart-pv-daily', pvData, pvLabels, '#2e8b57');
-
         // 页面浏览量排行
         if (pv.topPages && pv.topPages.length > 0) {
             const maxPV = pv.topPages[0].views || 1;
@@ -536,10 +531,17 @@ function renderWorkerData(data) {
             document.getElementById('cat-chips').innerHTML = '<span style="color:#999;">暂无分类数据</span>';
         }
 
-        // 工具点击图表
+        // 工具点击图表 - 近30天
         const tcLabels = tc.daily.map(d => d.date.substring(5));
         const tcData = tc.daily.map(d => d.count || 0);
         renderBars('chart-tc-daily', tcData, tcLabels, '#ca3032');
+
+        // 工具点击图表 - 今日分时
+        if (tc.hourly && tc.hourly.length > 0) {
+            const tcHourlyLabels = tc.hourly.map(d => String(d.hour).padStart(2, '0') + ':00');
+            const tcHourlyData = tc.hourly.map(d => d.count || 0);
+            renderBars('chart-tc-hourly', tcHourlyData, tcHourlyLabels, '#2e8b57');
+        }
 
         // 工具排行榜
         if (tc.topTools && tc.topTools.length > 0) {
