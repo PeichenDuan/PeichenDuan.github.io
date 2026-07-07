@@ -537,11 +537,10 @@ function renderWorkerData(data) {
         renderBars('chart-tc-daily', tcData, tcLabels, '#ca3032');
 
         // 工具点击图表 - 今日分时
-        if (tc.hourly && tc.hourly.length > 0) {
-            const tcHourlyLabels = tc.hourly.map(d => String(d.hour).padStart(2, '0') + ':00');
-            const tcHourlyData = tc.hourly.map(d => d.count || 0);
-            renderBars('chart-tc-hourly', tcHourlyData, tcHourlyLabels, '#2e8b57');
-        }
+        const tcHourly = (tc.hourly && tc.hourly.length > 0) ? tc.hourly : Array.from({length: 24}, (_, i) => ({hour: i, count: 0}));
+        const tcHourlyLabels = tcHourly.map(d => String(d.hour).padStart(2, '0') + ':00');
+        const tcHourlyData = tcHourly.map(d => d.count || 0);
+        renderBars('chart-tc-hourly', tcHourlyData, tcHourlyLabels, '#2e8b57');
 
         // 工具排行榜
         if (tc.topTools && tc.topTools.length > 0) {
@@ -629,10 +628,13 @@ async function loadFeedbacks() {
         let html = '';
         data.feedbacks.forEach(fb => {
             const t = new Date(fb.time).toLocaleString('zh-CN');
-            html += `<div style="border-bottom:1px solid #eee;padding:12px 0;">
+            html += `<div style="border-bottom:1px solid #eee;padding:12px 0;" id="fb-${escapeHtml(fb.id)}">
                 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
                     <strong style="color:#32586d;">${escapeHtml(fb.name)}</strong>
-                    <span style="font-size:11px;color:#999;">${t} · ${escapeHtml(fb.page)}</span>
+                    <div style="display:flex;align-items:center;gap:10px;">
+                        <span style="font-size:11px;color:#999;">${t} · ${escapeHtml(fb.page)}</span>
+                        <button onclick="deleteFeedback('${escapeHtml(fb.id)}')" style="padding:2px 8px;background:#ca3032;color:#fff;border:none;border-radius:4px;cursor:pointer;font-size:11px;font-family:inherit;" title="删除此留言">✕ 删除</button>
+                    </div>
                 </div>
                 <p style="margin:0;font-size:14px;line-height:1.5;">${escapeHtml(fb.message)}</p>
             </div>`;
@@ -640,6 +642,22 @@ async function loadFeedbacks() {
         container.innerHTML = html;
     } catch(e) {
         container.innerHTML = '<p style="color:#ca3032;">加载失败: ' + e.message + '</p>';
+    }
+}
+
+async function deleteFeedback(id) {
+    if (!confirm('确定要删除这条留言吗？此操作不可撤销。')) return;
+    try {
+        const resp = await fetch(`${proxyUrl}/feedback?key=${encodeURIComponent(adminKey)}&id=${encodeURIComponent(id)}`, { method: 'DELETE' });
+        if (resp.ok) {
+            const el = document.getElementById('fb-' + id);
+            if (el) el.style.display = 'none';
+        } else {
+            const data = await resp.json();
+            alert('删除失败: ' + (data.error || '未知错误'));
+        }
+    } catch(e) {
+        alert('删除请求失败: ' + e.message);
     }
 }
 

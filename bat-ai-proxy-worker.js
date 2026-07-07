@@ -128,7 +128,7 @@ function corsHeaders(request) {
 
   return {
     'Access-Control-Allow-Origin': allowOrigin,
-    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+    'Access-Control-Allow-Methods': 'GET, POST, DELETE, OPTIONS',
     'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Admin-Key',
     'Access-Control-Max-Age': '86400',
   };
@@ -321,6 +321,32 @@ async function handleFeedback(env, request) {
     }
     feedbacks.sort((a, b) => new Date(b.time) - new Date(a.time));
     return new Response(JSON.stringify({ feedbacks }), {
+      headers: { 'Content-Type': 'application/json', ...corsHeaders(request) },
+    });
+  }
+
+  // DELETE: 管理员删除留言
+  if (request.method === 'DELETE') {
+    const adminKey = url.searchParams.get('key') || '';
+    const validKey = env.ADMIN_KEY;
+    if (!validKey || adminKey !== validKey) {
+      return new Response(JSON.stringify({ error: '未授权' }), {
+        status: 401, headers: { 'Content-Type': 'application/json', ...corsHeaders(request) },
+      });
+    }
+    const feedbackId = url.searchParams.get('id') || '';
+    if (!feedbackId) {
+      return new Response(JSON.stringify({ error: '缺少留言ID' }), {
+        status: 400, headers: { 'Content-Type': 'application/json', ...corsHeaders(request) },
+      });
+    }
+    if (!env.BAT_USAGE) {
+      return new Response(JSON.stringify({ error: 'KV 未配置' }), {
+        status: 500, headers: { 'Content-Type': 'application/json', ...corsHeaders(request) },
+      });
+    }
+    await env.BAT_USAGE.delete(`fb:${feedbackId}`);
+    return new Response(JSON.stringify({ ok: true }), {
       headers: { 'Content-Type': 'application/json', ...corsHeaders(request) },
     });
   }
