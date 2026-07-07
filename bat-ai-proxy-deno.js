@@ -199,11 +199,12 @@ async function recordPV(page, ip) {
 }
 
 async function recordTC(tool, cat) {
-  const dk = getDateKey();
+  const dk = getDateKey(), hk = getHourKey();
   sAdd('tcDaily:'+dk, 'cnt', 1);
+  sAdd('tcHourly:'+hk, 'cnt', 1);
   sAdd('tcTools', tool||'unknown', 1);
   if (cat) sAdd('tcCats', cat, 1);
-  const ops = [cfFlush('tcDaily:'+dk), cfFlush('tcTools')];
+  const ops = [cfFlush('tcDaily:'+dk), cfFlush('tcHourly:'+hk), cfFlush('tcTools')];
   if (cat) ops.push(cfFlush('tcCats'));
   await Promise.all(ops);
 }
@@ -308,6 +309,14 @@ async function stats(req) {
   const pvPages = Object.entries(pvData).map(([k,v])=>({page:k,views:v})).sort((a,b)=>b.views-a.views);
 
   const tcDaily = (await buildDaily('tcDaily')).map(d=>({date:d.date,count:d.cnt||0}));
+  const tcHourly = [];
+  for (let h=0; h<24; h++) {
+    const hk = todayKey+':'+String(h).padStart(2,'0');
+    const key = 'tcHourly:'+hk;
+    const cfData = cfOk ? (await cfGet(key)) : null;
+    const d = mergeWithPending(cfData, key);
+    tcHourly.push({hour:h, count:d.cnt||0});
+  }
   const tcData = mergeWithPending(cfOk ? (await cfGet('tcTools')) : null, 'tcTools');
   const topTools = Object.entries(tcData).map(([k,v])=>({tool:k,clicks:v})).sort((a,b)=>b.clicks-a.clicks);
 
@@ -320,7 +329,7 @@ async function stats(req) {
     summary: { total30Days:total30, today:todayAI, avgDailyCost:total30.cost/30, estimatedMonthlyCost:total30.cost },
     daily: aiDaily, hourly: hStats, topAIPages: aiPages.slice(0,10),
     pageViews: { today:{views:pvDaily[pvDaily.length-1]?.count||0, visitors:pvDaily[pvDaily.length-1]?.visitors||0}, daily:pvDaily, topPages:pvPages.slice(0,15) },
-    toolClicks: { daily:tcDaily, topTools:topTools.slice(0,20), categories:catClicks },
+    toolClicks: { daily:tcDaily, hourly:tcHourly, topTools:topTools.slice(0,20), categories:catClicks },
   }, 200, corsHdr(req));
 }
 
