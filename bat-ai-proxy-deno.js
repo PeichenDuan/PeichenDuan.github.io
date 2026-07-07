@@ -1,11 +1,16 @@
 /**
- * BAT AI Proxy — v7 诊断版
- * v3核心 + 请求日志 + /debug 端点
+ * BAT AI Proxy — v8 CF-KV
+ * 内存缓存 + Cloudflare KV持久化（REST API，跨实例全局共享）
  */
 const DEEPSEEK_API_URL = 'https://api.deepseek.com/chat/completions';
 const PRICING = { input: 1.0, output: 2.0 };
 const RATE_LIMIT = 100;
 const RATE_WINDOW = 3600;
+
+// Cloudflare KV REST API
+const CF_ACCOUNT = '4e1d2987445a210b69c87c1d6e4e9842';
+const CF_KV_NS = 'a4c9a32cbb6441a4840fdba45f5bbf30';
+const CF_KV_BASE = `https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT}/storage/kv/namespaces/${CF_KV_NS}`;
 
 const ALLOWED_ORIGINS = [
   'https://peichenduan.github.io',
@@ -17,7 +22,7 @@ const LOCAL_PATTERNS = [
   /^https?:\/\/172\.(1[6-9]|2\d|3[01])\.\d+\.\d+(:\d+)?$/,
 ];
 
-// ========== 内存存储 ==========
+// ========== 内存缓存（快速读写） ==========
 const store = new Map();
 
 function sGet(key) { return store.get(key) || null; }
@@ -28,11 +33,46 @@ function sIncr(key, field, delta) {
   store.set(key, obj);
 }
 
-// ========== 请求日志（最近200条，诊断用） ==========
-const reqLog = [];
-function logReq(type, info) {
-  reqLog.unshift({ time: new Date().toISOString(), type, ...info });
-  if (reqLog.length > 200) reqLog.length = 200;
+// ========== Cloudflare KV 持久化层 ==========
+function getCfToken() {
+  return Deno.env.get('CF_API_TOKEN') || '';
+}
+
+async function cfPut(key, value) {
+  const token = getCfToken();
+  if (!token) return;
+  try {
+    await fetch(`${CF_KV_BASE}/values/${encodeURIComponent(key)}`, {
+      method: 'PUT',
+      headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify(value),
+    });
+  } catch (_) { /* CF不可达时静默 */ }
+}
+
+async function cfGet(key) {
+  const token = getCfToken();
+  if (!token) return null;
+  try {
+    const r = await fetch(`${CF_KV_BASE}/values/${encodeURIComponent(key)}`, {
+      headers: { 'Authorization': `Bearer ${token}` },
+    });
+    if (!r.ok) return null;
+    return await r.json();
+  } catch (_) { return null; }
+}
+
+async function cfList(prefix) {
+  const token = getCfToken();
+  if (!token) return [];
+  try {
+    const r = await fetch(`${CF_KV_BASE}/keys?prefix=${encodeURIComponent(prefix)}&limit=200`, {
+      headers: { 'Authorization': `Bearer ${token}` },
+    });
+    if (!r.ok) return [];
+    const data = await r.json();
+    return (data.result || []).map(k => k.name);
+  } catch (_) { return []; }
 }
 
 // ========== 工具 ==========
@@ -68,27 +108,38 @@ function json(data, status, extra) {
   });
 }
 
-// ========== 记录 ==========
+// ========== 记录（内存 + CF KV 双写） ==========
+function writeBoth(key, field, delta) {
+  sIncr(key, field, delta);                      // 内存
+  sGet(key).then ? null : null;                   // noop，下一行异步写KV
+  // 异步刷新到 CF KV
+  const obj = sGet(key);
+  if (obj) cfPut(key, obj);
+}
+
 function recordUsage(inputT, outputT, page) {
   const cost = (inputT/1e6)*PRICING.input + (outputT/1e6)*PRICING.output;
   const dk = getDateKey(), hk = getHourKey();
-  sIncr('daily:'+dk, 'req', 1); sIncr('daily:'+dk, 'in', inputT);
-  sIncr('daily:'+dk, 'out', outputT); sIncr('daily:'+dk, 'cost', Math.round(cost*1e4));
-  sIncr('hourly:'+hk, 'req', 1); sIncr('hourly:'+hk, 'cost', Math.round(cost*1e4));
-  if (page) sIncr('aipages', page, 1);
+  writeBoth('daily:'+dk, 'req', 1);
+  writeBoth('daily:'+dk, 'in', inputT);
+  writeBoth('daily:'+dk, 'out', outputT);
+  writeBoth('daily:'+dk, 'cost', Math.round(cost*1e4));
+  writeBoth('hourly:'+hk, 'req', 1);
+  writeBoth('hourly:'+hk, 'cost', Math.round(cost*1e4));
+  if (page) writeBoth('aipages', page, 1);
 }
 
 function recordPV(page) {
   const dk = getDateKey();
-  sIncr('pvDaily:'+dk, 'cnt', 1);
-  sIncr('pvPages', page||'unknown', 1);
+  writeBoth('pvDaily:'+dk, 'cnt', 1);
+  writeBoth('pvPages', page||'unknown', 1);
 }
 
 function recordTC(tool, cat) {
   const dk = getDateKey();
-  sIncr('tcDaily:'+dk, 'cnt', 1);
-  sIncr('tcTools', tool||'unknown', 1);
-  if (cat) sIncr('tcCats', cat, 1);
+  writeBoth('tcDaily:'+dk, 'cnt', 1);
+  writeBoth('tcTools', tool||'unknown', 1);
+  if (cat) writeBoth('tcCats', cat, 1);
 }
 
 // ========== 速率限制 ==========
@@ -101,35 +152,13 @@ function checkRate(ip) {
   e.cnt++; return true;
 }
 
-// ========== 信标（含诊断） ==========
+// ========== 信标 ==========
 async function beacon(req) {
   let b; try { b = await req.json(); } catch(_) { return json({error:'bad json'},400,corsHdr(req)); }
   const t = b.type || '';
-  const ip = req.headers.get('x-forwarded-for') || '?';
-  const origin = req.headers.get('Origin') || '?';
-  const dk = getDateKey();
-
-  if (t === 'pageview') {
-    recordPV(b.page || 'unknown');
-    logReq('pageview', { ip, origin, page: b.page });
-  } else if (t === 'tool_click') {
-    recordTC(b.tool||'unknown', b.category||'');
-    logReq('tool_click', { ip, origin, tool: b.tool, cat: b.category });
-  } else {
-    logReq('beacon_unknown', { ip, origin, type: t });
-  }
-
-  // 返回诊断信息
-  const pvNow = sGet('pvDaily:'+dk) || {};
-  return json({
-    ok: true,
-    diag: {
-      dateKey: dk,
-      storedType: t,
-      todayPageViews: pvNow.cnt || 0,
-      storeSize: store.size,
-    },
-  }, 200, corsHdr(req));
+  if (t === 'pageview') recordPV(b.page || 'unknown');
+  else if (t === 'tool_click') recordTC(b.tool||'unknown', b.category||'');
+  return json({ok:true}, 200, corsHdr(req));
 }
 
 // ========== 反馈 ==========
@@ -140,6 +169,12 @@ async function feedback(req) {
     const k = u.searchParams.get('key')||'';
     if (!ak||k!==ak) return json({error:'unauth'},401,corsHdr(req));
     const list = []; for (const [k,v] of store) if (k.startsWith('fb:')) list.push(v);
+    // 也查 CF KV
+    const fbKeys = await cfList('fb:');
+    for (const fk of fbKeys) {
+      const d = await cfGet(fk);
+      if (d && !list.find(x=>x.id===d.id)) list.push(d);
+    }
     list.sort((a,b)=>new Date(b.time)-new Date(a.time));
     return json({feedbacks:list},200,corsHdr(req));
   }
@@ -149,12 +184,12 @@ async function feedback(req) {
       name: (b.name||'匿名').slice(0,30), message: (b.message||'').trim().slice(0,500),
       page: (b.page||'index').slice(0,80), time: new Date().toISOString() };
     sSet('fb:'+fb.id, fb);
-    logReq('feedback', { name: fb.name });
+    cfPut('fb:'+fb.id, fb);
     return json({ok:true},200,corsHdr(req));
   }
 }
 
-// ========== 统计 ==========
+// ========== 统计（优先 CF KV，回退内存） ==========
 async function stats(req) {
   const u = new URL(req.url);
   const k = u.searchParams.get('key')||'';
@@ -162,38 +197,58 @@ async function stats(req) {
   if (!ak||k!==ak) return json({error:'unauth'},401,corsHdr(req));
 
   const today = new Date(), todayKey = getDateKey();
-  const buildDaily = (prefix) => {
+  const cfOk = !!getCfToken();
+
+  const buildDaily = async (prefix) => {
     const arr = [];
     for (let i=29; i>=0; i--) {
       const d=new Date(today); d.setDate(d.getDate()-i);
       const dk=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
-      const data = sGet(prefix+':'+dk)||{};
+      const key = prefix+':'+dk;
+      let data = cfOk ? (await cfGet(key)) : null;
+      if (!data) data = sGet(key) || {};
       arr.push({date:dk, ...data});
     }
     return arr;
   };
 
-  const aiDaily = buildDaily('daily').map(d=>({date:d.date,requests:d.req||0,inputTokens:d.in||0,outputTokens:d.out||0,cost:(d.cost||0)/10000}));
+  const aiDaily = (await buildDaily('daily')).map(d=>({date:d.date,requests:d.req||0,inputTokens:d.in||0,outputTokens:d.out||0,cost:(d.cost||0)/10000}));
   const todayAI = aiDaily[aiDaily.length-1];
   const hStats = [];
   for (let h=0; h<24; h++) {
     const hk = todayKey+':'+String(h).padStart(2,'0');
-    const d = sGet('hourly:'+hk)||{};
+    const key = 'hourly:'+hk;
+    let d = cfOk ? (await cfGet(key)) : null;
+    if (!d) d = sGet(key) || {};
     hStats.push({hour:h, requests:d.req||0, cost:(d.cost||0)/10000});
   }
   const total30 = aiDaily.reduce((a,d)=>({requests:a.requests+d.requests,inputTokens:a.inputTokens+d.inputTokens,outputTokens:a.outputTokens+d.outputTokens,cost:a.cost+d.cost}),{requests:0,inputTokens:0,outputTokens:0,cost:0});
 
-  const aiPages = Object.entries(sGet('aipages')||{}).map(([k,v])=>({page:k,requests:v})).sort((a,b)=>b.requests-a.requests);
-  const pvDaily = buildDaily('pvDaily').map(d=>({date:d.date,count:d.cnt||0}));
-  const pvPages = Object.entries(sGet('pvPages')||{}).map(([k,v])=>({page:k,views:v})).sort((a,b)=>b.views-a.views);
-  const tcDaily = buildDaily('tcDaily').map(d=>({date:d.date,count:d.cnt||0}));
-  const topTools = Object.entries(sGet('tcTools')||{}).map(([k,v])=>({tool:k,clicks:v})).sort((a,b)=>b.clicks-a.clicks);
-  const catClicks = Object.entries(sGet('tcCats')||{}).map(([k,v])=>({category:k,clicks:v})).sort((a,b)=>b.clicks-a.clicks);
+  const aiPagesCf = cfOk ? (await cfGet('aipages')) : null;
+  const aiPagesMem = sGet('aipages') || {};
+  const aiPagesData = aiPagesCf || aiPagesMem;
+  const aiPages = Object.entries(aiPagesData).map(([k,v])=>({page:k,requests:v})).sort((a,b)=>b.requests-a.requests);
 
-  logReq('stats', { storeSize: store.size });
+  const pvDaily = (await buildDaily('pvDaily')).map(d=>({date:d.date,count:d.cnt||0}));
+  const pvCf = cfOk ? (await cfGet('pvPages')) : null;
+  const pvMem = sGet('pvPages') || {};
+  const pvData = pvCf || pvMem;
+  const pvPages = Object.entries(pvData).map(([k,v])=>({page:k,views:v})).sort((a,b)=>b.views-a.views);
+
+  const tcDaily = (await buildDaily('tcDaily')).map(d=>({date:d.date,count:d.cnt||0}));
+  const tcCf = cfOk ? (await cfGet('tcTools')) : null;
+  const tcMem = sGet('tcTools') || {};
+  const tcData = tcCf || tcMem;
+  const topTools = Object.entries(tcData).map(([k,v])=>({tool:k,clicks:v})).sort((a,b)=>b.clicks-a.clicks);
+
+  const catCf = cfOk ? (await cfGet('tcCats')) : null;
+  const catMem = sGet('tcCats') || {};
+  const catData = catCf || catMem;
+  const catClicks = Object.entries(catData).map(([k,v])=>({category:k,clicks:v})).sort((a,b)=>b.clicks-a.clicks);
 
   return json({
     generatedAt: new Date().toISOString(), pricing: PRICING,
+    storage: cfOk ? 'cf-kv' : 'memory',
     summary: { total30Days:total30, today:todayAI, avgDailyCost:total30.cost/30, estimatedMonthlyCost:total30.cost },
     daily: aiDaily, hourly: hStats, topAIPages: aiPages.slice(0,10),
     pageViews: { today:{views:pvDaily[pvDaily.length-1]?.count||0}, daily:pvDaily, topPages:pvPages.slice(0,15) },
@@ -201,32 +256,30 @@ async function stats(req) {
   }, 200, corsHdr(req));
 }
 
-// ========== 诊断端点 ==========
-function debug(_req) {
-  const dk = getDateKey();
-  const pvToday = sGet('pvDaily:'+dk);
-  const pvAll = sGet('pvPages');
-  const tcAll = sGet('tcTools');
-
-  return json({
-    version: 'v7-diag',
-    dateKey: dk,
-    storeSize: store.size,
-    storeKeys: [...store.keys()].slice(0, 50),
-    todayPageViews: pvToday || {},
-    allPageViews: pvAll || {},
-    allToolClicks: tcAll || {},
-    recentLogs: reqLog.slice(0, 30),
-  }, 200, corsHdr(_req));
-}
-
 // ========== 健康检查 ==========
-function health(req) {
+function health(_req) {
   return json({
-    status:'ok', version:'v7-diag',
+    status:'ok', version:'v8-cfkv',
+    cfTokenSet: !!getCfToken(),
     storeSize: store.size,
     deepseekConfigured:!!Deno.env.get('DEEPSEEK_API_KEY'),
-  },200,corsHdr(req));
+  },200,corsHdr(_req));
+}
+
+// ========== 诊断 ==========
+async function debug(_req) {
+  const dk = getDateKey();
+  const cfOk = !!getCfToken();
+  let cfToday = null;
+  if (cfOk) cfToday = await cfGet('pvDaily:'+dk);
+  return json({
+    version: 'v8-cfkv',
+    cfTokenSet: cfOk,
+    dateKey: dk,
+    storeSize: store.size,
+    todayPageViewsMem: sGet('pvDaily:'+dk) || {},
+    todayPageViewsCF: cfToday || {},
+  }, 200, corsHdr(_req));
 }
 
 // ========== 主入口 ==========
