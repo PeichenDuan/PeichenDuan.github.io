@@ -325,8 +325,8 @@ async function handleFeedback(env, request) {
     });
   }
 
-  // DELETE: 管理员删除留言
-  if (request.method === 'DELETE') {
+  // DELETE / POST(action=delete): 管理员删除留言
+  if (request.method === 'DELETE' || (request.method === 'POST' && url.searchParams.get('action') === 'delete')) {
     const adminKey = url.searchParams.get('key') || '';
     const validKey = env.ADMIN_KEY;
     if (!validKey || adminKey !== validKey) {

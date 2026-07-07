@@ -648,7 +648,7 @@ async function loadFeedbacks() {
 async function deleteFeedback(id) {
     if (!confirm('确定要删除这条留言吗？此操作不可撤销。')) return;
     try {
-        const resp = await fetch(`${proxyUrl}/feedback?key=${encodeURIComponent(adminKey)}&id=${encodeURIComponent(id)}`, { method: 'DELETE' });
+        const resp = await fetch(`${proxyUrl}/feedback?key=${encodeURIComponent(adminKey)}&action=delete&id=${encodeURIComponent(id)}`, { method: 'POST' });
         if (resp.ok) {
             const el = document.getElementById('fb-' + id);
             if (el) el.style.display = 'none';
