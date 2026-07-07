@@ -110,8 +110,23 @@ function json(data, status, extra) {
 
 // ========== 记录（内存 + CF KV 双写） ==========
 function writeBoth(key, field, delta) {
-  sIncr(key, field, delta);          // 内存写入（同步，瞬间完成）
-  cfPut(key, sGet(key));             // CF KV 写入（异步，静默失败）
+  sIncr(key, field, delta);          // 内存写入（同步）
+}
+function flushKey(key) {
+  cfPut(key, sGet(key));             // 批量刷新到CF KV（避免并发覆盖）
+}
+
+// 访客去重（内存Set，同实例内去重）
+const visitorSets = new Map();
+function countVisitor(dk, ip) {
+  let set = visitorSets.get(dk);
+  if (!set) { set = new Set(); visitorSets.set(dk, set); }
+  if (!set.has(ip)) {
+    set.add(ip);
+    sIncr('pvDaily:'+dk, 'visitors', 1);
+    return true; // 新访客
+  }
+  return false;
 }
 
 function recordUsage(inputT, outputT, page) {
@@ -124,12 +139,20 @@ function recordUsage(inputT, outputT, page) {
   writeBoth('hourly:'+hk, 'req', 1);
   writeBoth('hourly:'+hk, 'cost', Math.round(cost*1e4));
   if (page) writeBoth('aipages', page, 1);
+  // 一次性刷新（避免并发cfPut覆盖）
+  flushKey('daily:'+dk);
+  flushKey('hourly:'+hk);
+  if (page) flushKey('aipages');
 }
 
-function recordPV(page) {
+function recordPV(page, ip) {
   const dk = getDateKey();
   writeBoth('pvDaily:'+dk, 'cnt', 1);
   writeBoth('pvPages', page||'unknown', 1);
+  if (ip) countVisitor(dk, ip);
+  // 一次性刷新
+  flushKey('pvDaily:'+dk);
+  flushKey('pvPages');
 }
 
 function recordTC(tool, cat) {
@@ -137,6 +160,10 @@ function recordTC(tool, cat) {
   writeBoth('tcDaily:'+dk, 'cnt', 1);
   writeBoth('tcTools', tool||'unknown', 1);
   if (cat) writeBoth('tcCats', cat, 1);
+  // 一次性刷新
+  flushKey('tcDaily:'+dk);
+  flushKey('tcTools');
+  if (cat) flushKey('tcCats');
 }
 
 // ========== 速率限制 ==========
@@ -153,7 +180,8 @@ function checkRate(ip) {
 async function beacon(req) {
   let b; try { b = await req.json(); } catch(_) { return json({error:'bad json'},400,corsHdr(req)); }
   const t = b.type || '';
-  if (t === 'pageview') recordPV(b.page || 'unknown');
+  const ip = req.headers.get('x-forwarded-for') || 'unknown';
+  if (t === 'pageview') recordPV(b.page || 'unknown', ip);
   else if (t === 'tool_click') recordTC(b.tool||'unknown', b.category||'');
   return json({ok:true}, 200, corsHdr(req));
 }
@@ -248,7 +276,7 @@ async function stats(req) {
     storage: cfOk ? 'cf-kv' : 'memory',
     summary: { total30Days:total30, today:todayAI, avgDailyCost:total30.cost/30, estimatedMonthlyCost:total30.cost },
     daily: aiDaily, hourly: hStats, topAIPages: aiPages.slice(0,10),
-    pageViews: { today:{views:pvDaily[pvDaily.length-1]?.count||0}, daily:pvDaily, topPages:pvPages.slice(0,15) },
+    pageViews: { today:{views:pvDaily[pvDaily.length-1]?.count||0, visitors:pvDaily[pvDaily.length-1]?.visitors||0}, daily:pvDaily, topPages:pvPages.slice(0,15) },
     toolClicks: { daily:tcDaily, topTools:topTools.slice(0,20), categories:catClicks },
   }, 200, corsHdr(req));
 }
