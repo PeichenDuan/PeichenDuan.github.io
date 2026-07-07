@@ -127,11 +127,14 @@ async function cfList(prefix) {
 }
 
 // ========== 工具 ==========
+function chinaNow() {
+  return new Date(new Date().getTime() + 8 * 3600 * 1000);
+}
 function getDateKey() {
-  const d = new Date();
+  const d = chinaNow();
   return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
 }
-function getHourKey() { return getDateKey()+':'+String(new Date().getHours()).padStart(2,'0'); }
+function getHourKey() { return getDateKey()+':'+String(chinaNow().getHours()).padStart(2,'0'); }
 
 function isOriginAllowed(origin) {
   if (!origin || origin === 'null') return true;
@@ -248,7 +251,7 @@ async function feedback(req) {
       name: (b.name||'匿名').slice(0,30), message: (b.message||'').trim().slice(0,500),
       page: (b.page||'index').slice(0,80), time: new Date().toISOString() };
     sSet('fb:'+fb.id, fb);
-    cfPut('fb:'+fb.id, fb);
+    await cfPut('fb:'+fb.id, fb);
     return json({ok:true},200,corsHdr(req));
   }
 }
