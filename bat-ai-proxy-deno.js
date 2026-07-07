@@ -47,7 +47,7 @@ async function cfPut(key, value) {
       headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
       body: JSON.stringify(value),
     });
-  } catch (_) { /* CF不可达时静默 */ }
+  } catch (_) {}
 }
 
 async function cfGet(key) {
@@ -60,6 +60,57 @@ async function cfGet(key) {
     if (!r.ok) return null;
     return await r.json();
   } catch (_) { return null; }
+}
+
+// ========== 记录（内存增量 + CF KV 合并） ==========
+// 内存只存"待合并的增量"，cfFlush 时读远程→加增量→写回→清增量
+const pending = new Map(); // key -> {field: delta, ...}  待合并增量
+
+function sAdd(key, field, delta) {
+  let obj = pending.get(key);
+  if (!obj) { obj = {}; pending.set(key, obj); }
+  obj[field] = (obj[field] || 0) + delta;
+}
+
+async function cfFlush(key) {
+  const inc = pending.get(key);
+  if (!inc) return;
+  pending.delete(key);  // 先删，避免并发重复flush
+  const token = getCfToken();
+  if (!token) {
+    // 无CF Token时回退到本地存储
+    let obj = store.get(key) || {};
+    for (const [f, d] of Object.entries(inc)) obj[f] = (obj[f] || 0) + d;
+    store.set(key, obj);
+    return;
+  }
+  try {
+    // 1. 读远程
+    const r = await fetch(`${CF_KV_BASE}/values/${encodeURIComponent(key)}`, {
+      headers: { 'Authorization': `Bearer ${token}` },
+    });
+    let remote = {};
+    if (r.ok) {
+      try { remote = await r.json(); } catch (_) {}
+    }
+    // 2. 合并增量
+    for (const [f, d] of Object.entries(inc)) {
+      remote[f] = (remote[f] || 0) + d;
+    }
+    // 3. 写回
+    await fetch(`${CF_KV_BASE}/values/${encodeURIComponent(key)}`, {
+      method: 'PUT',
+      headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify(remote),
+    });
+    // 4. 更新本地缓存
+    store.set(key, remote);
+  } catch (_) {
+    // 失败时把增量放回pending
+    const cur = pending.get(key) || {};
+    for (const [f, d] of Object.entries(inc)) cur[f] = (cur[f] || 0) + d;
+    pending.set(key, cur);
+  }
 }
 
 async function cfList(prefix) {
@@ -108,62 +159,51 @@ function json(data, status, extra) {
   });
 }
 
-// ========== 记录（内存 + CF KV 双写） ==========
-function writeBoth(key, field, delta) {
-  sIncr(key, field, delta);          // 内存写入（同步）
-}
-function flushKey(key) {
-  cfPut(key, sGet(key));             // 批量刷新到CF KV（避免并发覆盖）
-}
+// ========== 记录（增量→CF KV合并） ==========
 
-// 访客去重（内存Set，同实例内去重）
+// 访客去重（内存Set + CF KV数组）
 const visitorSets = new Map();
-function countVisitor(dk, ip) {
+async function countVisitor(dk, ip) {
   let set = visitorSets.get(dk);
   if (!set) { set = new Set(); visitorSets.set(dk, set); }
-  if (!set.has(ip)) {
-    set.add(ip);
-    sIncr('pvDaily:'+dk, 'visitors', 1);
-    return true; // 新访客
-  }
-  return false;
+  if (set.has(ip)) return;
+  set.add(ip);
+  // 访客也走增量→合并流程
+  sAdd('pvDaily:'+dk, 'visitors', 1);
 }
 
 function recordUsage(inputT, outputT, page) {
   const cost = (inputT/1e6)*PRICING.input + (outputT/1e6)*PRICING.output;
   const dk = getDateKey(), hk = getHourKey();
-  writeBoth('daily:'+dk, 'req', 1);
-  writeBoth('daily:'+dk, 'in', inputT);
-  writeBoth('daily:'+dk, 'out', outputT);
-  writeBoth('daily:'+dk, 'cost', Math.round(cost*1e4));
-  writeBoth('hourly:'+hk, 'req', 1);
-  writeBoth('hourly:'+hk, 'cost', Math.round(cost*1e4));
-  if (page) writeBoth('aipages', page, 1);
-  // 一次性刷新（避免并发cfPut覆盖）
-  flushKey('daily:'+dk);
-  flushKey('hourly:'+hk);
-  if (page) flushKey('aipages');
+  sAdd('daily:'+dk, 'req', 1);
+  sAdd('daily:'+dk, 'in', inputT);
+  sAdd('daily:'+dk, 'out', outputT);
+  sAdd('daily:'+dk, 'cost', Math.round(cost*1e4));
+  sAdd('hourly:'+hk, 'req', 1);
+  sAdd('hourly:'+hk, 'cost', Math.round(cost*1e4));
+  if (page) sAdd('aipages', page, 1);
+  cfFlush('daily:'+dk);
+  cfFlush('hourly:'+hk);
+  if (page) cfFlush('aipages');
 }
 
 function recordPV(page, ip) {
   const dk = getDateKey();
-  writeBoth('pvDaily:'+dk, 'cnt', 1);
-  writeBoth('pvPages', page||'unknown', 1);
+  sAdd('pvDaily:'+dk, 'cnt', 1);
+  sAdd('pvPages', page||'unknown', 1);
   if (ip) countVisitor(dk, ip);
-  // 一次性刷新
-  flushKey('pvDaily:'+dk);
-  flushKey('pvPages');
+  cfFlush('pvDaily:'+dk);
+  cfFlush('pvPages');
 }
 
 function recordTC(tool, cat) {
   const dk = getDateKey();
-  writeBoth('tcDaily:'+dk, 'cnt', 1);
-  writeBoth('tcTools', tool||'unknown', 1);
-  if (cat) writeBoth('tcCats', cat, 1);
-  // 一次性刷新
-  flushKey('tcDaily:'+dk);
-  flushKey('tcTools');
-  if (cat) flushKey('tcCats');
+  sAdd('tcDaily:'+dk, 'cnt', 1);
+  sAdd('tcTools', tool||'unknown', 1);
+  if (cat) sAdd('tcCats', cat, 1);
+  cfFlush('tcDaily:'+dk);
+  cfFlush('tcTools');
+  if (cat) cfFlush('tcCats');
 }
 
 // ========== 速率限制 ==========
@@ -214,7 +254,16 @@ async function feedback(req) {
   }
 }
 
-// ========== 统计（优先 CF KV，回退内存） ==========
+// ========== 合并：CF KV值 + 本地待flush增量 ==========
+function mergeWithPending(cfData, key) {
+  const inc = pending.get(key);
+  if (!inc) return cfData || {};
+  const merged = { ...(cfData || {}) };
+  for (const [f, d] of Object.entries(inc)) merged[f] = (merged[f] || 0) + d;
+  return merged;
+}
+
+// ========== 统计（CF KV + 本地增量合并） ==========
 async function stats(req) {
   const u = new URL(req.url);
   const k = u.searchParams.get('key')||'';
@@ -230,8 +279,8 @@ async function stats(req) {
       const d=new Date(today); d.setDate(d.getDate()-i);
       const dk=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
       const key = prefix+':'+dk;
-      let data = cfOk ? (await cfGet(key)) : null;
-      if (!data) data = sGet(key) || {};
+      const cfData = cfOk ? (await cfGet(key)) : null;
+      const data = mergeWithPending(cfData, key);
       arr.push({date:dk, ...data});
     }
     return arr;
@@ -243,32 +292,24 @@ async function stats(req) {
   for (let h=0; h<24; h++) {
     const hk = todayKey+':'+String(h).padStart(2,'0');
     const key = 'hourly:'+hk;
-    let d = cfOk ? (await cfGet(key)) : null;
-    if (!d) d = sGet(key) || {};
+    const cfData = cfOk ? (await cfGet(key)) : null;
+    const d = mergeWithPending(cfData, key);
     hStats.push({hour:h, requests:d.req||0, cost:(d.cost||0)/10000});
   }
   const total30 = aiDaily.reduce((a,d)=>({requests:a.requests+d.requests,inputTokens:a.inputTokens+d.inputTokens,outputTokens:a.outputTokens+d.outputTokens,cost:a.cost+d.cost}),{requests:0,inputTokens:0,outputTokens:0,cost:0});
 
-  const aiPagesCf = cfOk ? (await cfGet('aipages')) : null;
-  const aiPagesMem = sGet('aipages') || {};
-  const aiPagesData = aiPagesCf || aiPagesMem;
+  const aiPagesData = mergeWithPending(cfOk ? (await cfGet('aipages')) : null, 'aipages');
   const aiPages = Object.entries(aiPagesData).map(([k,v])=>({page:k,requests:v})).sort((a,b)=>b.requests-a.requests);
 
   const pvDaily = (await buildDaily('pvDaily')).map(d=>({date:d.date,count:d.cnt||0}));
-  const pvCf = cfOk ? (await cfGet('pvPages')) : null;
-  const pvMem = sGet('pvPages') || {};
-  const pvData = pvCf || pvMem;
+  const pvData = mergeWithPending(cfOk ? (await cfGet('pvPages')) : null, 'pvPages');
   const pvPages = Object.entries(pvData).map(([k,v])=>({page:k,views:v})).sort((a,b)=>b.views-a.views);
 
   const tcDaily = (await buildDaily('tcDaily')).map(d=>({date:d.date,count:d.cnt||0}));
-  const tcCf = cfOk ? (await cfGet('tcTools')) : null;
-  const tcMem = sGet('tcTools') || {};
-  const tcData = tcCf || tcMem;
+  const tcData = mergeWithPending(cfOk ? (await cfGet('tcTools')) : null, 'tcTools');
   const topTools = Object.entries(tcData).map(([k,v])=>({tool:k,clicks:v})).sort((a,b)=>b.clicks-a.clicks);
 
-  const catCf = cfOk ? (await cfGet('tcCats')) : null;
-  const catMem = sGet('tcCats') || {};
-  const catData = catCf || catMem;
+  const catData = mergeWithPending(cfOk ? (await cfGet('tcCats')) : null, 'tcCats');
   const catClicks = Object.entries(catData).map(([k,v])=>({category:k,clicks:v})).sort((a,b)=>b.clicks-a.clicks);
 
   return json({
