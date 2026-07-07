@@ -110,11 +110,8 @@ function json(data, status, extra) {
 
 // ========== 记录（内存 + CF KV 双写） ==========
 function writeBoth(key, field, delta) {
-  sIncr(key, field, delta);                      // 内存
-  sGet(key).then ? null : null;                   // noop，下一行异步写KV
-  // 异步刷新到 CF KV
-  const obj = sGet(key);
-  if (obj) cfPut(key, obj);
+  sIncr(key, field, delta);          // 内存写入（同步，瞬间完成）
+  cfPut(key, sGet(key));             // CF KV 写入（异步，静默失败）
 }
 
 function recordUsage(inputT, outputT, page) {
