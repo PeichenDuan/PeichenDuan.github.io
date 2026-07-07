@@ -298,7 +298,7 @@ async function handleBeacon(env, request) {
 async function handleFeedback(env, request) {
   const url = new URL(request.url);
 
-  // GET: 管理员查看留言
+  // GET: 管理员查看留言 / 删除留言
   if (request.method === 'GET') {
     const adminKey = url.searchParams.get('key') || '';
     const validKey = env.ADMIN_KEY;
@@ -312,6 +312,21 @@ async function handleFeedback(env, request) {
         headers: { 'Content-Type': 'application/json', ...corsHeaders(request) },
       });
     }
+
+    // 删除留言
+    if (url.searchParams.get('action') === 'delete') {
+      const feedbackId = url.searchParams.get('id') || '';
+      if (!feedbackId) {
+        return new Response(JSON.stringify({ error: '缺少留言ID' }), {
+          status: 400, headers: { 'Content-Type': 'application/json', ...corsHeaders(request) },
+        });
+      }
+      await env.BAT_USAGE.delete(`fb:${feedbackId}`);
+      return new Response(JSON.stringify({ ok: true }), {
+        headers: { 'Content-Type': 'application/json', ...corsHeaders(request) },
+      });
+    }
+
     // 列出所有留言
     const list = await env.BAT_USAGE.list({ prefix: 'fb:' });
     const feedbacks = [];
@@ -321,32 +336,6 @@ async function handleFeedback(env, request) {
     }
     feedbacks.sort((a, b) => new Date(b.time) - new Date(a.time));
     return new Response(JSON.stringify({ feedbacks }), {
-      headers: { 'Content-Type': 'application/json', ...corsHeaders(request) },
-    });
-  }
-
-  // DELETE / POST(action=delete): 管理员删除留言
-  if (request.method === 'DELETE' || (request.method === 'POST' && url.searchParams.get('action') === 'delete')) {
-    const adminKey = url.searchParams.get('key') || '';
-    const validKey = env.ADMIN_KEY;
-    if (!validKey || adminKey !== validKey) {
-      return new Response(JSON.stringify({ error: '未授权' }), {
-        status: 401, headers: { 'Content-Type': 'application/json', ...corsHeaders(request) },
-      });
-    }
-    const feedbackId = url.searchParams.get('id') || '';
-    if (!feedbackId) {
-      return new Response(JSON.stringify({ error: '缺少留言ID' }), {
-        status: 400, headers: { 'Content-Type': 'application/json', ...corsHeaders(request) },
-      });
-    }
-    if (!env.BAT_USAGE) {
-      return new Response(JSON.stringify({ error: 'KV 未配置' }), {
-        status: 500, headers: { 'Content-Type': 'application/json', ...corsHeaders(request) },
-      });
-    }
-    await env.BAT_USAGE.delete(`fb:${feedbackId}`);
-    return new Response(JSON.stringify({ ok: true }), {
       headers: { 'Content-Type': 'application/json', ...corsHeaders(request) },
     });
   }
