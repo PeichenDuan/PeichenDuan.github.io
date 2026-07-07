@@ -172,7 +172,7 @@ async function countVisitor(dk, ip) {
   sAdd('pvDaily:'+dk, 'visitors', 1);
 }
 
-function recordUsage(inputT, outputT, page) {
+async function recordUsage(inputT, outputT, page) {
   const cost = (inputT/1e6)*PRICING.input + (outputT/1e6)*PRICING.output;
   const dk = getDateKey(), hk = getHourKey();
   sAdd('daily:'+dk, 'req', 1);
@@ -182,28 +182,27 @@ function recordUsage(inputT, outputT, page) {
   sAdd('hourly:'+hk, 'req', 1);
   sAdd('hourly:'+hk, 'cost', Math.round(cost*1e4));
   if (page) sAdd('aipages', page, 1);
-  cfFlush('daily:'+dk);
-  cfFlush('hourly:'+hk);
-  if (page) cfFlush('aipages');
+  const ops = [cfFlush('daily:'+dk), cfFlush('hourly:'+hk)];
+  if (page) ops.push(cfFlush('aipages'));
+  await Promise.all(ops);
 }
 
-function recordPV(page, ip) {
+async function recordPV(page, ip) {
   const dk = getDateKey();
   sAdd('pvDaily:'+dk, 'cnt', 1);
   sAdd('pvPages', page||'unknown', 1);
   if (ip) countVisitor(dk, ip);
-  cfFlush('pvDaily:'+dk);
-  cfFlush('pvPages');
+  await Promise.all([cfFlush('pvDaily:'+dk), cfFlush('pvPages')]);
 }
 
-function recordTC(tool, cat) {
+async function recordTC(tool, cat) {
   const dk = getDateKey();
   sAdd('tcDaily:'+dk, 'cnt', 1);
   sAdd('tcTools', tool||'unknown', 1);
   if (cat) sAdd('tcCats', cat, 1);
-  cfFlush('tcDaily:'+dk);
-  cfFlush('tcTools');
-  if (cat) cfFlush('tcCats');
+  const ops = [cfFlush('tcDaily:'+dk), cfFlush('tcTools')];
+  if (cat) ops.push(cfFlush('tcCats'));
+  await Promise.all(ops);
 }
 
 // ========== 速率限制 ==========
@@ -221,8 +220,8 @@ async function beacon(req) {
   let b; try { b = await req.json(); } catch(_) { return json({error:'bad json'},400,corsHdr(req)); }
   const t = b.type || '';
   const ip = req.headers.get('x-forwarded-for') || 'unknown';
-  if (t === 'pageview') recordPV(b.page || 'unknown', ip);
-  else if (t === 'tool_click') recordTC(b.tool||'unknown', b.category||'');
+  if (t === 'pageview') await recordPV(b.page || 'unknown', ip);
+  else if (t === 'tool_click') await recordTC(b.tool||'unknown', b.category||'');
   return json({ok:true}, 200, corsHdr(req));
 }
 
@@ -301,7 +300,7 @@ async function stats(req) {
   const aiPagesData = mergeWithPending(cfOk ? (await cfGet('aipages')) : null, 'aipages');
   const aiPages = Object.entries(aiPagesData).map(([k,v])=>({page:k,requests:v})).sort((a,b)=>b.requests-a.requests);
 
-  const pvDaily = (await buildDaily('pvDaily')).map(d=>({date:d.date,count:d.cnt||0}));
+  const pvDaily = (await buildDaily('pvDaily')).map(d=>({date:d.date,count:d.cnt||0,visitors:d.visitors||0}));
   const pvData = mergeWithPending(cfOk ? (await cfGet('pvPages')) : null, 'pvPages');
   const pvPages = Object.entries(pvData).map(([k,v])=>({page:k,views:v})).sort((a,b)=>b.views-a.views);
 
@@ -404,7 +403,10 @@ const handler = async function(req) {
       }
       ctrl.enqueue(chunk);
     },
-    flush(ctrl) { recordUsage(inT, outT, pageInfo); ctrl.terminate(); },
+    async flush(ctrl) {
+      await recordUsage(inT, outT, pageInfo);
+      ctrl.terminate();
+    },
   });
 
   return new Response(stream.pipeThrough(ts), {
