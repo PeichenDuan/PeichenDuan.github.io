@@ -1,0 +1,737 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>序列格式转换</title>
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --secondary-color: #3498db;
+            --accent-color: #e74c3c;
+            --light-color: #ecf0f1;
+            --dark-color: #2c3e50;
+            --success-color: #27ae60;
+            --warning-color: #f39c12;
+            --border-radius: 8px;
+            --box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            --transition: all 0.3s ease;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: "Microsoft YaHei", "微软雅黑", sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            min-height: 100vh;
+        }
+
+        /* 顶部标题栏 */
+        .tool-header {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background-color: var(--primary-color);
+            color: white;
+            padding: 20px;
+            width: 100%;
+            text-align: center;
+        }
+
+        .back-button {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            padding: 8px 16px;
+            border-radius: var(--border-radius);
+            cursor: pointer;
+            transition: var(--transition);
+            font-size: 0.9rem;
+            margin-top: 15px;
+            text-decoration: none;
+        }
+
+        .back-button:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        /* 内容区域样式 */
+        .content {
+            padding: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .section {
+            background: white;
+            border-radius: var(--border-radius);
+            padding: 20px;
+            margin-bottom: 30px;
+            box-shadow: var(--box-shadow);
+        }
+
+        h2 {
+            color: var(--primary-color);
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        h3 {
+            color: var(--secondary-color);
+            margin-bottom: 15px;
+            text-align: left;
+        }
+
+        /* 输入方式选择样式 */
+        .input-mode-selector {
+            display: flex;
+            margin-bottom: 20px;
+            border-radius: var(--border-radius);
+            overflow: hidden;
+            box-shadow: var(--box-shadow);
+        }
+
+        .input-mode-option {
+            flex: 1;
+            padding: 12px;
+            text-align: center;
+            background-color: #f8f9fa;
+            cursor: pointer;
+            transition: var(--transition);
+            border: 1px solid #ddd;
+        }
+
+        .input-mode-option:not(:last-child) {
+            border-right: none;
+        }
+
+        .input-mode-option.active {
+            color: white;
+            background-color: var(--secondary-color);
+        }
+
+        .input-mode-option:hover:not(.active) {
+            background-color: #e9ecef;
+        }
+
+        /* 输入模式内容 */
+        .input-mode-content {
+            display: none;
+        }
+
+        .input-mode-content.active {
+            display: block;
+        }
+
+        /* 表单样式 */
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+
+        input[type="text"], input[type="file"], select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: var(--border-radius);
+            font-size: 14px;
+        }
+
+        /* 文件上传样式 */
+        .file-upload {
+            border: 2px dashed #ddd;
+            border-radius: var(--border-radius);
+            padding: 20px;
+            text-align: center;
+            margin-bottom: 20px;
+            background-color: #f9f9f9;
+            transition: var(--transition);
+        }
+
+        .file-upload:hover {
+            border-color: var(--secondary-color);
+        }
+
+        .file-upload input {
+            display: none;
+        }
+
+        .file-upload label {
+            display: inline-block;
+            padding: 10px 20px;
+            background-color: var(--secondary-color);
+            color: white;
+            border-radius: var(--border-radius);
+            cursor: pointer;
+            transition: var(--transition);
+            margin-bottom: 10px;
+        }
+
+        .file-upload label:hover {
+            background-color: #2980b9;
+        }
+
+        .file-info {
+            margin-top: 15px;
+            text-align: left;
+            padding: 10px;
+            background-color: #f0f8ff;
+            border-radius: var(--border-radius);
+            font-size: 0.9rem;
+        }
+
+        /* 文本输入样式 */
+        textarea {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: var(--border-radius);
+            font-family: "Consolas", "Courier New", monospace;
+            font-size: 13px;
+            line-height: 1.5;
+            resize: vertical;
+            transition: var(--transition);
+        }
+
+        textarea:focus {
+            border-color: var(--secondary-color);
+            outline: none;
+            box-shadow: 0 0 5px rgba(52, 152, 219, 0.3);
+        }
+
+        /* 按钮样式 */
+        .btn {
+            padding: 12px 20px;
+            border: none;
+            border-radius: var(--border-radius);
+            cursor: pointer;
+            transition: var(--transition);
+            font-weight: bold;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+
+        .btn-primary {
+            background-color: var(--secondary-color);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background-color: #2980b9;
+        }
+
+        .btn-success {
+            background-color: var(--success-color);
+            color: white;
+        }
+
+        .btn-success:hover {
+            background-color: #219653;
+        }
+
+        .btn-accent {
+            background-color: var(--accent-color);
+            color: white;
+        }
+
+        .btn-accent:hover {
+            background-color: #c0392b;
+        }
+
+        /* 选项组样式 */
+        .option-group {
+            display: flex;
+            gap: 15px;
+            margin-top: 10px;
+            flex-wrap: wrap;
+        }
+
+        .option-item {
+            display: flex;
+            align-items: center;
+            padding: 8px 15px;
+            background-color: #f8f9fa;
+            border-radius: var(--border-radius);
+            cursor: pointer;
+            transition: var(--transition);
+            border: 1px solid #ddd;
+        }
+
+        .option-item:hover {
+            background-color: #e9ecef;
+        }
+
+        .option-item input[type="radio"], .option-item input[type="checkbox"] {
+            margin-right: 8px;
+        }
+
+        .option-item.active {
+            background-color: #e8f4fd;
+            border-color: var(--secondary-color);
+        }
+
+        /* 结果区域样式 */
+        .result-box {
+            padding: 15px;
+            background-color: #f9f9f9;
+            border-radius: var(--border-radius);
+            margin-top: 20px;
+            border-left: 4px solid var(--secondary-color);
+            display: none;
+        }
+
+        .result-box.active {
+            display: block;
+        }
+
+        .result-summary {
+            background-color: #e8f5e8;
+            padding: 15px;
+            border-radius: var(--border-radius);
+            margin-bottom: 15px;
+        }
+
+        .sequence-count {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: var(--success-color);
+        }
+
+        /* 下载区域样式 */
+        .download-area {
+            margin-top: 20px;
+            padding-top: 15px;
+            border-top: 1px solid #ddd;
+            text-align: center;
+        }
+
+        .download-link {
+            display: inline-block;
+            padding: 12px 25px;
+            background-color: var(--success-color);
+            color: white;
+            border-radius: var(--border-radius);
+            text-decoration: none;
+            font-weight: bold;
+            transition: var(--transition);
+        }
+
+        .download-link:hover {
+            background-color: #219653;
+            transform: translateY(-2px);
+        }
+
+        /* 状态栏样式 */
+        .status-bar {
+            padding: 10px;
+            background-color: var(--primary-color);
+            color: white;
+            text-align: center;
+            font-weight: bold;
+            width: 100%;
+            margin-top: 20px;
+        }
+
+        /* 加载动画 */
+        .loader {
+            display: none;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid var(--secondary-color);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* 说明信息框 */
+        .info-box {
+            background-color: #f0f8ff;
+            padding: 15px;
+            border-radius: var(--border-radius);
+            margin-bottom: 20px;
+            border-left: 4px solid var(--secondary-color);
+        }
+
+        .info-box h4 {
+            color: var(--secondary-color);
+            margin-bottom: 8px;
+        }
+
+        .info-box p {
+            font-size: 0.9rem;
+            color: #555;
+            margin-bottom: 5px;
+        }
+
+        @media (max-width: 768px) {
+            .content {
+                padding: 15px;
+            }
+
+            .input-mode-selector {
+                flex-direction: column;
+            }
+
+            .input-mode-option:not(:last-child) {
+                border-right: 1px solid #ddd;
+                border-bottom: none;
+            }
+
+            .option-group {
+                flex-direction: column;
+            }
+
+            .btn {
+                width: 100%;
+                margin-right: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="tool-header">
+        <h1>序列格式转换</h1>
+        <a href="index.html" class="back-button">返回主界面</a>
+    </div>
+
+    <div class="content">
+        <!-- 输入方式选择 -->
+        <div class="section">
+            <h2>输入序列</h2>
+
+            <div class="input-mode-selector">
+                <div class="input-mode-option active" data-mode="paste">直接粘贴序列</div>
+                <div class="input-mode-option" data-mode="upload">上传文件</div>
+            </div>
+
+            <!-- 粘贴输入模式 -->
+            <div id="mode-paste" class="input-mode-content active">
+                <div class="form-group">
+                    <label>粘贴序列内容:</label>
+                    <textarea id="paste-input" rows="12" placeholder="粘贴序列内容，例如：
+>NeSuSy4rbn
+1        MTTIDTLATC TQQNRDAVYT LLRRYFTANR TLLLQSDLRE GLLQTEQDCG QSDMLRAFVF
+61       RLQEGIFSSP WAYLALRPEI AKWEFMRIHQ EHLIPEKLTI SEFLKFKETV VKGEATESVL
+121      EVDFGPFNRG FPRLKESRSI GQGVIFLNRK LSSEMFSRIE AGHTSLLHFL GVHAIEGQQL
+181      MFSNNSHDIH AVRNQLRQAL EMLETLDGTT PWIELAPKMN QLGFAPGWGH NANRVAETMN"></textarea>
+                </div>
+            </div>
+
+            <!-- 文件上传模式 -->
+            <div id="mode-upload" class="input-mode-content">
+                <div class="form-group">
+                    <label>上传序列文件:</label>
+                    <div class="file-upload">
+                        <input type="file" id="fasta-file" accept=".fasta,.fa,.txt,.fna,.gb,.seq">
+                        <label for="fasta-file">选择序列文件</label>
+                        <p>支持 .fasta, .fa, .txt, .fna, .gb, .seq 等格式</p>
+                        <div id="file-info" class="file-info" style="display: none;">
+                            <!-- 文件信息将在这里显示 -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 说明信息 -->
+            <div class="info-box">
+                <h4>功能说明</h4>
+                <p><strong>保留内容：</strong>以 <code>&gt;</code> 开头的基因名称行、所有氨基酸字母（A-Z, a-z）</p>
+                <p><strong>去除内容：</strong>序列中的行号数字、空格、换行符之间的空白以及其他非字母字符</p>
+                <p><strong>适用场景：</strong>从NCBI/GenBank等数据库下载的带行号和空格的序列，一键转换为标准FASTA格式</p>
+            </div>
+
+            <div class="loader" id="loader"></div>
+
+            <button id="convert-btn" class="btn btn-primary">开始转换</button>
+            <button id="reset-btn" class="btn btn-accent">重置</button>
+
+            <div id="result-box" class="result-box">
+                <!-- 转换结果将在这里显示 -->
+            </div>
+        </div>
+    </div>
+
+    <div class="status-bar">
+        江南大学 粮食发酵工艺与技术国家工程实验室
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // 全局变量
+            let convertedSequences = [];
+            let inputFileName = '';
+
+            // DOM元素
+            const inputModeOptions = document.querySelectorAll('.input-mode-option');
+            const inputModeContents = document.querySelectorAll('.input-mode-content');
+            const pasteInput = document.getElementById('paste-input');
+            const fastaFile = document.getElementById('fasta-file');
+            const fileInfo = document.getElementById('file-info');
+            const convertBtn = document.getElementById('convert-btn');
+            const resetBtn = document.getElementById('reset-btn');
+            const loader = document.getElementById('loader');
+            const resultBox = document.getElementById('result-box');
+
+            // 输入模式切换
+            inputModeOptions.forEach(option => {
+                option.addEventListener('click', function() {
+                    const mode = this.dataset.mode;
+
+                    // 更新活动状态
+                    inputModeOptions.forEach(opt => opt.classList.remove('active'));
+                    this.classList.add('active');
+
+                    // 显示对应内容
+                    inputModeContents.forEach(content => {
+                        content.classList.remove('active');
+                        if (content.id === `mode-${mode}`) {
+                            content.classList.add('active');
+                        }
+                    });
+                });
+            });
+
+            // 文件上传处理
+            fastaFile.addEventListener('change', function() {
+                if (this.files.length === 0) return;
+
+                const file = this.files[0];
+                inputFileName = file.name.replace(/\.[^/.]+$/, ""); // 移除扩展名
+
+                // 显示文件信息
+                fileInfo.innerHTML = `
+                    <p><strong>已选择文件:</strong> ${file.name}</p>
+                    <p><strong>文件大小:</strong> ${(file.size / 1024).toFixed(2)} KB</p>
+                `;
+                fileInfo.style.display = 'block';
+            });
+
+            // 解析序列：去除数字和空格，保留>头行和氨基酸字母
+            function parseAndCleanSequences(rawText) {
+                const sequences = [];
+                const lines = rawText.split(/\r?\n/);
+                let currentHeader = '';
+                let currentSequence = '';
+
+                for (let line of lines) {
+                    const trimmedLine = line.trim();
+
+                    if (trimmedLine.startsWith('>')) {
+                        // 保存上一个序列
+                        if (currentHeader && currentSequence) {
+                            sequences.push({
+                                header: currentHeader,
+                                sequence: currentSequence,
+                                length: currentSequence.length
+                            });
+                        }
+
+                        // 开始新序列，保留>后面的全部内容作为基因名称
+                        currentHeader = trimmedLine.substring(1).trim();
+                        currentSequence = '';
+                    } else if (trimmedLine) {
+                        // 去除所有数字和空格，只保留字母
+                        const cleaned = trimmedLine.replace(/[\d\s]/g, '');
+                        // 进一步只保留英文字母（氨基酸标准字母）
+                        const lettersOnly = cleaned.replace(/[^A-Za-z]/g, '');
+                        if (lettersOnly) {
+                            currentSequence += lettersOnly;
+                        }
+                    }
+                }
+
+                // 添加最后一个序列
+                if (currentHeader && currentSequence) {
+                    sequences.push({
+                        header: currentHeader,
+                        sequence: currentSequence,
+                        length: currentSequence.length
+                    });
+                }
+
+                return sequences;
+            }
+
+            // 统计去除了多少字符
+            function countRemovedChars(rawText, cleanedSequences) {
+                const originalLen = rawText.replace(/\r?\n/g, '').length;
+                let cleanedLen = 0;
+                cleanedSequences.forEach(seq => {
+                    cleanedLen += seq.header.length + seq.sequence.length;
+                });
+                // 加上>符号的数量
+                cleanedLen += cleanedSequences.length;
+                return originalLen - cleanedLen;
+            }
+
+            // 转换按钮点击事件
+            convertBtn.addEventListener('click', function() {
+                const activeMode = document.querySelector('.input-mode-option.active').dataset.mode;
+
+                // 显示加载动画
+                loader.style.display = 'block';
+                resultBox.classList.remove('active');
+                resultBox.innerHTML = '';
+
+                if (activeMode === 'paste') {
+                    // 粘贴模式
+                    const rawText = pasteInput.value.trim();
+
+                    if (!rawText) {
+                        alert('请先粘贴序列内容');
+                        loader.style.display = 'none';
+                        return;
+                    }
+
+                    // 使用setTimeout避免阻塞UI
+                    setTimeout(() => {
+                        convertedSequences = parseAndCleanSequences(rawText);
+                        displayResults(convertedSequences, rawText);
+                        loader.style.display = 'none';
+                    }, 100);
+
+                } else if (activeMode === 'upload') {
+                    // 文件上传模式
+                    if (fastaFile.files.length === 0) {
+                        alert('请先选择序列文件');
+                        loader.style.display = 'none';
+                        return;
+                    }
+
+                    const file = fastaFile.files[0];
+                    const reader = new FileReader();
+
+                    reader.onload = function(e) {
+                        const rawText = e.target.result;
+                        convertedSequences = parseAndCleanSequences(rawText);
+                        displayResults(convertedSequences, rawText);
+                        loader.style.display = 'none';
+                    };
+
+                    reader.onerror = function() {
+                        alert('读取文件时发生错误，请重试');
+                        loader.style.display = 'none';
+                    };
+
+                    reader.readAsText(file);
+                }
+            });
+
+            // 显示转换结果
+            function displayResults(sequences, rawText) {
+                if (sequences.length === 0) {
+                    resultBox.innerHTML = `
+                        <div style="background-color: #fff3cd; padding: 15px; border-radius: var(--border-radius);">
+                            <p><strong>未能解析出任何序列</strong></p>
+                            <p>请检查输入内容是否包含以 <code>></code> 开头的序列名称行和有效的氨基酸序列。</p>
+                        </div>
+                    `;
+                    resultBox.classList.add('active');
+                    return;
+                }
+
+                const removedCount = countRemovedChars(rawText, sequences);
+
+                // 生成FASTA格式内容
+                let fastaContent = '';
+                sequences.forEach(seq => {
+                    fastaContent += `>${seq.header}\n`;
+                    // 每行显示60个字符
+                    for (let i = 0; i < seq.sequence.length; i += 60) {
+                        fastaContent += seq.sequence.substring(i, i + 60) + '\n';
+                    }
+                });
+
+                // 构建结果HTML
+                resultBox.innerHTML = `
+                    <div class="result-summary">
+                        <p>解析到序列数: <span class="sequence-count">${sequences.length}</span></p>
+                        <p>去除的字符数（数字、空格等）: <span class="sequence-count" style="color: var(--accent-color);">${removedCount}</span></p>
+                        <p>总氨基酸残基数: <span class="sequence-count">${sequences.reduce((sum, s) => sum + s.length, 0)}</span></p>
+                    </div>
+
+                    <div class="download-area">
+                        <p>转换完成！可下载标准FASTA格式文件</p>
+                        <a href="#" class="download-link" id="download-link">下载转换后的FASTA文件</a>
+                        <button class="btn btn-primary" id="copy-btn" style="margin-left: 10px;">复制到剪贴板</button>
+                    </div>
+                `;
+
+                resultBox.classList.add('active');
+
+                // 设置下载链接
+                document.getElementById('download-link').addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const downloadFileName = inputFileName
+                        ? `${inputFileName}_cleaned.fasta`
+                        : 'converted_sequences.fasta';
+                    downloadFile(fastaContent, downloadFileName);
+                });
+
+                // 设置复制按钮
+                document.getElementById('copy-btn').addEventListener('click', function() {
+                    navigator.clipboard.writeText(fastaContent).then(() => {
+                        const copyBtn = document.getElementById('copy-btn');
+                        const originalText = copyBtn.textContent;
+                        copyBtn.textContent = '✓ 已复制';
+                        copyBtn.style.backgroundColor = 'var(--success-color)';
+                        copyBtn.style.color = 'white';
+                        setTimeout(() => {
+                            copyBtn.textContent = originalText;
+                            copyBtn.style.backgroundColor = '';
+                            copyBtn.style.color = '';
+                        }, 2000);
+                    }).catch(() => {
+                        alert('复制失败，请手动选择文本复制');
+                    });
+                });
+            }
+
+            // 重置按钮
+            resetBtn.addEventListener('click', function() {
+                pasteInput.value = '';
+                fastaFile.value = '';
+                inputFileName = '';
+                convertedSequences = [];
+                fileInfo.style.display = 'none';
+                fileInfo.innerHTML = '';
+                resultBox.classList.remove('active');
+                resultBox.innerHTML = '';
+                loader.style.display = 'none';
+            });
+
+            // 下载文件函数
+            function downloadFile(content, filename) {
+                const blob = new Blob([content], { type: 'text/plain' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            }
+        });
+    </script>
+    <script src="bat-ai-assistant.js"></script>
+</body>
+</html>
