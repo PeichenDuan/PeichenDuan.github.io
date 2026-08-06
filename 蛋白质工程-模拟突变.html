@@ -346,6 +346,10 @@
 
                 <div id="tab-paste" class="tab-content active">
                     <div class="form-group">
+                        <label for="seq-name">序列名称：</label>
+                        <input type="text" id="seq-name" value="WT" placeholder="默认为 WT（野生型），可自定义命名">
+                    </div>
+                    <div class="form-group">
                         <label for="seq-textarea">粘贴序列（支持 FASTA 格式或纯氨基酸序列，自动识别）：</label>
                         <textarea id="seq-textarea" class="batch-textarea" placeholder="可粘贴任意格式：&#10;1. FASTA格式：>GeneName&#10;MSEERLQ...&#10;2. 纯序列文本：MSEERLQ...&#10;3. 带数字的序列：1 MSE 2 ERL 3 Q...（自动清洗）"></textarea>
                     </div>
@@ -428,6 +432,16 @@
                     </div>
                 </div>
 
+                <!-- WT retention option -->
+                <div class="form-group">
+                    <div class="output-options">
+                        <div class="output-option">
+                            <input type="checkbox" id="include-wt" checked>
+                            <label for="include-wt">包含野生型（WT）序列</label>
+                        </div>
+                    </div>
+                </div>
+
                 <button id="export-btn" class="export-btn">🚀 导出突变</button>
             </div>
         </div>
@@ -494,8 +508,9 @@
                         '例如：G514N G514S D518W D518P I519E I519P';
                 } else {
                     batchMutations.placeholder =
-                        '组合突变模式：每行一组突变，行内空格分隔的多个突变同时作用\n' +
-                        '例如：G514N D518W\n     I519E Y520T';
+                        '组合突变模式：每行一组突变，自动识别单点/组合\n' +
+                        '仅1个突变 → 单点突变 | 多个突变（空格分隔）→ 组合突变\n' +
+                        '例如：G514N D518W\n     I519E Y520T\n     G514N（自动识别为单点）';
                 }
             }
 
@@ -506,7 +521,8 @@
                     alert('请先粘贴序列文本！');
                     return;
                 }
-                parseSequenceText(text, '粘贴文本');
+                const seqName = document.getElementById('seq-name').value.trim() || 'WT';
+                parseSequenceText(text, seqName);
             });
 
             // ── File upload ──
@@ -685,10 +701,12 @@
                     logMessage(`✅ 批量解析完成：${validMutations.length} 个单点突变（已自动去重）`);
 
                 } else {
-                    // Combo mode: each line = one combination mutant
+                    // Combo mode: each line = one mutant (auto-detect single vs combo)
                     const lines = text.split(/[\n\r]+/).filter(l => l.trim().length > 0);
-                    const combos = [];
+                    const entries = [];
                     const invalidLines = [];
+                    let singleCount = 0;
+                    let comboCount = 0;
 
                     for (let line of lines) {
                         const tokens = line.split(/[\s,;，；]+/).filter(t => t.length > 0);
@@ -702,17 +720,24 @@
                             logMessage(`⚠️ 行中忽略格式错误: ${bad.join(', ')}`);
                         }
                         const normalized = validTokens.map(t => t.toUpperCase()).join(' ');
-                        combos.push(normalized);
+                        // Auto-detect: 1 mutation → single, 2+ → combo
+                        const entryType = validTokens.length === 1 ? 'single' : 'combo';
+                        if (entryType === 'single') singleCount++;
+                        else comboCount++;
+                        entries.push({ mutations: normalized, type: entryType });
                     }
 
-                    if (combos.length === 0) {
-                        alert('未识别到有效突变组合！每行至少需要一个有效突变（如 G514N D518W）');
+                    if (entries.length === 0) {
+                        alert('未识别到有效突变！每行至少需要一个有效突变（如 G514N 或 G514N D518W）');
                         return;
                     }
 
                     mutantContainer.innerHTML = '';
-                    combos.forEach(combo => addMutationEntry(combo, 'combo'));
-                    logMessage(`✅ 批量解析完成：${combos.length} 个组合突变`);
+                    entries.forEach(e => addMutationEntry(e.mutations, e.type));
+                    const parts = [];
+                    if (singleCount > 0) parts.push(`${singleCount} 个单点突变`);
+                    if (comboCount > 0) parts.push(`${comboCount} 个组合突变`);
+                    logMessage(`✅ 批量解析完成：${parts.join(' + ')}（自动识别）`);
                 }
 
                 updateMutationCount();
@@ -779,6 +804,7 @@
 
                 const originalSeq = genes[selectedGene];
                 const outputType = document.querySelector('input[name="output-type"]:checked').value;
+                const includeWT = document.getElementById('include-wt').checked;
 
                 // Collect mutations
                 const mutationsToApply = [];
@@ -805,8 +831,8 @@
                     });
                 }
 
-                if (mutationsToApply.length === 0) {
-                    alert('请输入至少一个有效的突变！');
+                if (mutationsToApply.length === 0 && !includeWT) {
+                    alert('请输入至少一个有效的突变，或勾选"包含野生型（WT）序列"！');
                     return;
                 }
 
@@ -814,11 +840,20 @@
 
                 const singleCount = mutationsToApply.filter(m => m.type === 'single').length;
                 const comboCount = mutationsToApply.filter(m => m.type === 'combo').length;
-                logMessage(`生成中: ${singleCount} 个单点突变 + ${comboCount} 个组合突变 = ${mutationsToApply.length} 个突变体`);
+                const wtInfo = includeWT ? ' + WT' : '';
+                logMessage(`生成中: ${singleCount} 个单点突变 + ${comboCount} 个组合突变 = ${mutationsToApply.length} 个突变体${wtInfo}`);
 
                 if (outputType === 'separate') {
                     try {
                         const zip = new JSZip();
+
+                        // Include WT sequence if checkbox is checked
+                        if (includeWT) {
+                            const wtFileName = `${selectedGene}_WT.fasta`;
+                            const wtContent = `>${selectedGene}_WT\n${formatSequence(originalSeq)}`;
+                            zip.file(wtFileName, wtContent);
+                        }
+
                         for (let mutant of mutationsToApply) {
                             try {
                                 const mutatedSeq = applyMutation(originalSeq, mutant.mutations);
@@ -831,9 +866,10 @@
                             }
                         }
 
+                        const totalFiles = (includeWT ? 1 : 0) + mutationsToApply.length;
                         zip.generateAsync({ type: "blob" }).then(function(content) {
                             downloadBlob(content, `${selectedGene}_mutations.zip`);
-                            logMessage(`✅ 已导出压缩包: ${selectedGene}_mutations.zip (${mutationsToApply.length} 个文件)`);
+                            logMessage(`✅ 已导出压缩包: ${selectedGene}_mutations.zip (${totalFiles} 个文件${wtInfo})`);
                             updateStatus('突变已成功导出为ZIP文件！');
                         });
                     } catch (e) {
@@ -842,6 +878,12 @@
                 } else {
                     // Combined output
                     const records = [];
+
+                    // Include WT sequence if checkbox is checked
+                    if (includeWT) {
+                        records.push({ id: `${selectedGene}_WT`, seq: originalSeq });
+                    }
+
                     for (let mutant of mutationsToApply) {
                         try {
                             const mutatedSeq = applyMutation(originalSeq, mutant.mutations);
@@ -861,7 +903,7 @@
                         new Blob([combinedContent], { type: 'text/plain' }),
                         `${selectedGene}_mutants.fasta`
                     );
-                    logMessage(`✅ 已导出合并文件: ${selectedGene}_mutants.fasta (${records.length} 条序列)`);
+                    logMessage(`✅ 已导出合并文件: ${selectedGene}_mutants.fasta (${records.length} 条序列${wtInfo})`);
                     updateStatus('突变已成功导出为合并文件！');
                 }
             });
@@ -935,7 +977,7 @@
             // ── Init ──
             updateBatchPlaceholder();
             logMessage('准备就绪。');
-            logMessage('💡 新功能：支持粘贴任意格式序列 + 批量导入突变 + 单点/组合模式切换');
+            logMessage('💡 新功能：默认序列命名（WT）+ 可选保留野生型序列 + 粘贴任意格式序列 + 批量导入突变 + 单点/组合模式切换');
         });
     </script>
     <script src="bat-ai-assistant.js"></script>
