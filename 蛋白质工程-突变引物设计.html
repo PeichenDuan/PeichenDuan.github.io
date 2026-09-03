@@ -292,6 +292,29 @@
             color: #155724;
             display: none;
         }
+        /* 新增：折叠面板样式 */
+        .mechanism-section {
+            background: #f0f8ff;
+            border-radius: var(--border-radius);
+            padding: 15px 25px;
+            margin-bottom: 30px;
+            box-shadow: var(--box-shadow);
+        }
+        .mechanism-section summary {
+            font-weight: bold;
+            font-size: 1.2rem;
+            cursor: pointer;
+            color: var(--primary-color);
+        }
+        .mechanism-section ul {
+            padding-left: 20px;
+            line-height: 1.8;
+        }
+        .mechanism-section h4 {
+            margin-top: 15px;
+            margin-bottom: 5px;
+            color: var(--secondary-color);
+        }
         @media (max-width: 768px) {
             .content {
                 padding: 15px;
@@ -459,11 +482,50 @@
                 <button class="download-button" id="download-btn" disabled onclick="downloadResults()">下载结果 (XLSX)</button>
             </div>
         </div>
+
+        <!-- ========== 新增：筛选与计分机制说明 ========== -->
+        <div class="mechanism-section">
+            <details>
+                <summary>📋 引物设计筛选与计分机制说明</summary>
+                <div style="padding: 15px 0;">
+                    <h4>一、硬性筛选条件（必须同时满足）</h4>
+                    <ul>
+                        <li><strong>引物长度</strong>：必须在用户设定的 <code>[lengthMin, lengthMax]</code> 范围内。</li>
+                        <li><strong>5' 端碱基数</strong>：上游引物突变位点左侧延伸的碱基数必须在 <code>[fiveMin, fiveMax]</code> 范围内。</li>
+                        <li><strong>3' 端碱基数</strong>：上游引物突变位点右侧延伸的碱基数必须在 <code>[threeMin, threeMax]</code> 范围内（下游引物左右互换）。</li>
+                        <li><strong>熔解温度 (Tm)</strong>：上游和下游引物的 Tm 值均须落在 <code>[tmMin, tmMax]</code> 区间内。</li>
+                        <li><strong>GC 含量</strong>：上游和下游引物的 GC% 均须落在 <code>[gcMin, gcMax]</code> 区间内。</li>
+                    </ul>
+
+                    <h4>二、综合计分机制（总分最高者当选）</h4>
+                    <ul>
+                        <li><strong>末端奖励</strong>：上游或下游引物 3' 末位为 <strong>C 或 G</strong>，每条加 <strong>+10</strong> 分（满分 +20）。</li>
+                        <li><strong>Tm 偏离扣分</strong>：<code>(|上游Tm - 理想Tm| + |下游Tm - 理想Tm|) × 0.2</code>，理想Tm = (tmMin + tmMax) / 2。</li>
+                        <li><strong>GC 偏离扣分</strong>：<code>(|上游GC - 理想GC| + |下游GC - 理想GC|) × 0.2</code>，理想GC = (gcMin + gcMax) / 2。</li>
+                        <li><strong>长度惩罚</strong>：<code>(当前长度 - lengthMin) × 0.2</code>（每比最短长度长 1 bp 扣 0.2 分）。</li>
+                        <li><strong>互补配对评分</strong>：取两条引物 3' 端最后 <strong>10</strong> 个碱基（不足则全取），计算反向互补配对个数。
+                            <ul style="margin-top:5px;">
+                                <li>完全互补（错配 0 个）→ <strong>-1</strong> 分</li>
+                                <li>错配 1~5 个 → <strong>0</strong> 分</li>
+                                <li>错配 6~15 个 → <strong>(错配数 - 5) × 0.2</strong>（上限 2.0）</li>
+                                <li>错配 16~30 个 → 从 2.0 线性递减至 0（之后均为 0）</li>
+                            </ul>
+                        </li>
+                        <li><strong>连续相同碱基惩罚</strong>：序列中出现连续 <strong>4 个及以上相同碱基</strong>的片段（如 AAAA、TTTT），每出现一段扣 <strong>1</strong> 分，两条引物独立累加。</li>
+                        <li><strong>3' 端 5 碱基 C/G 过多惩罚</strong>：3' 端最后 5 个碱基中 C/G 数 <strong>≥ 4</strong>，每条扣 <strong>1</strong> 分。</li>
+                    </ul>
+                    <p style="margin-top: 15px; color: #555; font-style: italic;">最终在满足所有硬性条件的候选引物对中，选择总分最高者作为该突变体的最优引物对。</p>
+                </div>
+            </details>
+        </div>
+        <!-- ========== 说明结束 ========== -->
+
     </div>
    
     <div style="padding: 15px; background-color: var(--primary-color); color: white; text-align: center; margin-top: 30px;">
         江南大学 粮食发酵工艺与技术国家工程实验室
     </div>
+
     <script>
         let mutationCount = 1;
         let primerResults = [];
@@ -725,7 +787,54 @@
             };
         }
        
-        // 设计引物对 - 优化为优先选择最短序列，并优先选择末端为C或G的引物
+        // ---------- 新增/修改的辅助函数 ----------
+        // 统计一个序列中连续4个相同碱基的片段数（每出现一段扣1分）
+        function countFourConsecutive(seq) {
+            let count = 0;
+            let i = 0;
+            while (i < seq.length - 3) {
+                if (seq[i] === seq[i+1] && seq[i] === seq[i+2] && seq[i] === seq[i+3]) {
+                    count++;
+                    i += 4; // 跳过这段，避免重复计数
+                } else {
+                    i++;
+                }
+            }
+            return count;
+        }
+       
+        // 计算两条引物3'端互补配对得分（新规则）
+        function complementScore(forward, reverse) {
+            const len = Math.min(10, forward.length, reverse.length);
+            if (len < 1) return 0;
+            const f3 = forward.slice(-len);
+            const r3 = reverse.slice(-len);
+            // 反向互补比较
+            const complement = { 'A':'T', 'T':'A', 'C':'G', 'G':'C' };
+            let matched = 0;
+            for (let i = 0; i < len; i++) {
+                const fBase = f3[i];
+                const rBase = r3[len-1-i]; // 反向
+                if (complement[fBase] === rBase) {
+                    matched++;
+                }
+            }
+            const mismatch = len - matched;
+            // 新分段规则
+            if (matched === len) return -1; // 完全互补
+            if (mismatch >= 1 && mismatch <= 5) return 0;
+            if (mismatch >= 6 && mismatch <= 15) {
+                return (mismatch - 5) * 0.2; // 最大2.0（当mismatch=15）
+            }
+            if (mismatch >= 16 && mismatch <= 30) {
+                let score = 2.0 - (mismatch - 15) * (2.0 / 15);
+                return score < 0 ? 0 : score;
+            }
+            return 0; // mismatch > 30
+        }
+        // --------------------------------
+       
+        // 设计引物对 - 新评分机制（完全按最新要求）
         function designPrimerPair(dnaSeq, mutation, params) {
             const { dnaPos, target, originalCodon } = mutation;
             const optimalCodon = optimalCodons[target];
@@ -734,59 +843,35 @@
                 return { error: `无法找到目标氨基酸${target}的最优密码子` };
             }
            
-            // 计算不匹配碱基数
             const mismatch = calculateMismatch(originalCodon, optimalCodon);
+            const idealTm = (params.tmMin + params.tmMax) / 2;
+            const idealGC = (params.gcMin + params.gcMax) / 2;
            
-            // 按长度从小到大搜索
+            let bestPrimer = null;
+            let bestScore = -Infinity;
+           
             for (let primerLength = params.lengthMin; primerLength <= params.lengthMax; primerLength++) {
-                let bestPrimer = null;
-                let bestPrimerScore = -Infinity;
-               
-                // 遍历可能的5'和3'端长度组合
                 for (let fiveLen = params.fiveMin; fiveLen <= params.fiveMax; fiveLen++) {
                     for (let threeLen = params.threeMin; threeLen <= params.threeMax; threeLen++) {
-                        // 检查长度是否匹配
-                        if (fiveLen + 3 + threeLen !== primerLength) {
-                            continue;
-                        }
-                       
-                        // 计算起始和结束位置
-                        const forwardStart = Math.max(0, dnaPos - fiveLen);
-                        const forwardEnd = Math.min(dnaSeq.length, dnaPos + 3 + threeLen);
-                       
-                        // 检查边界
-                        if (forwardStart < 0 || forwardEnd > dnaSeq.length) {
-                            continue;
-                        }
+                        if (fiveLen + 3 + threeLen !== primerLength) continue;
                        
                         // 构建上游引物
-                        let forwardPrimer = dnaSeq.substring(forwardStart, dnaPos); // 5'端
-                        forwardPrimer += optimalCodon; // 突变密码子
-                        forwardPrimer += dnaSeq.substring(dnaPos + 3, forwardEnd); // 3'端
+                        const forwardStart = Math.max(0, dnaPos - fiveLen);
+                        const forwardEnd = Math.min(dnaSeq.length, dnaPos + 3 + threeLen);
+                        if (forwardStart < 0 || forwardEnd > dnaSeq.length) continue;
+                        let forwardPrimer = dnaSeq.substring(forwardStart, dnaPos);
+                        forwardPrimer += optimalCodon;
+                        forwardPrimer += dnaSeq.substring(dnaPos + 3, forwardEnd);
+                        if (forwardPrimer.length !== primerLength) continue;
                        
-                        // 确保长度正确
-                        if (forwardPrimer.length !== primerLength) {
-                            continue;
-                        }
-                       
-                        // 构建下游引物模板（反向互补）
+                        // 构建下游引物模板
                         const reverseStart = Math.max(0, dnaPos - threeLen);
                         const reverseEnd = Math.min(dnaSeq.length, dnaPos + 3 + fiveLen);
-                       
-                        if (reverseStart < 0 || reverseEnd > dnaSeq.length) {
-                            continue;
-                        }
-                       
-                        let reverseTemplate = dnaSeq.substring(reverseStart, dnaPos); // 5'端（模板）
-                        reverseTemplate += optimalCodon; // 突变密码子
-                        reverseTemplate += dnaSeq.substring(dnaPos + 3, reverseEnd); // 3'端（模板）
-                       
-                        // 确保模板长度与引物长度相同
-                        if (reverseTemplate.length !== primerLength) {
-                            continue;
-                        }
-                       
-                        // 生成下游引物（反向互补）
+                        if (reverseStart < 0 || reverseEnd > dnaSeq.length) continue;
+                        let reverseTemplate = dnaSeq.substring(reverseStart, dnaPos);
+                        reverseTemplate += optimalCodon;
+                        reverseTemplate += dnaSeq.substring(dnaPos + 3, reverseEnd);
+                        if (reverseTemplate.length !== primerLength) continue;
                         const reversePrimer = getReverseComplement(reverseTemplate);
                        
                         // 计算参数
@@ -795,67 +880,72 @@
                         const forwardTm = calculateTm(forwardPrimer, forwardGC, mismatch);
                         const reverseTm = calculateTm(reversePrimer, reverseGC, mismatch);
                        
-                        // 检查参数是否符合要求
+                        // ---- 硬性筛选 ----
                         const tmValid = forwardTm >= params.tmMin && forwardTm <= params.tmMax &&
                                       reverseTm >= params.tmMin && reverseTm <= params.tmMax;
                         const gcValid = forwardGC >= params.gcMin && forwardGC <= params.gcMax &&
                                       reverseGC >= params.gcMin && reverseGC <= params.gcMax;
+                        if (!tmValid || !gcValid) continue;
                        
-                        if (tmValid && gcValid) {
-                            // 计算引物评分：优先选择末端为C或G的引物
-                            let score = 0;
-                           
-                            // 上游引物末端为C或G加分
-                            if (/[CG]$/.test(forwardPrimer)) {
-                                score += 10;
-                            }
-                           
-                            // 下游引物末端为C或G加分
-                            if (/[CG]$/.test(reversePrimer)) {
-                                score += 10;
-                            }
-                           
-                            // Tm值接近中间值加分
-                            const idealTm = (params.tmMin + params.tmMax) / 2;
-                            score -= Math.abs(forwardTm - idealTm) * 0.1;
-                            score -= Math.abs(reverseTm - idealTm) * 0.1;
-                           
-                            // GC含量接近中间值加分
-                            const idealGC = (params.gcMin + params.gcMax) / 2;
-                            score -= Math.abs(forwardGC - idealGC) * 0.05;
-                            score -= Math.abs(reverseGC - idealGC) * 0.05;
-                           
-                            // 如果这是当前长度下评分最高的引物，记录它
-                            if (score > bestPrimerScore) {
-                                bestPrimerScore = score;
-                                bestPrimer = {
-                                    forward: forwardPrimer,
-                                    reverse: reversePrimer,
-                                    forwardTm: forwardTm,
-                                    forwardGc: forwardGC,
-                                    reverseTm: reverseTm,
-                                    reverseGc: reverseGC,
-                                    length: primerLength,
-                                    fiveLen: fiveLen,
-                                    threeLen: threeLen,
-                                    mismatch: mismatch,
-                                    score: score
-                                };
-                            }
+                        // ---- 计算综合得分（按新规则） ----
+                        let score = 0;
+                        // 末端奖励（每条引物末位C/G +10）
+                        if (/[CG]$/.test(forwardPrimer)) score += 10;
+                        if (/[CG]$/.test(reversePrimer)) score += 10;
+                       
+                        // Tm偏离扣分（改为0.2）
+                        score -= (Math.abs(forwardTm - idealTm) + Math.abs(reverseTm - idealTm)) * 0.2;
+                        // GC偏离扣分（改为0.2）
+                        score -= (Math.abs(forwardGC - idealGC) + Math.abs(reverseGC - idealGC)) * 0.2;
+                       
+                        // 长度惩罚（改为0.2）
+                        score -= (primerLength - params.lengthMin) * 0.2;
+                       
+                        // 互补配对得分（新规则）
+                        score += complementScore(forwardPrimer, reversePrimer);
+                       
+                        // 连续4个相同碱基惩罚（每出现一次扣1分）
+                        const fConsec = countFourConsecutive(forwardPrimer);
+                        const rConsec = countFourConsecutive(reversePrimer);
+                        score -= (fConsec + rConsec);
+                       
+                        // 3'端最后5个碱基中C/G≥4惩罚（保留原规则）
+                        if (countEndCG(forwardPrimer) >= 4) score -= 1;
+                        if (countEndCG(reversePrimer) >= 4) score -= 1;
+                       
+                        // 保留最佳
+                        if (score > bestScore) {
+                            bestScore = score;
+                            bestPrimer = {
+                                forward: forwardPrimer,
+                                reverse: reversePrimer,
+                                forwardTm: forwardTm,
+                                forwardGc: forwardGC,
+                                reverseTm: reverseTm,
+                                reverseGc: reverseGC,
+                                length: primerLength,
+                                fiveLen: fiveLen,
+                                threeLen: threeLen,
+                                mismatch: mismatch,
+                                score: score
+                            };
                         }
                     }
                 }
-               
-                // 如果找到当前长度的最佳引物，返回它
-                if (bestPrimer) {
-                    return {
-                        success: true,
-                        primer: bestPrimer
-                    };
-                }
             }
            
-            return { error: '无法设计符合所有条件的引物' };
+            if (bestPrimer) {
+                return { success: true, primer: bestPrimer };
+            } else {
+                return { error: '无法设计符合所有条件的引物' };
+            }
+        }
+       
+        // 辅助：统计3'端最后5个碱基中C/G个数（原函数保留）
+        function countEndCG(seq) {
+            const end = seq.slice(-5);
+            const cg = (end.match(/[CG]/g) || []).length;
+            return cg;
         }
        
         // 获取反向互补序列
@@ -872,7 +962,6 @@
         function designPrimers() {
             hideMessages();
            
-            // 获取DNA序列
             const dnaSeq = cleanDNASequence(document.getElementById('dna-sequence').value);
             if (!dnaSeq) {
                 showError('请输入DNA序列');
@@ -884,7 +973,6 @@
                 return;
             }
            
-            // 获取突变信息
             const mutationInputs = document.querySelectorAll('.mutation-input');
             const mutations = [];
            
@@ -907,7 +995,6 @@
                 return;
             }
            
-            // 获取参数
             const params = {
                 tmMin: parseFloat(document.getElementById('tm-min').value),
                 tmMax: parseFloat(document.getElementById('tm-max').value),
@@ -921,7 +1008,6 @@
                 threeMax: parseInt(document.getElementById('three-max').value)
             };
            
-            // 验证参数
             if (params.tmMin > params.tmMax || params.gcMin > params.gcMax ||
                 params.lengthMin > params.lengthMax || params.fiveMin > params.fiveMax ||
                 params.threeMin > params.threeMax) {
@@ -929,17 +1015,14 @@
                 return;
             }
            
-            // 显示加载动画
             document.getElementById('loading').style.display = 'block';
             document.getElementById('result-box').style.display = 'none';
            
-            // 设计引物
             setTimeout(() => {
                 generatePrimers(dnaSeq, mutations, params);
             }, 500);
         }
        
-        // 生成引物
         function generatePrimers(dnaSeq, mutations, params) {
             primerResults = [];
             let successCount = 0;
@@ -971,20 +1054,17 @@
                         mismatch: primer.mismatch,
                         originalCodon: mutation.originalCodon,
                         optimalCodon: optimalCodons[mutation.target],
-                        endsWithGC: /[CG]$/.test(primer.forward) && /[CG]$/.test(primer.reverse)
+                        endsWithGC: /[CG]$/.test(primer.forward) && /[CG]$/.test(primer.reverse),
+                        score: primer.score
                     });
                    
                     successCount++;
                 }
             }
            
-            // 隐藏加载动画
             document.getElementById('loading').style.display = 'none';
-           
-            // 显示结果
             displayResults();
            
-            // 显示成功信息
             if (successCount > 0) {
                 showSuccess(`成功设计 ${successCount} 个突变体的引物`);
                 document.getElementById('download-btn').disabled = false;
@@ -993,7 +1073,6 @@
             }
         }
        
-        // 显示结果
         function displayResults() {
             const resultBox = document.getElementById('result-box');
             const content = document.getElementById('result-content');
@@ -1070,14 +1149,12 @@
             resultBox.style.display = 'block';
         }
        
-        // 下载结果 - 已修改为新格式：突变体名称 + 上游引物名称(-F) + 上游序列 + 下游引物名称(-R) + 下游序列
         function downloadResults() {
             if (primerResults.length === 0) {
                 showError('没有可下载的结果');
                 return;
             }
            
-            // 新格式表头
             const wsData = [
                 ['突变体名称', '上游引物名称', '上游引物 (5\'-3\')', '下游引物名称', '下游引物 (5\'-3\')']
             ];
@@ -1094,27 +1171,18 @@
                 }
             }
            
-            // 创建工作簿和工作表
             const wb = XLSX.utils.book_new();
             const ws = XLSX.utils.aoa_to_sheet(wsData);
-           
-            // 设置列宽（适应新列数）
             const wscols = [
-                {wch: 15}, // 突变体名称
-                {wch: 18}, // 上游引物名称 (如 C170A-F)
-                {wch: 45}, // 上游引物序列
-                {wch: 18}, // 下游引物名称 (如 C170A-R)
-                {wch: 45}  // 下游引物序列
+                {wch: 15},
+                {wch: 18},
+                {wch: 45},
+                {wch: 18},
+                {wch: 45}
             ];
             ws['!cols'] = wscols;
-           
-            // 添加工作表到工作簿
             XLSX.utils.book_append_sheet(wb, ws, '引物设计结果');
-           
-            // 生成文件名
             const fileName = `大肠杆菌突变引物_${new Date().toISOString().slice(0, 10)}.xlsx`;
-           
-            // 下载文件
             XLSX.writeFile(wb, fileName);
         }
     </script>
