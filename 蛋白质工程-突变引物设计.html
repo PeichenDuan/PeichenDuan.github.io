@@ -292,7 +292,6 @@
             color: #155724;
             display: none;
         }
-        /* 新增：折叠面板样式 */
         .mechanism-section {
             background: #f0f8ff;
             border-radius: var(--border-radius);
@@ -319,37 +318,29 @@
             .content {
                 padding: 15px;
             }
-           
             .param-group {
                 grid-template-columns: 1fr;
             }
-           
             .button-group {
                 flex-direction: column;
             }
-           
             .result-table {
                 font-size: 0.8rem;
             }
-           
             .result-table th, .result-table td {
                 padding: 8px 6px;
             }
-           
             .param-row {
                 flex-direction: column;
                 align-items: flex-start;
             }
-           
             .param-label {
                 margin-bottom: 5px;
                 flex: 0 0 auto;
             }
-           
             .param-inputs {
                 width: 100%;
             }
-           
             .param-input {
                 width: 100%;
             }
@@ -382,14 +373,12 @@
             </div>
             <button class="add-mutation" onclick="addMutation()">添加突变体</button>
 
-            <!-- 新增：批量导入突变体（支持换行或空格分隔，一次性上传很多个） -->
             <div style="margin-top: 25px; padding-top: 20px; border-top: 1px dashed #ddd;">
                 <h3 style="color: var(--secondary-color);">批量导入突变体</h3>
                 <textarea id="batch-mutations" rows="4" placeholder="输入多个突变位点（每行一个，或用空格/换行分隔）&#10;例如：&#10;A21S V45A&#10;K50R L100M"></textarea>
                 <button class="add-mutation" onclick="importBatchMutations()" style="margin-top: 10px;">导入批量突变</button>
             </div>
 
-            <!-- 新增：位点饱和突变功能 -->
             <div style="margin-top: 25px; padding-top: 20px; border-top: 1px dashed #ddd;">
                 <h3 style="color: var(--secondary-color);">位点饱和突变</h3>
                 <label style="display: block; margin-bottom: 8px; font-weight: 600; color: var(--dark-color);">饱和突变氨基酸位置（多个用空格或换行隔开，例如：21 45）</label>
@@ -483,7 +472,6 @@
             </div>
         </div>
 
-        <!-- ========== 新增：筛选与计分机制说明 ========== -->
         <div class="mechanism-section">
             <details>
                 <summary>📋 引物设计筛选与计分机制说明</summary>
@@ -505,10 +493,9 @@
                         <li><strong>长度惩罚</strong>：<code>(当前长度 - lengthMin) × 0.2</code>（每比最短长度长 1 bp 扣 0.2 分）。</li>
                         <li><strong>互补配对评分</strong>：取两条引物 3' 端最后 <strong>10</strong> 个碱基（不足则全取），计算反向互补配对个数。
                             <ul style="margin-top:5px;">
-                                <li>完全互补（错配 0 个）→ <strong>-1</strong> 分</li>
-                                <li>错配 1~5 个 → <strong>0</strong> 分</li>
-                                <li>错配 6~15 个 → <strong>(错配数 - 5) × 0.2</strong>（上限 2.0）</li>
-                                <li>错配 16~30 个 → 从 2.0 线性递减至 0（之后均为 0）</li>
+                                <li>完全互补（错配 0 个）→ <strong>-5</strong> 分</li>
+                                <li>错配 1~5 个 → <strong>0.3 × 错配数</strong>（0.3 ~ 1.5）</li>
+                                <li>错配 6~10 个 → <strong>1.5 + 0.1 × (错配数 - 5)</strong>（1.6 ~ 2.0）</li>
                             </ul>
                         </li>
                         <li><strong>连续相同碱基惩罚</strong>：序列中出现连续 <strong>4 个及以上相同碱基</strong>的片段（如 AAAA、TTTT），每出现一段扣 <strong>1</strong> 分，两条引物独立累加。</li>
@@ -518,7 +505,6 @@
                 </div>
             </details>
         </div>
-        <!-- ========== 说明结束 ========== -->
 
     </div>
    
@@ -627,7 +613,7 @@
             }
         }
        
-        // 新增：批量导入突变体（支持换行或空格分隔，一次性上传很多个）
+        // 批量导入突变体
         function importBatchMutations() {
             hideMessages();
             const batchText = document.getElementById('batch-mutations').value.trim();
@@ -648,7 +634,7 @@
             }
         }
        
-        // 新增：获取指定位置的原始氨基酸（供位点饱和突变使用）
+        // 获取指定位置的原始氨基酸（供位点饱和突变使用）
         function getOriginalAA(position, dnaSeq) {
             const dnaPos = (position - 1) * 3;
             if (dnaPos + 3 > dnaSeq.length) {
@@ -661,7 +647,7 @@
             return geneticCode[originalCodon];
         }
        
-        // 新增：位点饱和突变功能（为每个位置自动生成19个非野生型突变）
+        // 位点饱和突变功能
         function addSaturationMutations() {
             hideMessages();
             const dnaSeq = cleanDNASequence(document.getElementById('dna-sequence').value);
@@ -688,7 +674,6 @@
                     showError(e.message);
                     return;
                 }
-                // 生成19个非野生型氨基酸突变
                 const allAAs = Object.keys(aaMapping);
                 for (let target of allAAs) {
                     if (target === original) continue;
@@ -739,7 +724,6 @@
             const original = originalAA.toUpperCase();
             const target = targetAA.toUpperCase();
            
-            // 检查氨基酸代码
             if (!aaMapping[original]) {
                 return { error: `无效的原始氨基酸代码: "${original}"` };
             }
@@ -747,31 +731,24 @@
                 return { error: `无效的目标氨基酸代码: "${target}"` };
             }
            
-            // 检查位置
             if (position < 1) {
                 return { error: `氨基酸位置必须为正整数: ${position}` };
             }
            
-            // 计算DNA位置
             const dnaPos = (position - 1) * 3;
            
-            // 检查序列边界
             if (dnaPos + 3 > dnaSeq.length) {
                 return { error: `突变位置${position}超出序列范围。序列共编码${Math.floor(dnaSeq.length/3)}个氨基酸` };
             }
            
-            // 获取原始密码子
             const originalCodon = dnaSeq.substring(dnaPos, dnaPos + 3);
            
-            // 验证原始密码子是否有效
             if (!geneticCode[originalCodon]) {
                 return { error: `位置${position}的密码子"${originalCodon}"无效` };
             }
            
-            // 获取原始密码子对应的氨基酸
             const actualAA = geneticCode[originalCodon];
            
-            // 检查原始氨基酸是否匹配
             if (actualAA !== original) {
                 return { error: `您提供的基因第${position}位氨基酸不是${original}，而是${actualAA}，请检查基因序列或更改要求` };
             }
@@ -787,15 +764,14 @@
             };
         }
        
-        // ---------- 新增/修改的辅助函数 ----------
-        // 统计一个序列中连续4个相同碱基的片段数（每出现一段扣1分）
+        // 统计连续4个相同碱基的片段数
         function countFourConsecutive(seq) {
             let count = 0;
             let i = 0;
             while (i < seq.length - 3) {
                 if (seq[i] === seq[i+1] && seq[i] === seq[i+2] && seq[i] === seq[i+3]) {
                     count++;
-                    i += 4; // 跳过这段，避免重复计数
+                    i += 4;
                 } else {
                     i++;
                 }
@@ -803,38 +779,33 @@
             return count;
         }
        
-        // 计算两条引物3'端互补配对得分（新规则）
+        // ========== 修改后的互补配对评分函数 ==========
         function complementScore(forward, reverse) {
             const len = Math.min(10, forward.length, reverse.length);
             if (len < 1) return 0;
             const f3 = forward.slice(-len);
             const r3 = reverse.slice(-len);
-            // 反向互补比较
             const complement = { 'A':'T', 'T':'A', 'C':'G', 'G':'C' };
             let matched = 0;
             for (let i = 0; i < len; i++) {
-                const fBase = f3[i];
-                const rBase = r3[len-1-i]; // 反向
-                if (complement[fBase] === rBase) {
+                if (complement[f3[i]] === r3[len-1-i]) {
                     matched++;
                 }
             }
             const mismatch = len - matched;
-            // 新分段规则
-            if (matched === len) return -1; // 完全互补
-            if (mismatch >= 1 && mismatch <= 5) return 0;
-            if (mismatch >= 6 && mismatch <= 15) {
-                return (mismatch - 5) * 0.2; // 最大2.0（当mismatch=15）
+            // 新评分规则
+            if (mismatch === 0) return -5;
+            if (mismatch >= 1 && mismatch <= 5) {
+                return 0.3 * mismatch;          // 0.3, 0.6, 0.9, 1.2, 1.5
             }
-            if (mismatch >= 16 && mismatch <= 30) {
-                let score = 2.0 - (mismatch - 15) * (2.0 / 15);
-                return score < 0 ? 0 : score;
+            if (mismatch >= 6 && mismatch <= 10) {
+                return 1.5 + 0.1 * (mismatch - 5);  // 1.6 ~ 2.0
             }
-            return 0; // mismatch > 30
+            return 0; // 理论上不会到这里
         }
-        // --------------------------------
+        // ============================================
        
-        // 设计引物对 - 新评分机制（完全按最新要求）
+        // 设计引物对
         function designPrimerPair(dnaSeq, mutation, params) {
             const { dnaPos, target, originalCodon } = mutation;
             const optimalCodon = optimalCodons[target];
@@ -855,7 +826,6 @@
                     for (let threeLen = params.threeMin; threeLen <= params.threeMax; threeLen++) {
                         if (fiveLen + 3 + threeLen !== primerLength) continue;
                        
-                        // 构建上游引物
                         const forwardStart = Math.max(0, dnaPos - fiveLen);
                         const forwardEnd = Math.min(dnaSeq.length, dnaPos + 3 + threeLen);
                         if (forwardStart < 0 || forwardEnd > dnaSeq.length) continue;
@@ -864,7 +834,6 @@
                         forwardPrimer += dnaSeq.substring(dnaPos + 3, forwardEnd);
                         if (forwardPrimer.length !== primerLength) continue;
                        
-                        // 构建下游引物模板
                         const reverseStart = Math.max(0, dnaPos - threeLen);
                         const reverseEnd = Math.min(dnaSeq.length, dnaPos + 3 + fiveLen);
                         if (reverseStart < 0 || reverseEnd > dnaSeq.length) continue;
@@ -874,46 +843,30 @@
                         if (reverseTemplate.length !== primerLength) continue;
                         const reversePrimer = getReverseComplement(reverseTemplate);
                        
-                        // 计算参数
                         const forwardGC = calculateGC(forwardPrimer);
                         const reverseGC = calculateGC(reversePrimer);
                         const forwardTm = calculateTm(forwardPrimer, forwardGC, mismatch);
                         const reverseTm = calculateTm(reversePrimer, reverseGC, mismatch);
                        
-                        // ---- 硬性筛选 ----
                         const tmValid = forwardTm >= params.tmMin && forwardTm <= params.tmMax &&
                                       reverseTm >= params.tmMin && reverseTm <= params.tmMax;
                         const gcValid = forwardGC >= params.gcMin && forwardGC <= params.gcMax &&
                                       reverseGC >= params.gcMin && reverseGC <= params.gcMax;
                         if (!tmValid || !gcValid) continue;
                        
-                        // ---- 计算综合得分（按新规则） ----
                         let score = 0;
-                        // 末端奖励（每条引物末位C/G +10）
                         if (/[CG]$/.test(forwardPrimer)) score += 10;
                         if (/[CG]$/.test(reversePrimer)) score += 10;
-                       
-                        // Tm偏离扣分（改为0.2）
                         score -= (Math.abs(forwardTm - idealTm) + Math.abs(reverseTm - idealTm)) * 0.2;
-                        // GC偏离扣分（改为0.2）
                         score -= (Math.abs(forwardGC - idealGC) + Math.abs(reverseGC - idealGC)) * 0.2;
-                       
-                        // 长度惩罚（改为0.2）
                         score -= (primerLength - params.lengthMin) * 0.2;
-                       
-                        // 互补配对得分（新规则）
                         score += complementScore(forwardPrimer, reversePrimer);
-                       
-                        // 连续4个相同碱基惩罚（每出现一次扣1分）
                         const fConsec = countFourConsecutive(forwardPrimer);
                         const rConsec = countFourConsecutive(reversePrimer);
                         score -= (fConsec + rConsec);
-                       
-                        // 3'端最后5个碱基中C/G≥4惩罚（保留原规则）
                         if (countEndCG(forwardPrimer) >= 4) score -= 1;
                         if (countEndCG(reversePrimer) >= 4) score -= 1;
                        
-                        // 保留最佳
                         if (score > bestScore) {
                             bestScore = score;
                             bestPrimer = {
@@ -941,14 +894,12 @@
             }
         }
        
-        // 辅助：统计3'端最后5个碱基中C/G个数（原函数保留）
         function countEndCG(seq) {
             const end = seq.slice(-5);
             const cg = (end.match(/[CG]/g) || []).length;
             return cg;
         }
        
-        // 获取反向互补序列
         function getReverseComplement(seq) {
             const complement = { 'A': 'T', 'T': 'A', 'C': 'G', 'G': 'C' };
             let result = '';
@@ -958,7 +909,6 @@
             return result;
         }
        
-        // 设计引物
         function designPrimers() {
             hideMessages();
            
@@ -1087,8 +1037,8 @@
                         <thead>
                             <tr>
                                 <th>突变体名称</th>
-                                <th>上游引物 (5\'→3\')</th>
-                                <th>下游引物 (5\'→3\')</th>
+                                <th>上游引物 (5'→3')</th>
+                                <th>下游引物 (5'→3')</th>
                                 <th>上游参数</th>
                                 <th>下游参数</th>
                                 <th>其他信息</th>
